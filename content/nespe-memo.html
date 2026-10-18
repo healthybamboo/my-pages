@@ -237,7 +237,7 @@ body.nogloss .ab{text-decoration:none;cursor:inherit}
 
 <script id="data">
 var CH=[
- {id:'phy',name:'LAN・物理'},{id:'wifi',name:'無線LAN'},{id:'hdr',name:'ヘッダ'},{id:'num',name:'番号'},
+ {id:'base',name:'基礎'},{id:'phy',name:'LAN・物理'},{id:'wifi',name:'無線LAN'},{id:'hdr',name:'ヘッダ'},{id:'num',name:'番号'},
  {id:'addr',name:'アドレス'},{id:'stp',name:'STP'},{id:'rt',name:'ルーティング'},{id:'vpn',name:'TCP・VPN'},
  {id:'app',name:'運用・アプリ'},{id:'qos',name:'QoS・計算・攻撃'},{id:'sys',name:'システム構成'}
 ];
@@ -245,6 +245,16 @@ var TABLES=[];
 function T(id,ch,title,cols,rows,o){o=o||{};TABLES.push({id:id,ch:ch,title:title,cols:cols.split('|'),rows:rows.map(function(r){return r.split('|');}),note:o.note||'',rev:!!o.rev,hide:o.hide||null});}
 /* G: ヘッダ図。kind='bits'(32bit幅のビット図)/'bar'(バイト単位の帯)。field=[名前, ビット数orバイト数, 表示ラベル, 帯の幅の重み] */
 function G(id,ch,title,kind,rows,o){o=o||{};TABLES.push({id:id,ch:ch,title:title,kind:kind,width:o.width||32,cols:[],rows:rows,note:o.note||'',rev:true,hide:[]});}
+
+/* ---------- 基礎 ---------- */
+T('osi','base','OSI参照モデル と TCP/IPモデル','層|OSI参照モデル|TCP/IPモデル|PDUの呼び方|代表的なプロトコル|代表的な機器',[
+'第7層|アプリケーション層|アプリケーション層|メッセージ(データ)|HTTP・SMTP・DNS・SNMP|L7ロードバランサ・WAF・プロキシ',
+'第6層|プレゼンテーション層|アプリケーション層|—|データの表現(文字コード・圧縮・暗号化)|—',
+'第5層|セッション層|アプリケーション層|—|通信の開始・終了の管理|—',
+'第4層|トランスポート層|トランスポート層|セグメント(TCP)/ データグラム(UDP)|TCP・UDP|L4スイッチ',
+'第3層|ネットワーク層|インターネット層|パケット|IP・ICMP|ルータ・L3スイッチ',
+'第2層|データリンク層|リンク層|フレーム|Ethernet・PPP・無線LAN(802.11)|L2スイッチ・ブリッジ・無線AP',
+'第1層|物理層|リンク層|ビット|BASE規格・光ファイバ|リピータ・リピータハブ・メディアコンバータ'],{rev:1,note:'上から「ア・プ・セ・ト・ネ・デ・ブ」(アプセトネデブ)。TCP/IPは4層で、OSIの7〜5層をアプリケーション層に、2〜1層をリンク層にまとめる。PDUは下から ビット → フレーム → パケット → セグメント → メッセージ。機器は「何を見て転送するか」で層が決まる:MAC = 2層、IPアドレス = 3層、ポート番号 = 4層、URLなど中身 = 7層。'});
 
 /* ---------- LAN・物理 ---------- */
 T('eth','phy','イーサネット規格(速度の世代順)','規格|速度|媒体|ケーブル / 波長|最大距離',[
@@ -855,6 +865,7 @@ T('raid','sys','RAID のレベル','RAID|方式|最小台数|使える容量(n�
 'RAID 1+0(10)|ミラーリングしたペアをストライピング|4台|n ÷ 2台分|1台(同じペアの2台が壊れなければ、最大 n ÷ 2台)'],{rev:1,note:'0 = 冗長なし、1 = 丸ごと複製、3・4・5 = パリティ1台分、6 = パリティ2台分。容量は「パリティの台数だけ引く」と覚える。3と4は専用のパリティディスクに書込みが集中してボトルネックになるので、5でパリティを全ディスクに分散して解消した。例:1TB × 4台なら、RAID 0 = 4TB、RAID 5 = 3TB、RAID 6 = 2TB、RAID 10 = 2TB。'});
 
 var EX={
+'osi':'OSI参照モデルはISOとITU-T(X.200)が定めた7層の理論上のモデルで、実際のインターネットはTCP/IPの4層(RFC 1122:アプリケーション・トランスポート・インターネット・リンク)で動いている。日本の教材では、リンク層を「ネットワークインタフェース層」と呼ぶことも多い。試験では、機器がどの層で動くかと、層の境目にあるプロトコルが問われる(ARPは2層と3層の間、TLSは4層の上でアプリケーションを守る、と説明されることが多い)。',
 'eth':'BASE規格の名前は「速度 + 伝送方式 + 媒体」。ツイストペアは電気信号なので、減衰とノイズのため100mが上限。光ファイバは、コアが太く複数の光の通り道があるMMF(マルチモード:光が広がりやすく短距離向け)と、コアが細いSMF(シングルモード:長距離向け)に分かれる。SXとLXの距離の差は、主にMMFのモード分散(光の通り道ごとに到着時間がずれる現象)と波長による減衰の違いから来る。',
 'cat':'カテゴリはケーブルの品質の規格。扱える周波数帯域が広いほど、高い速度を通せる。Cat6Aは、隣のケーブルからのノイズ(エイリアンクロストーク)対策込みで、10Gbpsを100m保証する。今の新設はCat6Aが主流。',
 'poe':'PoEは、LANケーブルでデータと一緒に電力も送る仕組み。PSE(給電側:PoEスイッチなど)とPD(受電側:無線AP・IP電話・カメラ)の差は、ケーブルでの損失分。給電前に相手がPDかどうかを検出するので、非対応の機器をつないでも壊れない。設計問題では、スイッチ全体で給電できる合計量(PoEバジェット)がよく問われる。',
@@ -956,7 +967,7 @@ var FD={
 
 /* ---------- 出典(2026年10月18日に照合) ---------- */
 var VERIFIED='2026年10月18日';
-var RFCT={768:'UDP',791:'IPv4',792:'ICMP',959:'FTP',1034:'DNS 概念',1035:'DNS 実装と仕様',1112:'IPマルチキャスト',1191:'Path MTU Discovery',1350:'TFTP',1812:'ルータの要件',1918:'プライベートアドレス',1939:'POP3',1995:'IXFR',2131:'DHCP',2181:'DNS仕様の明確化',2281:'HSRP',2328:'OSPFv2',2409:'IKE(v1)',2453:'RIPv2',2464:'IPv6 over Ethernet',2474:'DSフィールド(DSCP)',2516:'PPPoE',2597:'AF PHB',2661:'L2TP',2782:'SRVレコード',2784:'GRE',2827:'イングレスフィルタリング(BCP 38)',2865:'RADIUS',2866:'RADIUSアカウンティング',3021:'/31 プレフィックス',3031:'MPLSアーキテクチャ',3032:'MPLSラベルスタック',3101:'OSPF NSSA',3168:'ECN',3246:'EF PHB',3261:'SIP',3411:'SNMPアーキテクチャ',3414:'SNMPv3 USM',3416:'SNMPのプロトコル操作',3550:'RTP',3704:'uRPF(マルチホーム環境のイングレスフィルタ)',3748:'EAP',3849:'IPv6ドキュメント用プレフィックス',3927:'IPv4リンクローカル',3948:'ESPのUDPカプセル化(NAT-T)',4033:'DNSSEC 概要',4034:'DNSSEC レコード',4035:'DNSSEC プロトコル',4193:'IPv6 ULA',4271:'BGP-4',4291:'IPv6アドレス体系',4301:'IPsecアーキテクチャ',4302:'AH',4303:'ESP',4364:'BGP/MPLS IP VPN',4251:'SSHアーキテクチャ',4443:'ICMPv6',4456:'BGPルートリフレクタ',4511:'LDAP',4594:'DiffServのサービスクラス',4632:'CIDR',4861:'IPv6 近隣探索(NDP)',4987:'SYNフラッド攻撃と対策',5155:'NSEC3',5216:'EAP-TLS',5280:'X.509証明書とCRL',5281:'EAP-TTLS',5321:'SMTP',5358:'DNS再帰サーバの反射攻撃対策',5424:'syslog',5425:'syslog over TLS',5452:'DNS偽造応答への耐性',5681:'TCP輻輳制御',5737:'IPv4ドキュメント用アドレス',5798:'VRRPv3(旧版)',5905:'NTPv4',5936:'AXFR',6056:'送信元ポートのランダム化',6066:'TLS拡張(SNI)',6105:'RAガード',6335:'ポート番号の管理手続き',6376:'DKIM',6409:'メール投稿(サブミッション)',6587:'syslog over TCP',6598:'共有アドレス空間 100.64/10',6935:'IPv6トンネルのUDPゼロチェックサム',6960:'OCSP',6996:'プライベートAS番号',7143:'iSCSI',7208:'SPF',7217:'安定したインタフェースID',7239:'Forwardedヘッダ',7296:'IKEv2',7301:'ALPN',7323:'TCPウィンドウスケール',7348:'VXLAN',7567:'AQMの推奨',7766:'DNS over TCP',8064:'インタフェースIDの推奨方式',8200:'IPv6',8201:'IPv6のPath MTU Discovery',8314:'メールのTLS(暗黙的TLSのポート)',8415:'DHCPv6',8446:'TLS 1.3',8489:'STUN',8656:'TURN',8659:'CAAレコード',8866:'SDP',8907:'TACACS+',8981:'IPv6一時アドレス',9000:'QUIC',9051:'IMAP4rev2',9110:'HTTPのセマンティクス',9112:'HTTP/1.1',9113:'HTTP/2',9114:'HTTP/3',9190:'EAP-TLS 1.3',9293:'TCP',9568:'VRRPv3',9637:'IPv6ドキュメント用 3fff::/20',9768:'AccECN(AEフラグ)',9849:'TLS ECH',9887:'TACACS+ over TLS 1.3',9989:'DMARC'};
+var RFCT={768:'UDP',1122:'インターネットホストの要件(TCP/IPの4層)',791:'IPv4',792:'ICMP',959:'FTP',1034:'DNS 概念',1035:'DNS 実装と仕様',1112:'IPマルチキャスト',1191:'Path MTU Discovery',1350:'TFTP',1812:'ルータの要件',1918:'プライベートアドレス',1939:'POP3',1995:'IXFR',2131:'DHCP',2181:'DNS仕様の明確化',2281:'HSRP',2328:'OSPFv2',2409:'IKE(v1)',2453:'RIPv2',2464:'IPv6 over Ethernet',2474:'DSフィールド(DSCP)',2516:'PPPoE',2597:'AF PHB',2661:'L2TP',2782:'SRVレコード',2784:'GRE',2827:'イングレスフィルタリング(BCP 38)',2865:'RADIUS',2866:'RADIUSアカウンティング',3021:'/31 プレフィックス',3031:'MPLSアーキテクチャ',3032:'MPLSラベルスタック',3101:'OSPF NSSA',3168:'ECN',3246:'EF PHB',3261:'SIP',3411:'SNMPアーキテクチャ',3414:'SNMPv3 USM',3416:'SNMPのプロトコル操作',3550:'RTP',3704:'uRPF(マルチホーム環境のイングレスフィルタ)',3748:'EAP',3849:'IPv6ドキュメント用プレフィックス',3927:'IPv4リンクローカル',3948:'ESPのUDPカプセル化(NAT-T)',4033:'DNSSEC 概要',4034:'DNSSEC レコード',4035:'DNSSEC プロトコル',4193:'IPv6 ULA',4271:'BGP-4',4291:'IPv6アドレス体系',4301:'IPsecアーキテクチャ',4302:'AH',4303:'ESP',4364:'BGP/MPLS IP VPN',4251:'SSHアーキテクチャ',4443:'ICMPv6',4456:'BGPルートリフレクタ',4511:'LDAP',4594:'DiffServのサービスクラス',4632:'CIDR',4861:'IPv6 近隣探索(NDP)',4987:'SYNフラッド攻撃と対策',5155:'NSEC3',5216:'EAP-TLS',5280:'X.509証明書とCRL',5281:'EAP-TTLS',5321:'SMTP',5358:'DNS再帰サーバの反射攻撃対策',5424:'syslog',5425:'syslog over TLS',5452:'DNS偽造応答への耐性',5681:'TCP輻輳制御',5737:'IPv4ドキュメント用アドレス',5798:'VRRPv3(旧版)',5905:'NTPv4',5936:'AXFR',6056:'送信元ポートのランダム化',6066:'TLS拡張(SNI)',6105:'RAガード',6335:'ポート番号の管理手続き',6376:'DKIM',6409:'メール投稿(サブミッション)',6587:'syslog over TCP',6598:'共有アドレス空間 100.64/10',6935:'IPv6トンネルのUDPゼロチェックサム',6960:'OCSP',6996:'プライベートAS番号',7143:'iSCSI',7208:'SPF',7217:'安定したインタフェースID',7239:'Forwardedヘッダ',7296:'IKEv2',7301:'ALPN',7323:'TCPウィンドウスケール',7348:'VXLAN',7567:'AQMの推奨',7766:'DNS over TCP',8064:'インタフェースIDの推奨方式',8200:'IPv6',8201:'IPv6のPath MTU Discovery',8314:'メールのTLS(暗黙的TLSのポート)',8415:'DHCPv6',8446:'TLS 1.3',8489:'STUN',8656:'TURN',8659:'CAAレコード',8866:'SDP',8907:'TACACS+',8981:'IPv6一時アドレス',9000:'QUIC',9051:'IMAP4rev2',9110:'HTTPのセマンティクス',9112:'HTTP/1.1',9113:'HTTP/2',9114:'HTTP/3',9190:'EAP-TLS 1.3',9293:'TCP',9568:'VRRPv3',9637:'IPv6ドキュメント用 3fff::/20',9768:'AccECN(AEフラグ)',9849:'TLS ECH',9887:'TACACS+ over TLS 1.3',9989:'DMARC'};
 var SX={
  iana_port:['IANA ポート番号の登録簿','https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml'],
  iana_proto:['IANA IPプロトコル番号の登録簿','https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml'],
@@ -986,6 +997,7 @@ var SX={
  cisco_rg:['Cisco:STP Root Guard Enhancement','https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/10588-74.html'],
  cisco_hsrp:['Cisco:HSRP Features and Functionality(仮想MAC)','https://www.cisco.com/c/en/us/support/docs/ip/hot-standby-router-protocol-hsrp/9234-hsrpguidetoc.html'],
  cisco_wred:['Cisco:WRED の設定(TCPグローバル同期)','https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/qos_conavd/configuration/xe-16/qos-conavd-xe-16-book/qos-conavd-cfg-wred.html'],
+ itux200:['ITU-T X.200(OSI基本参照モデル)','https://www.itu.int/rec/T-REC-X.200'],
  itu711:['ITU-T G.711','https://www.itu.int/rec/T-REC-G.711'],
  itu729:['ITU-T G.729','https://www.itu.int/rec/T-REC-G.729'],
  itu114:['ITU-T G.114(片道伝送時間)','https://www.itu.int/rec/T-REC-G.114'],
@@ -995,7 +1007,7 @@ var SX={
  snia_raid6:['SNIA Dictionary:RAID 6','https://www.snia.org/education/online-dictionary/term/raid-6']
 };
 var SRC={
- eth:['ieee3','fluke','ieee3er'],cat:['ieee3','fluke'],poe:['ieee3'],ieee:['ieee1','ieee3'],frame:['ieee3','iana_802'],tag:['ieee1'],
+ osi:[1122,'itux200'],eth:['ieee3','fluke','ieee3er'],cat:['ieee3','fluke'],poe:['ieee3'],ieee:['ieee1','ieee3'],frame:['ieee3','iana_802'],tag:['ieee1'],
  wgen:['ieee11','wfa'],walpha:['ieee11'],wsec:['ieee11','wfa'],eap:[3748,5216,9190,5281],wfreq:['soumu52','impress52','hitachi24','ieee11'],
  ipv4:[791,3168,2474],ipv6:[8200],v4v6:[791,8200],tcph:[9293,9768],flags:[9293,3168,9768],udph:[768,8200,6935],icmph:[792,1812],
  hlen:[791,8200,9293,768,2516,2784,7348,3032],mtu:[8200,2516,1191,8201],icmp:[792,'iana_icmp',1191],
@@ -1041,7 +1053,7 @@ var GLOSS={};
 'DKIM|DomainKeys Identified Mail','DMARC|Domain-based Message Authentication, Reporting and Conformance','EHLO|Extended HELLO','HELO|HELLO','HoL|Head-of-Line','HPACK|HTTP/2 のヘッダ圧縮方式','QPACK|HTTP/3 のヘッダ圧縮方式','SNI|Server Name Indication','ALPN|Application-Layer Protocol Negotiation','OCSP|Online Certificate Status Protocol','CRL|Certificate Revocation List','DHE|Diffie-Hellman Ephemeral','ECDHE|Elliptic Curve Diffie-Hellman Ephemeral',
 'SDP|Session Description Protocol','RTP|Real-time Transport Protocol','RTCP|RTP Control Protocol','DORA|Discover / Offer / Request / Ack','LB|Load Balancer','DSR|Direct Server Return','STUN|Session Traversal Utilities for NAT','TURN|Traversal Using Relays around NAT',
 'EF|Expedited Forwarding','AF|Assured Forwarding','CS|Class Selector','BE|Best Effort','PQ|Priority Queuing','WFQ|Weighted Fair Queuing','CBWFQ|Class-Based Weighted Fair Queuing','LLQ|Low Latency Queuing','WRED|Weighted Random Early Detection','MTBF|Mean Time Between Failures','MTTR|Mean Time To Repair','ITU-T|International Telecommunication Union Telecommunication Standardization Sector','RFC|Request for Comments',
-'IDS|Intrusion Detection System','IPS|Intrusion Prevention System','WAF|Web Application Firewall','UTM|Unified Threat Management','FW|Firewall','uRPF|Unicast Reverse Path Forwarding','XSS|Cross-Site Scripting','SQL|Structured Query Language','SW|Switch','IF|Interface','ISP|Internet Service Provider','RAID|Redundant Arrays of Inexpensive Disks|元の論文の表記。今は Independent Disks とすることが多い','XOR|Exclusive OR|排他的論理和','PPS|Packets Per Second','pps|packets per second'
+'IDS|Intrusion Detection System','IPS|Intrusion Prevention System','WAF|Web Application Firewall','UTM|Unified Threat Management','FW|Firewall','uRPF|Unicast Reverse Path Forwarding','XSS|Cross-Site Scripting','SQL|Structured Query Language','SW|Switch','IF|Interface','ISP|Internet Service Provider','OSI|Open Systems Interconnection','PDU|Protocol Data Unit','ISO|International Organization for Standardization|国際標準化機構','RAID|Redundant Arrays of Inexpensive Disks|元の論文の表記。今は Independent Disks とすることが多い','XOR|Exclusive OR|排他的論理和','PPS|Packets Per Second','pps|packets per second'
 ].forEach(function(s){var p=s.split('|');GLOSS[p[0]]={f:p[1],n:p[2]||''};});
 </script>
 
