@@ -1,0 +1,1342 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ネスペ暗記ノート</title>
+<style>
+:root{
+  --bg:#f4f3ee;--surface:#ffffff;--surface2:#f9f8f4;--ink:#1c1c1f;--sub:#6a6a72;--line:#e1dfd7;--head:#efede6;
+  --accent:#2c49d1;--accent-ink:#fff;--ng:#d4473f;--ok:#2b9a58;--mid:#d8981c;--new:#c3c1b8;
+  --mask:#d9d6ca;--peek:#2c49d1;--okbg:rgba(43,154,88,.09);--ngbg:rgba(212,71,63,.09);
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 2px 10px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141416;--surface:#1d1d21;--surface2:#232328;--ink:#ececef;--sub:#9b9ba4;--line:#2f2f36;--head:#26262c;
+    --accent:#7d95ff;--accent-ink:#0f1330;--ng:#ef6a61;--ok:#4cc27e;--mid:#e9b04a;--new:#55555c;
+    --mask:#3a3a42;--peek:#9aaeff;--okbg:rgba(76,194,126,.12);--ngbg:rgba(239,106,97,.12);--shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141416;--surface:#1d1d21;--surface2:#232328;--ink:#ececef;--sub:#9b9ba4;--line:#2f2f36;--head:#26262c;
+  --accent:#7d95ff;--accent-ink:#0f1330;--ng:#ef6a61;--ok:#4cc27e;--mid:#e9b04a;--new:#55555c;
+  --mask:#3a3a42;--peek:#9aaeff;--okbg:rgba(76,194,126,.12);--ngbg:rgba(239,106,97,.12);--shadow:none;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",Meiryo,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+.wrap{max-width:920px;margin:0 auto;padding:0 16px}
+header.top{padding:20px 0 6px}
+.titlebar{display:flex;align-items:flex-start;gap:12px}
+.titlebar h1{font-size:22px;margin:0;letter-spacing:.02em}
+.titlebar p{margin:2px 0 0;color:var(--sub);font-size:13px}
+.tools{margin-left:auto;display:flex;gap:6px;flex-shrink:0}
+.icon-btn{white-space:nowrap;border:1px solid var(--line);background:var(--surface);border-radius:10px;height:36px;min-width:36px;padding:0 10px;font-size:14px}
+.bar{display:flex;height:10px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:14px}
+.bar i{display:block;height:100%}
+.nums{display:flex;flex-wrap:wrap;gap:2px 14px;margin-top:6px;font-size:13px;color:var(--sub)}
+.nums b{color:var(--ink);font-size:16px}
+.sw{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:4px}
+nav.cats{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0;border-bottom:1px solid var(--line)}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{position:relative;flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:5px 12px 7px;font-size:13px;overflow:hidden;white-space:nowrap}
+.chip small{margin-left:6px;color:var(--sub);font-variant-numeric:tabular-nums}
+.chip i{position:absolute;left:0;bottom:0;height:3px;background:var(--ok)}
+.chip.on{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.chip.on small{color:inherit;opacity:.8}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:14px 0 4px}
+.toolbar .lbl{font-size:12px;color:var(--sub)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:none;padding:6px 11px;font-size:13px;white-space:nowrap}
+.seg button.on{background:var(--ink);color:var(--bg)}
+.seg button:disabled{opacity:.35;cursor:default}
+.intro{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:14px 0 0;font-size:14px}
+.intro h3{margin:0 0 6px;font-size:15px}
+.intro ol{margin:0;padding-left:20px}
+.intro .close{float:right;border:0;background:none;color:var(--sub);font-size:13px}
+.ch-head{margin:28px 0 6px;font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.06em}
+.tcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;margin:10px 0 16px;box-shadow:var(--shadow);overflow:hidden}
+.tcard.cleared{border-color:var(--ok)}
+.thead{display:flex;align-items:baseline;gap:10px;padding:14px 14px 6px;flex-wrap:wrap}
+.thead h3{margin:0;font-size:16px}
+.tstat{font-size:12px;color:var(--sub);margin-left:auto}
+.tstat.due{color:var(--mid);font-weight:700}
+.tstat.done{color:var(--ok);font-weight:700}
+.ctrl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 14px 10px}
+.mini{border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:5px 10px;font-size:12.5px}
+.tbl{overflow-x:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:13.5px}
+th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:6px 9px;text-align:left;vertical-align:top}
+th:last-child,td:last-child{border-right:0}
+tr:last-child td{border-bottom:0}
+th{background:var(--head);font-weight:650;font-size:12.5px;white-space:nowrap;position:relative}
+td.cue,th.cue{position:sticky;left:0;z-index:1;background:var(--surface);font-weight:650;min-width:84px}
+th.cue{background:var(--head)}
+td{min-width:64px}
+tr.ok td{background:var(--okbg)}tr.ng td{background:var(--ngbg)}
+tr.ok td.cue,tr.ng td.cue{background-image:linear-gradient(var(--okbg),var(--okbg))}
+tr.ng td.cue{background-image:linear-gradient(var(--ngbg),var(--ngbg))}
+.m{cursor:pointer;border-radius:5px}
+.m.hid{color:transparent;background:var(--mask);user-select:none}
+.m.hid *{visibility:hidden}
+.m.peek{color:var(--peek)}
+td.cue.tap{cursor:pointer}
+td.judge{white-space:nowrap;min-width:0;width:1%;padding:4px 6px}
+.jb{border:1px solid var(--line);background:var(--surface);border-radius:8px;width:34px;height:30px;font-weight:800;font-size:14px}
+.jb[data-j="1"]{color:var(--ok)}.jb[data-j="0"]{color:var(--ng)}
+tr.ok .jb[data-j="1"],.drow.ok .jb[data-j="1"]{background:var(--ok);color:#fff;border-color:var(--ok)}
+tr.ng .jb[data-j="0"],.drow.ng .jb[data-j="0"]{background:var(--ng);color:#fff;border-color:var(--ng)}
+.memo{padding:10px 14px 12px;font-size:13.5px;color:var(--ink);background:var(--surface2)}
+.memo summary{cursor:pointer;color:var(--sub);font-size:12.5px;font-weight:650}
+.memo p{margin:6px 0 0;border-left:3px solid var(--mid);padding-left:9px}
+.memo.ex{border-top:1px solid var(--line)}
+.srcs{margin-top:12px;font-size:12.5px;color:var(--sub)}
+.srcs b{color:var(--ink)}
+.srcs ul{margin:4px 0 0;padding-left:18px}
+.srcs li{margin:1px 0}
+.srcs a,.srcall a{color:var(--accent);text-decoration:none;word-break:break-all}
+.srcs a:hover,.srcall a:hover{text-decoration:underline}
+.srcall{margin:34px 0 0;padding:18px 16px;background:var(--surface);border:1px solid var(--line);border-radius:16px;font-size:13.5px}
+.srcall h2,#srcDlgBody h2{font-size:17px;margin:0 0 6px}
+.srcall h3,#srcDlgBody h3{font-size:14px;margin:16px 0 4px}
+.srcall p,#srcDlgBody p{margin:4px 0;color:var(--sub);font-size:13px}
+.srcall ul,#srcDlgBody ul{margin:2px 0;padding-left:18px;font-size:13px}
+#srcDlgBody a{color:var(--accent);text-decoration:none;word-break:break-all}
+.memo.ex p{border-left-color:var(--accent)}
+.fdl{display:grid;grid-template-columns:minmax(110px,auto) 1fr;gap:6px 12px;margin:10px 0 0;font-size:13px}
+.fdl dt{font-weight:700}
+.fdl dt span{display:block;font-weight:500;font-size:11.5px;color:var(--sub)}
+.fdl dd{margin:0}
+.f:not(.tg){cursor:help}
+.tfoot{padding:8px 14px 12px;font-size:12.5px;color:var(--sub);background:var(--surface2);border-top:1px solid var(--line)}
+.empty{color:var(--sub);text-align:center;padding:30px 0;font-size:14px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;max-width:calc(100% - 32px);text-align:center;z-index:20}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{color:var(--sub);font-size:12px;padding:24px 0 40px;text-align:center}
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);padding:0;max-width:580px;width:calc(100% - 32px)}
+dialog::backdrop{background:rgba(0,0,0,.35)}
+.dlg{padding:18px 20px 20px;max-height:82vh;overflow-y:auto}
+.dlg h3{margin:0 0 10px;font-size:17px}
+.dlg h4{margin:14px 0 4px;font-size:14px}
+.dlg p,.dlg li{font-size:14px}
+.dlg ul,.dlg ol{padding-left:20px;margin:4px 0}
+.dlg .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:8px 14px;font-weight:600;font-size:14px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+select{font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+/* header diagrams */
+.diag{overflow-x:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:10px 12px 12px;background:var(--surface)}
+.dwrap{min-width:480px}
+.dwrap.isbar{min-width:520px}
+.dbar .f .fn{font-size:12px}
+.dwrap.w8{min-width:0;max-width:520px}
+.drow{display:flex;gap:8px;align-items:stretch}
+.drow+.drow{margin-top:-1px}
+.dbar+.dbar{margin-top:8px}
+.dgrid{flex:1;display:grid;grid-auto-rows:minmax(40px,auto)}
+.ruler{flex:1;display:grid;font-size:10px;color:var(--sub);font-variant-numeric:tabular-nums;margin-bottom:2px}
+.ruler span{text-align:left;padding-left:1px;border-left:1px solid var(--line)}
+.f{border:1.5px solid var(--ink);margin:0 -1.5px -1.5px 0;padding:3px 4px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;line-height:1.25;background:var(--surface);min-width:0;word-break:break-all;position:relative}
+.f .fn{font-size:12.5px;font-weight:650}
+.f .fb{font-size:11px;color:var(--sub);margin-top:1px;padding:0 3px;border-radius:4px}
+.f.tall .fn{font-size:13.5px}
+.f.tg{cursor:pointer}
+.f.hid{background:var(--mask);color:transparent}
+.f.hid *{visibility:hidden}
+.f.hidb .fb{background:var(--mask);color:transparent}
+.f.peek .fn,.f.peek .fb{color:var(--peek)}
+.dbar{flex:1;display:flex}
+.dbar .f{min-width:38px;min-height:58px}
+.drow.ok .f:not(.hid){background:var(--okbg)}
+.drow.ng .f:not(.hid){background:var(--ngbg)}
+.djudge{display:flex;align-items:center;gap:4px;flex-shrink:0;width:78px}
+.djudge.sp{visibility:hidden}
+/* glossary */
+.ab{text-decoration:underline dotted;text-underline-offset:3px;text-decoration-color:var(--sub);cursor:help}
+body.nogloss .ab{text-decoration:none;cursor:inherit}
+.hid .ab{text-decoration:none}
+#gloss{position:absolute;z-index:30;max-width:300px;background:var(--ink);color:var(--bg);font-size:13px;line-height:1.45;padding:7px 10px;border-radius:9px;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:none;opacity:0;transition:opacity .12s}
+#gloss.show{opacity:1}
+#gloss b{display:block;font-size:12px;opacity:.75;font-weight:600}
+.glist{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13.5px;margin-top:8px}
+.glist dt{font-weight:700}
+.glist dd{margin:0;color:var(--ink)}
+#gq{width:100%;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink)}
+.toggle{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--sub);cursor:pointer;user-select:none}
+.toggle input{accent-color:var(--accent);width:16px;height:16px}
+@media (max-width:520px){.djudge{flex-direction:column;width:36px;justify-content:center}.djudge .jb{width:34px;height:28px}.dwrap{min-width:440px}.dwrap.isbar{min-width:480px}.titlebar h1{font-size:19px}table{font-size:13px}th,td{padding:5px 7px}}
+@media print{nav.cats,.ctrl,.toolbar,.tools,.intro,footer,td.judge,th.judge{display:none!important}.tcard{break-inside:avoid;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="titlebar">
+      <div><h1>ネスペ暗記ノート</h1><p id="subtitle">表ごと覚えて、赤シートのように隠して確かめる</p></div>
+      <div class="tools"><button class="icon-btn" id="glossBtn">略語</button><button class="icon-btn" id="srcBtn">出典</button><button class="icon-btn" id="helpBtn" title="使い方と覚え方">?</button><button class="icon-btn" id="setBtn">設定</button></div>
+    </div>
+    <div id="stats"></div>
+  </header>
+</div>
+<nav class="cats"><div class="wrap"><div class="chips" id="chips"></div></div></nav>
+<main class="wrap">
+  <div id="intro"></div>
+  <div class="toolbar">
+    <span class="lbl">表示</span>
+    <div class="seg" id="filterSeg"><button data-f="all" class="on">すべて</button><button data-f="todo">未クリア</button><button data-f="due">今日の復習</button></div>
+    <span class="lbl">一括</span>
+    <div class="seg" id="bulkSeg"><button data-s="see">見る</button><button data-s="holes">穴あき</button><button data-s="hide">隠す</button><button data-s="rev">逆</button></div>
+    <label class="toggle"><input type="checkbox" id="glossOn" checked>略語の説明</label>
+  </div>
+  <div id="list"></div>
+</main>
+<div class="wrap"><section class="srcall" id="srcAll"></section><footer>進捗はこのブラウザに保存されます。端末を移るときは「設定」から書き出し/読み込み。</footer></div>
+<div id="toast"></div>
+<div id="gloss"></div>
+<dialog id="srcDlg"><div class="dlg"><div id="srcDlgBody"></div><div class="actions"><button class="btn primary" data-close>閉じる</button></div></div></dialog>
+<dialog id="glossDlg"><div class="dlg">
+  <h3>略語一覧</h3>
+  <input id="gq" type="search" placeholder="略語や単語で絞り込み(例:EAP、Protocol)">
+  <dl class="glist" id="glist"></dl>
+  <div class="actions"><button class="btn primary" data-close>閉じる</button></div>
+</div></dialog>
+
+<dialog id="helpDlg"><div class="dlg">
+  <h3>使い方</h3>
+  <ol>
+    <li><b>見る</b>:表をそのまま眺める。縦(世代・順番)と横(項目)の並びごと頭に入れる。下の「覚え方」で、並びのパターンを確認する。</li>
+    <li><b>穴あき</b>:答えのセルがランダムに隠れる。隠れたセルを頭の中で埋めてから、タップしてめくる。「別の穴」で穴を入れ替えられる。</li>
+    <li><b>隠す</b>:左端の列だけを残し、答えの列をすべて隠す。行の左端をタップするとその行がまとめてめくれる。</li>
+    <li><b>逆</b>:今度は左端の列を隠し、右側から思い出す(番号 → プロトコル名など)。</li>
+    <li>各行の右端で <b>○</b>(全部言えた)/<b>✗</b>(言えなかった)を付ける。「隠す」か「逆」で全行○になると、その表は<b>クリア</b>。</li>
+  </ol>
+  <h4>なぜこの形なのか(認知心理学の観点)</h4>
+  <ul>
+    <li><b>表のまま覚える</b>:バラバラの一問一答より、位置と並び(何行目の何列目か)を手がかりにした方が思い出しやすくなります。試験中も「あの表のあの行」で引けます。</li>
+    <li><b>手がかりを少しずつ消す</b>:見る → 穴あき → 隠す → 逆 の順に、ヒントを段階的に減らしていきます(手がかり漸減法)。いきなり白紙より挫折しにくく定着します。</li>
+    <li><b>世代順・対比で並べる</b>:802.11やBASE規格は世代の流れ、RIP/OSPF/BGPやVRRP/HSRPは横並びの比較にしています。物語や違いとして意味づけると忘れにくくなります。</li>
+    <li><b>チャンク化</b>:ポート番号などは用途別に5〜9行の小さな表に分けています。人が一度に扱いやすい量です。</li>
+    <li><b>想起と自己判定</b>:めくる前に思い出すこと自体が記憶を強めます(テスト効果)。✗の行は次の穴あきで隠れやすくなります。</li>
+    <li><b>分散学習</b>:クリアするたびに次の復習日が 1日 → 3日 → 7日 → 16日 → 35日後と延びます。復習日前に再クリアしても回数は増えません。3回クリアで「定着」です。</li>
+  </ul>
+  <div class="actions"><button class="btn primary" data-close>閉じる</button></div>
+</div></dialog>
+
+<dialog id="setDlg"><div class="dlg">
+  <h3>設定</h3>
+  <div class="setrow"><span>表示テーマ</span><select id="optTheme"><option value="">端末に合わせる</option><option value="light">ライト</option><option value="dark">ダーク</option></select></div>
+  <div class="setrow"><span>進捗の書き出し/読み込み</span><span style="display:flex;gap:6px"><button class="btn" id="expBtn">書き出し</button><button class="btn" id="impBtn">読み込み</button></span></div>
+  <input type="file" id="impFile" accept="application/json,.json" hidden>
+  <div class="setrow"><span>進捗をすべて消す</span><button class="btn" id="resetBtn" style="color:var(--ng)">リセット</button></div>
+  <div class="actions"><button class="btn primary" data-close>閉じる</button></div>
+</div></dialog>
+
+<script id="data">
+var CH=[
+ {id:'phy',name:'LAN・物理'},{id:'wifi',name:'無線LAN'},{id:'hdr',name:'ヘッダ'},{id:'num',name:'番号'},
+ {id:'addr',name:'アドレス'},{id:'stp',name:'STP'},{id:'rt',name:'ルーティング'},{id:'vpn',name:'TCP・VPN'},
+ {id:'app',name:'運用・アプリ'},{id:'qos',name:'QoS・計算・攻撃'}
+];
+var TABLES=[];
+function T(id,ch,title,cols,rows,o){o=o||{};TABLES.push({id:id,ch:ch,title:title,cols:cols.split('|'),rows:rows.map(function(r){return r.split('|');}),note:o.note||'',rev:!!o.rev,hide:o.hide||null});}
+/* G: ヘッダ図。kind='bits'(32bit幅のビット図)/'bar'(バイト単位の帯)。field=[名前, ビット数orバイト数, 表示ラベル, 帯の幅の重み] */
+function G(id,ch,title,kind,rows,o){o=o||{};TABLES.push({id:id,ch:ch,title:title,kind:kind,width:o.width||32,cols:[],rows:rows,note:o.note||'',rev:true,hide:[]});}
+
+/* ---------- LAN・物理 ---------- */
+T('eth','phy','イーサネット規格(速度の世代順)','規格|速度|媒体|ケーブル / 波長|最大距離',[
+'10BASE-T|10Mbps|UTP(2対)|Cat3以上|100m',
+'100BASE-TX|100Mbps|UTP(2対)|Cat5以上|100m',
+'1000BASE-T|1Gbps|UTP(4対)|Cat5e以上(規格上はCat5で動作するよう設計)|100m',
+'10GBASE-T|10Gbps|UTP(4対)|Cat6A(Cat6は55m)|100m',
+'1000BASE-SX|1Gbps|MMF|850nm(短波長)|550m',
+'1000BASE-LX|1Gbps|SMF(MMFも可)|1310nm(長波長)|5km(MMFは550m)',
+'10GBASE-SR|10Gbps|MMF|850nm|300m',
+'10GBASE-LR|10Gbps|SMF|1310nm|10km',
+'10GBASE-ER|10Gbps|SMF|1550nm|40km'],{rev:1,note:'銅線はどれも100m。速度が1桁上がるたびにケーブルも1段上がる(Cat3 → 5 → 5e → 6A)。1000BASE-T から4対すべてを使う。光は末尾の文字で決まる:S(Short)= MMF・数百m、L(Long)= 主にSMF・km単位(1000BASE-LXはMMFでも550m)、E(Extended)= 40km。波長は 850 → 1310 → 1550nm と長くなる。'});
+T('cat','phy','ケーブルカテゴリ','カテゴリ|主な速度|周波数帯域|代表規格',[
+'Cat3|10Mbps|16MHz|10BASE-T',
+'Cat5|100Mbps|100MHz|100BASE-TX',
+'Cat5e|1Gbps|100MHz|1000BASE-T',
+'Cat6|1Gbps(10Gbpsは55mまで)|250MHz|1000BASE-T',
+'Cat6A|10Gbps|500MHz|10GBASE-T',
+'Cat7|10Gbps|600MHz|ISO/IEC規格のClass F(TIA規格にはない・シールド付き)',
+'Cat8|25 / 40Gbps(30mまで)|2000MHz|25G・40GBASE-T'],{rev:1,note:'5e の e は enhanced(強化)、6A の A は Augmented(拡張)。「e が付くと1G、A が付くと10G」。帯域は 100 → 250 → 500 → 600 → 2000MHz。'});
+T('poe','phy','PoE(給電量の世代順)','規格|通称|給電側(PSE)|受電側(PD)|給電に使う対',[
+'IEEE 802.3af|PoE|15.4W|12.95W|2対',
+'IEEE 802.3at|PoE+|30W|25.5W|2対',
+'IEEE 802.3bt Type3|PoE++|60W|51W|4対',
+'IEEE 802.3bt Type4|PoE++|90W|71.3W|4対'],{rev:1,note:'給電側は 15.4 → 30 → 60 → 90W と、ほぼ倍々。af → at → bt はアルファベット順。bt から4対すべてで給電する。'});
+T('ieee','phy','IEEE 802.1 / 802.3 の番号','規格|内容',[
+'802.1D|STP',
+'802.1w|RSTP',
+'802.1s|MSTP',
+'802.1Q|VLANタグ',
+'802.1ad|QinQ(VLANタグの二重化)',
+'802.1AX(旧802.3ad)|リンクアグリゲーション(LACP)',
+'802.1X|ポート単位の認証',
+'802.1AB|LLDP',
+'802.3x|全二重のフロー制御(PAUSEフレーム)',
+'802.3af / at / bt|PoE'],{rev:1,note:'802.1 はブリッジ・管理系、802.3 はEthernetそのもの。STP系は D → w → s の順に新しい(s は複数インスタンスの MSTP)。'});
+G('frame','phy','Ethernet II フレーム(上:通常/下:VLANタグ付き)','bar',[
+ [['プリアンブル+SFD',8,'8',6],['宛先MAC',6,'6',6],['送信元MAC',6,'6',6],['タイプ',2,'2',3],['データ',46,'46〜1500',12],['FCS',4,'4',4]],
+ [['プリアンブル+SFD',8,'8',6],['宛先MAC',6,'6',6],['送信元MAC',6,'6',6],['802.1Qタグ',4,'4',4],['タイプ',2,'2',3],['データ',42,'42〜1500',12],['FCS',4,'4',4]]
+],{note:'宛先が先頭(スイッチがすぐ転送先を決められる)。タグは送信元MACとタイプの間に割り込む。最小64バイト = 6 + 6 + 2 + 46 + 4、最大1518バイト(タグ付きは1522)。タグ付きでも最小は64バイトのままなので、データの最小は42バイト(6 + 6 + 4 + 2 + 42 + 4)。プリアンブルはフレーム長に数えない。'});
+G('tag','phy','IEEE 802.1Q タグ(32bit)','bits',[
+ [['TPID(0x8100)',16],['PCP',3],['DEI',1],['VID(VLAN ID)',12]]
+],{note:'16 + 3 + 1 + 12 = 32bit = 4バイト。PCPは優先度(CoS 0〜7)、DEIは輻輳時に捨ててよい印。VIDは12bitなので1〜4094(0と4095は予約)。'});
+
+/* ---------- 無線LAN ---------- */
+T('wgen','wifi','IEEE 802.11(世代順)','規格|呼称|周波数帯|最大速度|キーワード',[
+'11b|—|2.4GHz|11Mbps|DSSS',
+'11a|—|5GHz|54Mbps|OFDM',
+'11g|—|2.4GHz|54Mbps|OFDM(11bと互換)',
+'11n|Wi-Fi 4|2.4 / 5GHz|600Mbps|MIMO(4ストリーム)・40MHz幅',
+'11ac|Wi-Fi 5|5GHz|6.9Gbps|下りMU-MIMO・160MHz幅',
+'11ax|Wi-Fi 6 / 6E|2.4 / 5GHz(6Eは+6GHz)|9.6Gbps|OFDMA・上下MU-MIMO・TWT',
+'11be|Wi-Fi 7|2.4 / 5 / 6GHz|46Gbps|MLO・320MHz幅・4096QAM'],{rev:1,note:'速度は 11 → 54 → 54 → 600M → 6.9G → 9.6G → 46G。ac と ax は 6.9 と 9.6 で数字が反転。5GHzだけは a と ac、2.4GHzだけは b と g。n 以降は Wi-Fi 4・5・6・7 と数字で呼ぶ。ax はOFDMAで「高密度環境の効率化」、be は MLO で「複数バンドの同時利用」。'});
+T('walpha','wifi','802.11 の機能別規格','規格|内容',[
+'11e|QoS(Wi-Fi認定名は WMM)',
+'11i|セキュリティ(WPA2の元)',
+'11k|近隣APの情報提供',
+'11r|高速ローミング(FT)',
+'11v|BSS遷移管理(APが移動先を促す)',
+'11w|管理フレームの保護(PMF)'],{rev:1,note:'k・v・r はローミング支援の3点セット(r = roaming)。i はセキュリティ、w は管理フレーム保護で、WPA3では w が必須。'});
+T('wsec','wifi','無線LANセキュリティ(世代順)','方式|暗号化|鍵交換・認証|状態',[
+'WEP|RC4|共有鍵|脆弱で使用不可',
+'WPA|TKIP(RC4ベース)|PSK / 802.1X|WPA2までのつなぎ',
+'WPA2|AES-CCMP|PSK / 802.1X|IEEE 802.11i 準拠',
+'WPA3|AES-CCMP / GCMP-256(192bitモード)|SAE / 802.1X|PMF必須'],{rev:1,note:'暗号は RC4 → TKIP → AES と強くなる。WPA3 は PSK を SAE に置き換え、オフライン辞書攻撃に強い。Personal = PSK / SAE、Enterprise = 802.1X。'});
+T('eap','wifi','EAPの認証方式','方式|サーバ証明書|クライアント側の認証',[
+'EAP-TLS|必要|クライアント証明書',
+'PEAP|必要|ID・パスワード',
+'EAP-TTLS|必要|ID・パスワード'],{note:'双方とも証明書を使うのは EAP-TLS だけ。PEAP と EAP-TTLS は、TLSトンネルの中でパスワード認証をする。'});
+T('wfreq','wifi','周波数帯とアクセス制御','項目|内容',[
+'2.4GHz帯の非干渉チャネル|1・6・11 の3つ(22MHz幅の11b基準。日本の13ch環境で20MHz幅のg・nなら1・5・9・13の4つ)',
+'W52(5.2GHz帯)|36〜48ch・DFS不要・原則屋内(屋外は登録局のAPとの通信なら可)',
+'W53(5.3GHz帯)|52〜64ch・DFS必要・屋内限定',
+'W56(5.6GHz帯)|100〜144ch・DFS必要・屋外も可',
+'アクセス制御方式|CSMA/CA',
+'隠れ端末問題の対策|RTS/CTS'],{note:'DFSが必要なのは、気象レーダーなどと重なる W53 と W56。無線は衝突を検出できないので、有線のCSMA/CD(検出)ではなく CSMA/CA(回避)。'});
+
+/* ---------- ヘッダ ---------- */
+G('ipv4','hdr','IPv4ヘッダ','bits',[
+ [['バージョン',4],['IHL',4],['ToS(DSCP+ECN)',8],['全長',16]],
+ [['識別子',16],['フラグ',3],['フラグメントオフセット',13]],
+ [['TTL',8],['プロトコル',8],['ヘッダチェックサム',16]],
+ [['送信元IPアドレス',32]],
+ [['宛先IPアドレス',32]],
+ [['オプション+パディング',32,'可変']]
+],{note:'1行目=自己紹介(版と長さ)、2行目=分割の情報、3行目=寿命・中身・検査、4・5行目=住所。5行 × 4バイト = 最小20バイト、最大60バイト。'});
+G('ipv6','hdr','IPv6ヘッダ(40バイト固定)','bits',[
+ [['バージョン',4],['トラフィッククラス',8],['フローラベル',20]],
+ [['ペイロード長',16],['次ヘッダ',8],['ホップリミット',8]],
+ [['送信元IPアドレス',128]],
+ [['宛先IPアドレス',128]]
+],{note:'IPv4の1〜3行目を2行に圧縮し、分割と検査を捨てた形。10行 × 4バイト = 40バイト。'});
+T('v4v6','hdr','IPv4 → IPv6 のフィールド対応','IPv4|IPv6',[
+'TTL|ホップリミット',
+'プロトコル|次ヘッダ',
+'ToS|トラフィッククラス',
+'全長|ペイロード長(ヘッダを含まない)',
+'ヘッダチェックサム|廃止',
+'識別子・フラグ・オフセット|フラグメント拡張ヘッダへ(分割は送信元だけ)',
+'オプション|拡張ヘッダ',
+'(なし)|フローラベル(新設)'],{rev:1,note:'IPv6で消えたのは「検査」と「途中での分割」。ルータが分割しないので、大きすぎるとICMPv6 Packet Too Big を送信元へ返す。'});
+G('tcph','hdr','TCPヘッダ','bits',[
+ [['送信元ポート',16],['宛先ポート',16]],
+ [['シーケンス番号',32]],
+ [['確認応答番号',32]],
+ [['データオフセット',4],['予約',4],['フラグ',8],['ウィンドウサイズ',16]],
+ [['チェックサム',16],['緊急ポインタ',16]],
+ [['オプション(MSS・SACKなど)',32,'可変']]
+],{note:'1行目=ポート、2・3行目=番号(送った位置と受け取った位置)、4行目=長さ・フラグ・受信できる量、5行目=検査。最小20バイト〜最大60バイトはIPv4と同じ。'});
+G('flags','hdr','TCPフラグ(8bit・ヘッダ内の並び順)','bits',[
+ [['CWR',1],['ECE',1],['URG',1],['ACK',1],['PSH',1],['RST',1],['SYN',1],['FIN',1]]
+],{width:8,note:'前の2つ(CWR・ECE)は輻輳通知用に後から追加。真ん中が URG・ACK・PSH、最後の3つ RST・SYN・FIN が接続の制御。CWRの手前の予約領域の1bitは、2026年のRFC 9768でAE(Accurate ECN)フラグになった(試験ではRFC 9293の8フラグで答えるのが無難)。'});
+G('udph','hdr','UDPヘッダ(8バイト)','bits',[
+ [['送信元ポート',16],['宛先ポート',16]],
+ [['長さ',16],['チェックサム',16]]
+],{note:'TCPヘッダの1行目と同じ形に、「長さ・チェックサム」の行が付いただけ。'});
+G('icmph','hdr','ICMP エコー要求 / 応答','bits',[
+ [['タイプ',8],['コード',8],['チェックサム',16]],
+ [['識別子',16],['シーケンス番号',16]]
+],{note:'1行目はすべてのICMPで共通。エコーではタイプ8=要求、0=応答。'});
+T('hlen','hdr','ヘッダ長まとめ','ヘッダ|長さ(バイト)',[
+'Ethernet|14(+FCS 4)',
+'802.1Qタグ|4',
+'IPv4|20〜60',
+'IPv6|40(固定)',
+'TCP|20〜60',
+'UDP|8',
+'PPPoE + PPP|6 + 2 = 8',
+'GRE|4(基本)',
+'VXLAN|8',
+'MPLSシムヘッダ|4(ラベル1段)'],{note:'MTU・MSSやカプセル化のオーバーヘッドは、全部この表の足し算で出せる。'});
+T('mtu','hdr','MTU と MSS','環境|MTU|TCP MSS',[
+'Ethernet(IPv4)|1500|1460',
+'Ethernet(IPv6)|1500|1440',
+'PPPoE(IPv4)|1492|1452',
+'IPv6の最小MTU|1280|—',
+'ジャンボフレーム|9000前後|—'],{note:'MSS = MTU − IPヘッダ(IPv4 20 / IPv6 40)− TCPヘッダ20。PPPoEは8バイト分だけMTUが小さい。'});
+T('icmp','hdr','ICMP タイプ','タイプ|意味|使いどころ',[
+'0|エコー応答|ping',
+'3|宛先到達不能|コード3=ポート到達不能、コード4=フラグメント必要(DF付き)→ PMTUD',
+'5|リダイレクト|より良いゲートウェイを通知',
+'8|エコー要求|ping',
+'11|時間超過|TTL切れ → traceroute'],{rev:1,note:'pingは「要求8・応答0」のペア。tracerouteは TTL を1ずつ増やして、各ルータからの11(時間超過)で経路を調べる。'});
+
+/* ---------- 番号 ---------- */
+T('p-file','num','ポート番号:転送・リモート操作','プロトコル|L4|ポート',[
+'FTP(データ / 制御)|TCP|20 / 21',
+'SSH(SCP・SFTP)|TCP|22',
+'Telnet|TCP|23',
+'TFTP|UDP|69',
+'SMB|TCP|445',
+'RDP|TCP(UDPも併用)|3389'],{rev:1,note:'20・21・22・23 が連番:FTP → SSH → Telnet。SSH は Secure SHell で S が2つ → 22。SMB は HTTPS(443)の2つ上。'});
+T('p-mail','num','ポート番号:メール','プロトコル|L4|ポート',[
+'SMTP|TCP|25',
+'サブミッション|TCP|587',
+'SMTPS(サブミッション over TLS)|TCP|465',
+'POP3|TCP|110',
+'POP3S|TCP|995',
+'IMAP|TCP|143',
+'IMAPS|TCP|993'],{rev:1,note:'送信系は 25・587・465、受信系は 110・143。受信のTLS版はどちらも99x(POP3S 995、IMAPS 993)。587 はメール投稿(サブミッション)用の標準ポートで、SMTP-AUTHとセットで使う(OP25Bで25番が塞がれていても使える)。465 も投稿用で、最初からTLSで話す方式(RFC 8314)。'});
+T('p-web','num','ポート番号:Web','プロトコル|L4|ポート',[
+'HTTP|TCP|80',
+'HTTPS|TCP|443',
+'HTTP/3(QUIC)|UDP|443'],{rev:1,note:'HTTP/3 は HTTPS と同じ443番を、TCPではなくUDPで使う。'});
+T('p-infra','num','ポート番号:基盤サービス','プロトコル|L4|ポート',[
+'DNS|UDP / TCP|53',
+'DHCP(サーバ / クライアント)|UDP|67 / 68',
+'DHCPv6(クライアント / サーバ)|UDP|546 / 547',
+'NTP|UDP|123',
+'SNMP(要求 / トラップ)|UDP|161 / 162',
+'syslog|UDP|514',
+'Kerberos|TCP / UDP|88',
+'LDAP|TCP|389',
+'LDAPS|TCP|636'],{rev:1,note:'DHCP はサーバが小さい番号、DHCPv6 は逆にクライアントが小さい番号。SNMP は通知を受ける側(マネージャ)が1つ大きい162。NTP は「1・2・3」と時を数える。'});
+T('p-route','num','ポート番号:ルーティング・トンネル','プロトコル|L4|ポート',[
+'BGP|TCP|179',
+'RIP(RIPng)|UDP|520(521)',
+'IKE|UDP|500',
+'NAT-T(IPsec)|UDP|4500',
+'L2TP|UDP|1701',
+'VXLAN|UDP|4789'],{rev:1,note:'経路プロトコルの運び方:BGP=TCP、RIP=UDP、OSPF=IP直(プロトコル番号89)。NAT-T は IKE の500の前に4を付けた4500。'});
+T('p-auth','num','ポート番号:認証・音声・ストレージ','プロトコル|L4|ポート',[
+'RADIUS(認証 / アカウンティング)|UDP|1812 / 1813',
+'TACACS+|TCP|49',
+'SIP|UDP / TCP|5060',
+'SIP over TLS|TCP|5061',
+'iSCSI|TCP|3260'],{rev:1,note:'RADIUS は UDP、TACACS+ は TCP。この対比もセットで覚える。'});
+T('prange','num','ポート番号の範囲','区分|範囲',[
+'ウェルノウンポート|0〜1023',
+'登録済みポート|1024〜49151',
+'動的・プライベートポート|49152〜65535'],{});
+T('ipproto','num','IPプロトコル番号','プロトコル|番号',[
+'TCP|6',
+'UDP|17',
+'IPv6(6in4トンネル)|41',
+'GRE|47',
+'ESP|50',
+'AH|51',
+'ICMPv6|58',
+'OSPF|89',
+'VRRP|112'],{rev:1,note:'ESP 50 → AH 51 の連番。OSPF と VRRP は TCP/UDP に載らず、IPに直接載るので番号を持つ。'});
+T('ethertype','num','EtherType','プロトコル|値',[
+'IPv4|0x0800',
+'ARP|0x0806',
+'IEEE 802.1Qタグ|0x8100',
+'IPv6|0x86DD',
+'MPLS|0x8847',
+'PPPoE(ディスカバリ / セッション)|0x8863 / 0x8864',
+'EAPOL(802.1X)|0x888E',
+'LLDP|0x88CC'],{rev:1,note:'08xx が IPv4 系(0800・0806)、86DD が IPv6、88xx は後から追加されたL2制御系。'});
+T('ndp','num','ICMPv6 / NDP のメッセージ','名前|略称|タイプ|役割',[
+'ルータ要請|RS|133|端末がルータを探す',
+'ルータ広告|RA|134|プレフィックスや M/O フラグを配る',
+'近隣要請|NS|135|ARP要求の代わり・DAD',
+'近隣広告|NA|136|ARP応答の代わり',
+'リダイレクト|—|137|より良い次ホップを通知',
+'Packet Too Big|—|2|PMTUD(ルータは分割しない)',
+'エコー要求 / 応答|—|128 / 129|ping'],{rev:1,note:'133〜137 は「ルータ → 近隣 → リダイレクト」の順で、それぞれ「要請(S)→ 広告(A)」。RAのMフラグ=アドレスもDHCPv6で、Oフラグ=それ以外の情報だけDHCPv6で。'});
+
+/* ---------- アドレス ---------- */
+T('v4sp','addr','IPv4の特殊なアドレス','用途|範囲',[
+'プライベート(クラスA)|10.0.0.0/8',
+'プライベート(クラスB)|172.16.0.0/12',
+'プライベート(クラスC)|192.168.0.0/16',
+'ループバック|127.0.0.0/8',
+'リンクローカル|169.254.0.0/16',
+'共有アドレス(CGNAT)|100.64.0.0/10',
+'マルチキャスト|224.0.0.0/4',
+'ドキュメント用|192.0.2.0/24 など',
+'リミテッドブロードキャスト|255.255.255.255'],{rev:1,note:'プライベートは /8・/12・/16 と、クラスが下がるほどプレフィックスが4ずつ長くなる。'});
+T('cls','addr','IPv4のクラス','クラス|先頭ビット|第1オクテット',[
+'A|0|0〜127',
+'B|10|128〜191',
+'C|110|192〜223',
+'D(マルチキャスト)|1110|224〜239',
+'E(予約)|1111|240〜255'],{rev:1,note:'先頭に1が1つ増えるごとに次のクラス。'});
+T('v6','addr','IPv6アドレスの種類','種類|プレフィックス',[
+'未指定|::/128',
+'ループバック|::1/128',
+'リンクローカル|fe80::/10',
+'ユニークローカル(ULA)|fc00::/7(実際は fd00::/8)',
+'グローバルユニキャスト|2000::/3',
+'マルチキャスト|ff00::/8',
+'ドキュメント用|2001:db8::/32(2024年に3fff::/20も追加)',
+'IPv4射影|::ffff:0:0/96'],{rev:1,note:'先頭の文字で見分ける:fe80〜febf=リンクローカル、fc / fd=ローカル、ff=マルチキャスト、2か3=グローバル。省略は先頭の0を消してよく、0の連続を::にできるのは1回だけ。'});
+T('mcast','addr','マルチキャストアドレス(IPv4 / IPv6 対応)','宛先|IPv4|IPv6',[
+'全ノード|224.0.0.1|ff02::1',
+'全ルータ|224.0.0.2|ff02::2',
+'OSPF 全ルータ|224.0.0.5|ff02::5',
+'OSPF DR / BDR|224.0.0.6|ff02::6',
+'RIPv2 / RIPng|224.0.0.9|ff02::9',
+'VRRP|224.0.0.18|ff02::12',
+'DHCPサーバ・リレー|—|ff02::1:2',
+'要請ノード|—|ff02::1:ffXX:XXXX'],{note:'IPv4の末尾とIPv6の末尾が同じ(1・2・5・6・9)。VRRPは 18 = 16進で 0x12 なので ff02::12。要請ノードはユニキャストアドレスの下位24bitを付ける(NSの宛先)。'});
+T('mmac','addr','特殊なMACアドレス','対象|MACアドレス',[
+'IPv4マルチキャスト|01-00-5E + IP下位23bit',
+'IPv6マルチキャスト|33-33 + IP下位32bit',
+'VRRP(IPv4)|00-00-5E-00-01-{VRID}',
+'VRRP(IPv6)|00-00-5E-00-02-{VRID}',
+'HSRP v1|00-00-0C-07-AC-{グループ}',
+'ブロードキャスト|FF-FF-FF-FF-FF-FF'],{rev:1,note:'IPv4は23bitしか写さないので、32個のIPアドレスが同じMACになる。00-00-5E は IANA の番号で、VRRP もこれを使う。'});
+T('eui','addr','EUI-64 によるインタフェースIDの生成','手順|内容',[
+'①|48bitのMACアドレスを、前半24bitと後半24bitに分ける',
+'②|真ん中に FFFE を入れて64bitにする',
+'③|先頭から7bit目(U/Lビット)を反転する',
+'例|00-11-22-33-44-55 → 0211:22ff:fe33:4455'],{});
+T('subnet','addr','サブネット早見表','プレフィックス|マスクの末尾|ホスト数',[
+'/24|0|254',
+'/25|128|126',
+'/26|192|62',
+'/27|224|30',
+'/28|240|14',
+'/29|248|6',
+'/30|252|2'],{rev:1,note:'マスクの末尾は 128 → 192 → 224 → 240 → 248 → 252 と「残りの半分を足す」。ホスト数 = 2の(32 − プレフィックス長)乗 − 2(/31はルータ間の1対1リンクで2つとも使える:RFC 3021)。'});
+
+/* ---------- STP ---------- */
+T('stpval','stp','STPの基本値','項目|値',[
+'ブリッジ優先度の既定値|32768',
+'優先度の刻み|4096',
+'Hello Time|2秒',
+'Max Age|20秒',
+'Forward Delay|15秒',
+'障害時の最大収束時間|50秒(20 + 15 + 15)'],{note:'タイマは 2・20・15。ブリッジID = 優先度(2バイト)+ MACアドレス(6バイト)。優先度の下位12bitはVLAN番号(拡張システムID)なので、4096刻みになる。'});
+T('stpcost','stp','STPのポートコスト(802.1D-1998)','リンク速度|コスト',[
+'10Mbps|100',
+'100Mbps|19',
+'1Gbps|4',
+'10Gbps|2'],{rev:1});
+T('stpel','stp','STPの選出の順','決めるもの|基準',[
+'ルートブリッジ|ブリッジID(優先度 → MAC)が最小',
+'ルートポート(ルート以外の各SWに1つ)|①ルートパスコスト最小 ②送信元ブリッジID最小 ③送信元ポートID最小',
+'指定ポート(各セグメントに1つ)|①ルートパスコスト最小 ②ブリッジID最小 ③ポートID最小 のSWのポート(ルートブリッジのポートはすべて指定ポート)',
+'それ以外|ブロッキング(非指定ポート)'],{note:'STPは全部「小さいほうが勝つ」。OSPFのDR選出は「大きいほうが勝つ」で逆。'});
+T('stpst','stp','ポート状態(STP と RSTP)','STP(802.1D)|RSTP(802.1w)|MAC学習|転送',[
+'ディセーブル|Discarding|しない|しない',
+'ブロッキング|Discarding|しない|しない',
+'リスニング|Discarding|しない|しない',
+'ラーニング|Learning|する|しない',
+'フォワーディング|Forwarding|する|する'],{note:'RSTPは、転送も学習もしない3つの状態を Discarding 1つにまとめた。STPは リスニング15秒 + ラーニング15秒 で待たされる。'});
+T('rstprole','stp','RSTPのポート役割','役割|意味',[
+'ルートポート|ルートブリッジへの最良の経路',
+'指定ポート|そのセグメントへ転送する代表',
+'代替ポート(Alternate)|ルートポートの予備(別のSW経由)',
+'バックアップポート|指定ポートの予備(同じSW)'],{});
+T('stpgd','stp','STPの保護機能','機能|動作',[
+'PortFast(エッジポート)|端末用のポートを、すぐにフォワーディングにする',
+'BPDUガード|PortFastのポートでBPDUを受けたら err-disable(手動で戻すまで停止)にする',
+'ルートガード|上位BPDUを受けたら root-inconsistent 状態(ブロッキング相当)にし、ルートの交代を防ぐ。上位BPDUが止まれば自動で復旧'],{});
+
+/* ---------- ルーティング ---------- */
+T('ad','rt','アドミニストレーティブディスタンス(Cisco)','経路|AD値',[
+'直接接続|0',
+'スタティック|1',
+'eBGP|20',
+'OSPF|110',
+'RIP|120',
+'iBGP|200'],{rev:1,note:'比較の順は ロンゲストマッチ → AD → メトリック。AD は小さいほど信頼する。OSPF 110 と RIP 120 は10違い。'});
+T('rcmp','rt','RIP / OSPF / BGP の比較','項目|RIP|OSPF|BGP',[
+'方式|ディスタンスベクタ|リンクステート|パスベクタ',
+'メトリック|ホップ数(最大15、16で到達不能)|コスト(帯域から計算)|パス属性',
+'運び方|UDP 520|IP直(番号89)|TCP 179',
+'更新|30秒ごとに全経路|変化時に差分(LSAは30分ごとに再送、Helloは10秒)|変化時に差分',
+'マルチキャスト|224.0.0.9(v2)|224.0.0.5 / .6|なし(ユニキャスト)',
+'主な用途|小規模|組織内の中〜大規模|AS間(インターネット)'],{note:'RIPのループ対策:スプリットホライズン(受けた方向へ返さない)、ポイズンリバース(到達不能=16として返す)。'});
+T('lsa','rt','OSPF の LSA タイプ','タイプ|名前|生成するルータ|広がる範囲',[
+'1|ルータLSA|全ルータ|エリア内',
+'2|ネットワークLSA|DR|エリア内',
+'3|サマリーLSA|ABR|エリア内(ABRが各エリアに向けて生成)',
+'4|ASBRサマリーLSA|ABR|エリア内(ABRが各エリアに向けて生成)',
+'5|AS外部LSA|ASBR|AS全体',
+'7|NSSA外部LSA|NSSA内のASBR|NSSA内(ABRでタイプ5に変換)'],{rev:1,note:'1・2=エリア内の地図、3・4=ABRが他のエリアの経路を要約して各エリアの中に流す(経路の種類はエリア間)、5・7=外部経路。'});
+T('area','rt','OSPF のエリアの種類','エリア|タイプ3|タイプ5|タイプ7',[
+'通常エリア|入る|入る|入らない',
+'スタブ|入る|入らない|入らない',
+'トータリースタブ|入らない(デフォルトのみ)|入らない|入らない',
+'NSSA|入る|入らない|入る'],{note:'スタブ=外部(5)を入れない、トータリー=エリア間(3)も入れない、NSSA=外部をタイプ7で持ち込める。'});
+T('ospfval','rt','OSPF の基本値','項目|値',[
+'バックボーンエリア|エリア0(他のエリアは必ず接続)',
+'Hello / Dead(ブロードキャスト網)|10秒 / 40秒',
+'コスト|基準帯域 ÷ IF帯域(基準の既定は100Mbps)',
+'DR / BDR の選出|優先度が最大 → ルータIDが最大',
+'優先度の既定値|1(0は選出の対象外)',
+'計算アルゴリズム|ダイクストラ(SPF)'],{note:'Dead は Hello の4倍。DR選出は「大きいほうが勝つ」(STPと逆)。'});
+T('nbr','rt','OSPF のネイバー状態','順|状態',[
+'1|Down',
+'2|Attempt(NBMA網のみ)',
+'3|Init',
+'4|2-Way',
+'5|ExStart',
+'6|Exchange',
+'7|Loading',
+'8|Full'],{rev:1,note:'出会う(Init)→ 互いに認識(2-Way)→ 交換の準備(ExStart)→ 目録の交換(Exchange)→ 中身の取得(Loading)→ 同期完了(Full)。DR・BDR以外の同士は 2-Way で止まる。'});
+T('bgp','rt','BGP のベストパス選択の順','順|属性|優先するもの',[
+'1|Weight(Cisco独自)|大きい',
+'2|LOCAL_PREF|大きい(既定100)',
+'3|自ルータ発の経路|優先',
+'4|AS_PATH|短い',
+'5|ORIGIN|IGP > EGP > Incomplete(IGPが最優先)',
+'6|MED|小さい',
+'7|eBGP / iBGP|eBGPを優先',
+'8|ネクストホップまでのIGPコスト|小さい'],{note:'LOCAL_PREF は自AS内で「出口」を決める、MED は隣のASに「入口」の希望を伝える。大きい方が良いのは Weight と LOCAL_PREF だけ。9番目以降(最も古いeBGP経路、ルータIDが最小など)は省略。MEDは通常、同じ隣接ASから来た経路どうしでだけ比べる。'});
+T('bgpval','rt','BGP のその他','項目|内容',[
+'ウェルノウン必須属性|ORIGIN・AS_PATH・NEXT_HOP',
+'iBGPのルール|iBGPで受けた経路を他のiBGPへ渡さない → フルメッシュかルートリフレクタ',
+'プライベートAS(2バイト)|64512〜65534',
+'eBGPのループ防止|AS_PATHに自ASがあれば破棄'],{});
+T('fhrp','rt','VRRP と HSRP の比較','項目|VRRP|HSRP',[
+'規格|標準(RFC)|Cisco独自',
+'役割の名前|マスタ / バックアップ|アクティブ / スタンバイ',
+'優先度の既定値|100(アドレスオーナーは255)|100',
+'プリエンプト|既定で有効|既定で無効',
+'広告の間隔|1秒|Hello 3秒(ホールド10秒)',
+'マルチキャスト|224.0.0.18(プロトコル番号112)|224.0.0.2(v1、UDP 1985)',
+'仮想MAC|00-00-5E-00-01-{VRID}|0000.0C07.AC{グループ}',
+'仮想IP|実IFのIPを使ってもよい|実IPとは別に用意'],{note:'よく問われるのはプリエンプトの既定値(VRRPは有効)と仮想MAC。VRRPのマスタダウン間隔 = 3 × 広告間隔 + スキュー時間。優先度0は「マスタをやめる」通知。VRRPv3の規格はRFC 5798からRFC 9568に改訂されたが、値は変わっていない。'});
+
+/* ---------- TCP・VPN ---------- */
+T('tcpst','vpn','TCP の状態遷移','場面|状態の流れ',[
+'クライアントの接続|CLOSED → SYN_SENT → ESTABLISHED',
+'サーバの接続|LISTEN → SYN_RCVD → ESTABLISHED',
+'先に閉じる側|FIN_WAIT_1 → FIN_WAIT_2 → TIME_WAIT(2MSL)→ CLOSED',
+'後から閉じる側|CLOSE_WAIT → LAST_ACK → CLOSED'],{note:'接続は SYN → SYN+ACK → ACK、切断は FIN → ACK → FIN → ACK。TIME_WAIT に残るのは先に閉じた側。'});
+T('cc','vpn','TCP の制御','仕組み|内容',[
+'スロースタート|輻輳ウィンドウを小さく始め、ssthresh まで指数的に増やす',
+'輻輳回避|ssthresh 以降は RTT ごとに1MSSずつ線形に増やす',
+'高速再送|重複ACKを3回受けたら、タイムアウトを待たずに再送',
+'スループットの上限|ウィンドウサイズ ÷ RTT',
+'帯域遅延積(BDP)|帯域 × RTT(回線を埋めるのに必要なウィンドウ)',
+'SYN Cookie|SYNフラッド対策。状態を持たず、シーケンス番号に情報を埋め込む'],{note:'例:ウィンドウ64KB、RTT 10ms なら 65535 × 8 ÷ 0.01 ≒ 52Mbps が上限。'});
+T('ovh','vpn','カプセル化のオーバーヘッド','方式|追加のバイト数|内訳',[
+'PPPoE|8|PPPoE 6 + PPP 2',
+'802.1Qタグ|4|TPID 2 + TCI 2',
+'GRE|24|新IPヘッダ 20 + GRE 4',
+'VXLAN|50|外側Ethernet 14 + IP 20 + UDP 8 + VXLAN 8',
+'MPLS|4(ラベル1段ごと)|シムヘッダ',
+'IPsec ESP(トンネル)|約50〜70(可変)|新IP 20 + ESP + IV + パディング + ICV'],{});
+G('mplsh','vpn','MPLS シムヘッダ(32bit)','bits',[
+ [['ラベル',20],['TC',3],['S',1],['TTL',8]]
+],{note:'20 + 3 + 1 + 8 = 32bit = 4バイト。Sはボトムオブスタック(最後のラベルの印)。ラベルを積むたびに4バイト増える。L2ヘッダとIPヘッダの間に挟まるので「シム(くさび)」。'});
+G('vxlanh','vpn','VXLAN ヘッダ(8バイト)','bits',[
+ [['フラグ',8],['予約',24]],
+ [['VNI',24],['予約',8]]
+],{note:'外側Ethernet 14 + IP 20 + UDP 8(宛先4789)+ VXLAN 8 = 50バイトのオーバーヘッド。VNIは24bitで約1600万セグメント。'});
+T('bits','vpn','識別子のビット長','識別子|ビット長',[
+'MACアドレス|48(OUIは上位24)',
+'IPv4アドレス|32',
+'IPv6アドレス|128',
+'ポート番号|16',
+'VLAN ID|12',
+'VXLAN VNI|24',
+'MPLSラベル|20',
+'IPv6フローラベル|20',
+'DSCP|6',
+'CoS(PCP)/ IP Precedence|3',
+'TTL / ホップリミット|8',
+'TCPシーケンス番号|32',
+'TCPウィンドウサイズ|16'],{rev:1,note:'12bit = 4094個(VLAN)、24bit = 約1600万(VNI)、20bit = 約100万(MPLSラベル)。VXLANはVLANの4094個の制約を解消するためのもの。'});
+T('esp','vpn','ESP と AH','項目|ESP|AH',[
+'IPプロトコル番号|50|51',
+'暗号化|する|しない',
+'認証の範囲|ESPヘッダ以降|IPヘッダも含む',
+'NATとの相性|NAT-T で通る|通らない(IPヘッダの書換えで認証失敗)'],{});
+T('ipsecmode','vpn','IPsec のモード','モード|保護する範囲|主な用途',[
+'トンネル|元のIPパケット全体(新IPヘッダを付ける)|拠点間VPN(ゲートウェイ間)',
+'トランスポート|IPのペイロードだけ|端末間'],{});
+T('ike','vpn','IKE の手順','版・フェーズ|手順|確立するSA',[
+'IKEv1 フェーズ1|メインモード(6メッセージ)/ アグレッシブモード(3メッセージ)|ISAKMP SA',
+'IKEv1 フェーズ2|クイックモード|IPsec SA',
+'IKEv2|IKE_SA_INIT → IKE_AUTH(計4メッセージ)|IKE SA + 最初の Child SA'],{note:'アグレッシブモードは、相手のIPが固定でないときに使う(IDを平文で送る)。IPsec SA(Child SA)は片方向なので送受信で2つ必要で、SPIで識別する(IKE SAは双方向で1つ)。'});
+T('mpls','vpn','MPLS・VXLAN の用語','用語|意味',[
+'LER|網の入口・出口でラベルを付け外しする',
+'LSR|網内でラベルを見て転送する',
+'シムヘッダ|ラベル20bit + TC 3bit + S 1bit + TTL 8bit = 4バイト',
+'RD|重複するアドレスを区別する識別子',
+'RT|どのVRFに経路を取り込むかを決める',
+'VTEP|VXLANのカプセル化・非カプセル化を行う端点'],{rev:1});
+
+/* ---------- 運用・アプリ ---------- */
+T('snmp','app','SNMP のバージョン','項目|v1|v2c|v3',[
+'認証|コミュニティ名|コミュニティ名|ユーザ認証(USM)',
+'暗号化|なし|なし|あり',
+'GetBulkRequest|なし|あり|あり',
+'Inform(応答ありの通知)|なし|あり|あり'],{note:'v3のセキュリティレベル:noAuthNoPriv / authNoPriv / authPriv(Auth=認証、Priv=暗号化)。Trap は応答なし、Inform は受信側が応答する。'});
+T('syslog','app','syslog の重要度(Severity)','値|重要度',[
+'0|Emergency(緊急)',
+'1|Alert(警戒)',
+'2|Critical(危機)',
+'3|Error(エラー)',
+'4|Warning(警告)',
+'5|Notice(通知)',
+'6|Informational(情報)',
+'7|Debug(デバッグ)'],{rev:1,note:'頭文字で「Every Awesome Cisco Engineer Will Need Ice cream Daily」。数字が小さいほど深刻。'});
+T('dns','app','DNS レコード','レコード|内容',[
+'A|ホスト名 → IPv4アドレス',
+'AAAA|ホスト名 → IPv6アドレス',
+'CNAME|別名(正式名を指す)',
+'MX|メールサーバ(プリファレンス値が小さいほど優先)',
+'NS|そのゾーンの権威DNSサーバ',
+'PTR|IPアドレス → ホスト名(逆引き)',
+'SOA|ゾーンの管理情報(シリアル・リフレッシュ・リトライ・有効期限・ネガティブTTL)',
+'TXT|任意の文字列(SPF・DMARCなど)',
+'SRV|サービスのホストとポート',
+'CAA|証明書を発行してよい認証局'],{rev:1,note:'逆引きは in-addr.arpa(IPv4)と ip6.arpa(IPv6)。ゾーン転送は AXFR(全体)/ IXFR(差分)で、TCPを使う。'});
+T('dnssec','app','DNSSEC のレコード','レコード|役割',[
+'RRSIG|各レコードへの署名',
+'DNSKEY|署名を検証する公開鍵(KSK・ZSK)',
+'DS|子ゾーンの鍵のハッシュを親ゾーンに置く(信頼の連鎖)',
+'NSEC / NSEC3|そのレコードが存在しないことの証明'],{rev:1});
+T('mail','app','送信ドメイン認証','方式|検証するもの|DNSに置くもの',[
+'SPF|送信元IPが、エンベロープFromのドメインに許可されているか|TXTレコード(v=spf1 …)',
+'DKIM|メールに付けた電子署名|公開鍵(セレクタ._domainkey)',
+'DMARC|SPF・DKIMの結果と、ヘッダFromのドメインの一致(アライメント)|_dmarc の TXT(p=none / quarantine / reject)'],{note:'SPF は経路(IP)、DKIM は署名、DMARC はその2つを束ねて「表示上の送信者」と結び付ける。'});
+T('smtp','app','SMTP のコマンドの流れ','順|コマンド',[
+'1|EHLO(HELO)',
+'2|MAIL FROM(エンベロープFrom)',
+'3|RCPT TO(宛先)',
+'4|DATA(ヘッダと本文)',
+'5|QUIT'],{rev:1});
+T('http','app','HTTP ステータスコード','コード|意味',[
+'200|OK',
+'301|恒久的な移動',
+'302|一時的な移動',
+'304|未更新(キャッシュを使ってよい)',
+'401|認証が必要',
+'403|アクセス禁止',
+'404|見つからない',
+'407|プロキシ認証が必要',
+'500|サーバ内部エラー',
+'502|Bad Gateway(上流から不正な応答)',
+'503|サービス利用不可',
+'504|Gateway Timeout(上流が時間切れ)'],{rev:1,note:'3xx=転送、4xx=クライアント側、5xx=サーバ側。401(サーバ認証)と407(プロキシ認証)、502(上流が変)と504(上流が遅い)がペア。'});
+T('httpv','app','HTTP のバージョン','版|トランスポート|特徴',[
+'HTTP/1.1|TCP|持続接続(HoLブロッキングあり)',
+'HTTP/2|TCP|バイナリフレーム・ストリーム多重化・HPACK',
+'HTTP/3|QUIC(UDP)|QPACK・TCPのHoLブロッキング解消・コネクションマイグレーション'],{});
+T('tls','app','TLS の要点','項目|内容',[
+'TLS 1.3 のハンドシェイク|1-RTT(再接続時は 0-RTT も可)',
+'TLS 1.3 の鍵交換|(EC)DHE が基本で、前方秘匿性がある',
+'SNI|ClientHello で接続先のホスト名を伝える',
+'ALPN|使うアプリ層プロトコル(h2 など)を交渉する',
+'OCSP / CRL|証明書の失効をオンラインで確認 / 失効一覧'],{});
+T('sip','app','SIP のメソッドと応答','名前|意味',[
+'INVITE|発呼',
+'ACK|INVITEへの最終応答の確認',
+'BYE|切断',
+'CANCEL|発呼の取消し',
+'REGISTER|位置の登録',
+'100 Trying|処理中',
+'180 Ringing|呼び出し中',
+'200 OK|成功',
+'401 / 407|認証が必要',
+'486 Busy Here|話中'],{rev:1,note:'応答コードの体系はHTTPに似ている(SIPには6xx=全体的な失敗もある)。メディアの取り決めは SDP、音声本体は RTP、品質報告は RTCP。'});
+T('dhcp','app','DHCP の流れ(DORA)','順|メッセージ|送信者|宛先',[
+'1|Discover|クライアント|ブロードキャスト',
+'2|Offer|サーバ|クライアント(ブロードキャストかユニキャストかは、クライアントのbroadcastフラグで決まる)',
+'3|Request|クライアント|ブロードキャスト',
+'4|Ack|サーバ|クライアント(Offerと同じ)'],{rev:1,note:'別セグメントのサーバへはリレーエージェントが中継し、giaddr に受信したIFのアドレスを入れる。不正なDHCPサーバ対策はDHCPスヌーピング。'});
+T('aaa','app','RADIUS と TACACS+ の比較','項目|RADIUS|TACACS+',[
+'トランスポート|UDP 1812 / 1813|TCP 49',
+'暗号化|パスワードのみ|ボディ全体(ヘッダは平文)',
+'認証と認可|一体|分離(認証・認可・アカウンティング)',
+'主な用途|ネットワークアクセス(802.1X・VPN)|機器への管理者ログイン'],{});
+T('lb','app','プロキシ・LB・NAT越え','用語|意味',[
+'L4ロードバランサ|IPアドレス・ポート番号で振り分ける',
+'L7ロードバランサ|URL・Cookieなど中身で振り分ける',
+'パーシステンス|同じ利用者を同じサーバへ(送信元IP・Cookie)',
+'DSR|応答をLBを通さず、サーバから直接返す',
+'X-Forwarded-For|元のクライアントIPを伝えるヘッダ',
+'CONNECT メソッド|プロキシにTCPトンネルを張らせる(HTTPSを通す)',
+'STUN / TURN|NAT外側のアドレスを調べる / 中継する'],{rev:1});
+
+/* ---------- QoS・計算・攻撃 ---------- */
+T('dscp','qos','DSCP の値','名前|DSCP値|主な用途',[
+'EF|46|音声(最優先)',
+'AF41|34|映像会議',
+'AF31|26|—',
+'AF21|18|—',
+'AF11|10|—',
+'CS0(BE)|0|ベストエフォート'],{rev:1,hide:[1],note:'AFxy = 8x + 2y(x=クラス1〜4、y=破棄優先度1〜3で大きいほど捨てられやすい)。EF = 46 = 2進数 101110。DSCP は ToS の上位6bit、IP Precedence は上位3bit、CoS は 802.1Q の PCP(3bit、音声は5)。'});
+T('voice','qos','音声の帯域計算(G.711・20ms)','項目|値',[
+'G.711 のビットレート|64kbps',
+'G.729 のビットレート|8kbps',
+'20msごとのペイロード(G.711)|160バイト',
+'RTP + UDP + IP|12 + 8 + 20 = 40バイト',
+'IP層の帯域|200バイト × 50pps = 80kbps',
+'Ethernet込み(+18バイト)|87.2kbps',
+'片道遅延の目安(ITU-T G.114)|150ms以下'],{note:'64kbps × 0.02秒 = 1280bit = 160バイト。1秒に50パケット(1 ÷ 0.02)。'});
+T('queue','qos','キューイングと帯域制御','方式|内容',[
+'PQ|完全優先。上位キューが空になるまで下位は送らない',
+'WFQ|フローごとに重み付けして公平に送る',
+'CBWFQ|クラスごとに帯域を保証する',
+'LLQ|CBWFQ + 優先キュー(音声向け)',
+'WRED|溢れる前に優先度に応じてランダム破棄し、TCPのグローバル同期(一斉にウィンドウを縮める現象)を防ぐ',
+'シェーピング|超過分をバッファして平らにする(遅延が増える)',
+'ポリシング|超過分を破棄またはマーキングする'],{rev:1});
+T('formula','qos','計算の公式','対象|式',[
+'稼働率|MTBF ÷ (MTBF + MTTR)',
+'直列の稼働率|A × B',
+'並列の稼働率|1 − (1 − A)(1 − B)',
+'伝送時間|データ量(ビット)÷(回線速度 × 伝送効率)',
+'1Gbps をバイトに|125MB/s',
+'光ファイバの伝搬遅延|約5μs/km',
+'M/M/1 の平均待ち時間|ρ ÷ (1 − ρ) × 平均サービス時間',
+'呼量(アーラン)|呼数 × 平均保留時間 ÷ 観測時間',
+'ホスト数|2の(32 − プレフィックス長)乗 − 2(/30まで。/31は2アドレスとも使える:RFC 3021)'],{note:'バイトとビット(× 8)の変換と、通信速度は10進(1k = 1000)であることに注意。ρ = 到着率 ÷ サービス率。'});
+T('attack','qos','攻撃と対策','攻撃|手口|対策',[
+'SYNフラッド|SYNを大量に送り、ハーフオープンで資源を枯渇させる|SYN Cookie',
+'DNSリフレクション|送信元を偽装した問合せで、大きな応答を被害者へ|オープンリゾルバをなくす',
+'DNSキャッシュポイズニング|偽の応答をキャッシュさせる|送信元ポートのランダム化・DNSSEC',
+'Smurf|偽装したICMPエコー要求をブロードキャストへ|ブロードキャスト宛てpingの遮断',
+'ARPスプーフィング|偽のARP応答で通信を自分経由に|ダイナミックARPインスペクション',
+'MACフラッディング|MACテーブルを溢れさせてフラッディングさせる|ポートセキュリティ',
+'不正DHCPサーバ|偽のゲートウェイやDNSを配る|DHCPスヌーピング',
+'送信元IPの偽装|内部や架空のアドレスを名乗る|イングレスフィルタリング・uRPF'],{});
+T('secdev','qos','セキュリティ機器','機器・機能|役割',[
+'IDS|検知して通知するだけ',
+'IPS|検知して遮断する(インラインに設置)',
+'WAF|HTTPの中身を見て、SQLインジェクションやXSSを防ぐ',
+'ステートフルインスペクション|セッションを記録し、戻りのパケットを動的に許可する',
+'UTM|FW・IPS・アンチウイルスなどを1台に統合'],{rev:1});
+
+/* ---------- 解説(表ごと) ---------- */
+var EX={
+'eth':'BASE規格の名前は「速度 + 伝送方式 + 媒体」。ツイストペアは電気信号なので、減衰とノイズのため100mが上限。光ファイバは、コアが太く複数の光の通り道があるMMF(マルチモード:光が広がりやすく短距離向け)と、コアが細いSMF(シングルモード:長距離向け)に分かれる。SXとLXの距離の差は、主にMMFのモード分散(光の通り道ごとに到着時間がずれる現象)と波長による減衰の違いから来る。',
+'cat':'カテゴリはケーブルの品質の規格。扱える周波数帯域が広いほど、高い速度を通せる。Cat6Aは、隣のケーブルからのノイズ(エイリアンクロストーク)対策込みで、10Gbpsを100m保証する。今の新設はCat6Aが主流。',
+'poe':'PoEは、LANケーブルでデータと一緒に電力も送る仕組み。PSE(給電側:PoEスイッチなど)とPD(受電側:無線AP・IP電話・カメラ)の差は、ケーブルでの損失分。給電前に相手がPDかどうかを検出するので、非対応の機器をつないでも壊れない。設計問題では、スイッチ全体で給電できる合計量(PoEバジェット)がよく問われる。',
+'ieee':'IEEE 802 はLANの標準化委員会。802.1 はブリッジ・VLAN・認証など共通の部分、802.3 はEthernet、802.11 は無線LAN。番号と内容を結び付けておくと、問題文に規格番号だけが出てきても話題をすぐ判断できる。',
+'frame':'今のEthernetはほぼ Ethernet II 形式で、タイプ欄で中身(IPv4・IPv6・ARPなど)を示す。データが46バイト未満のときはパディングで埋める。FCSで誤りが見つかったフレームは黙って捨てられ、Ethernetでは再送しない(再送はTCPなど上位の役目)。',
+'tag':'トランクポートでは、どのVLANのフレームかをタグで区別する。ネイティブVLANのフレームだけはタグなしで送る。PCPはQoSのCoS値として使われ、スイッチがどの優先キューに入れるかを決める。',
+'wgen':'世代が進むごとに、変調の多値化(QAM)、チャネル幅の拡大、ストリーム数(MIMO)の増加で速度を上げてきた。最大速度は理論値で、実効速度はその半分以下が普通。2.4GHzは遠くまで届くが混雑しやすく、5GHzは速いが障害物に弱く、6GHzは空いているが届く距離が短い。',
+'walpha':'802.11の後ろの文字は追加規格で、速度系(a・b・g・n・ac・ax・be)と機能系(e・i・k・r・v・w)がある。ローミングの問題は、11r で鍵を事前に共有して認証時間を短くし、11k・11v で移動先APの選択を助ける、という流れで出る。',
+'wsec':'WEPは鍵が固定で、短時間で解読できてしまう。WPAは、機器を買い替えずに済むようTKIPで鍵を動的に変える暫定策。WPA2で本格的なAES-CCMPになり、WPA3で、PSKの弱点(ハンドシェイクを盗聴されると辞書攻撃される)をSAEで解消した。',
+'eap':'IEEE 802.1X で使う認証方式の比較。EAP-TLSは証明書の配布と管理が必要だが最も安全。PEAPとEAP-TTLSは、まずサーバ証明書でTLSトンネルを作り、その中でIDとパスワードを送るので、既存のパスワード基盤をそのまま使える。どの方式でも、端末がサーバ証明書を検証しないと、偽のAPに認証情報を盗まれる。',
+'wfreq':'2.4GHz帯は、1チャネルの幅が約20MHzなのに間隔が5MHzしかないので、隣のチャネルと重なる。5GHz帯は重ならないチャネルが多く、設計しやすい。DFSの対象チャネルでレーダーを検知すると、APは電波を止めて別のチャネルへ移る(その間は通信が途切れる)。屋外で制限なく使えるのはW56だけで、W52は2018年の制度改正により登録局のAPを使う場合に限って屋外で使えるようになった。',
+'ipv4':'図のフィールドにカーソルを当てる(スマホはタップ)と、そのフィールドの意味と値が出る。通常、ルータが通過時に書き換えるのは TTL とヘッダチェックサム(分割するときは全長・MF・オフセット、QoSやECNでToSも変わり得る。NAT装置ならアドレスも)。',
+'ipv6':'IPv4よりフィールドが少ないのは、ルータの処理を軽くするため。オプションは「次ヘッダ」でつないだ拡張ヘッダに追い出し、必要なノードだけが処理する。',
+'v4v6':'意味は同じでも、実態に合う名前に直されたものが多い(TTLは実際には秒ではなくホップ数で減るので、IPv6ではホップリミットになった)。',
+'tcph':'TCPは「順番どおり、欠けなく届ける」ためのプロトコルなので、番号(シーケンス番号・確認応答番号)と流量制御(ウィンドウ)のフィールドが中心になる。',
+'flags':'フラグは1bitずつのオン/オフ。接続の開始は SYN → SYN+ACK → ACK、終了は FIN、異常時の即切断は RST。ファイアウォールが「SYNだけ立ったパケット=新しい接続」と判断するのにも使われる。',
+'udph':'UDPにはコネクションも再送もなく、ポート番号で宛先のアプリを区別するだけ。速さやリアルタイム性が要るもの(DNS・音声・QUIC)や、1往復で済むもの(DHCP・NTP・SNMP)で使う。',
+'icmph':'ICMPはIPの「連絡係」で、エラーの通知(到達不能・時間超過)と問合せ(エコー)を運ぶ。エラー通知には原因になったパケットのIPヘッダと、少なくともデータの先頭8バイトが入るので、送信元はどの通信のエラーかを判断できる。',
+'hlen':'ヘッダ長は、オーバーヘッドや実効速度の計算で使う。長さが可変のもの(IPv4・TCP)は、オプションなしの最小値20バイトで計算するのが試験の定番。',
+'mtu':'MTUを超えるパケットは、分割(フラグメント)されるか、DFビットが立っていれば捨てられる。PPPoEやトンネルでMTUが小さくなると「pingは通るのにWebが開かない」ことが起きるので、ルータでSYNパケットのMSSを書き換える(MSSクランプ)のが定番の対策。',
+'icmp':'タイプが大分類、コードが詳細。PMTUDは「DF付きで送る → 途中のルータがタイプ3コード4を返す → 送信元がサイズを下げる」という仕組み。ICMPを全部遮断すると、これが働かず通信が詰まる(PMTUDブラックホール)。',
+'p-file':'FTPは制御用とデータ用で2本のコネクションを使う。アクティブモードはサーバ(20番)からクライアントへ接続し、パッシブモードはクライアントからサーバへ接続する(FWやNATを越えやすいのはパッシブ)。TFTPは認証なし・UDPの簡易版で、ネットワーク機器の設定の配布やPXEブートで使われる。',
+'p-mail':'メールは「送る(SMTP)」と「受け取る(POP3・IMAP)」で別のプロトコル。POP3は端末にダウンロードする方式、IMAPはサーバ上で管理する方式(複数の端末で同じ状態を見られる)。465・995・993は最初からTLSで話す方式、587・25はSTARTTLSで途中からTLSに切り替える方式。',
+'p-web':'HTTPSはHTTPをTLSで包んだもの。HTTP/3はTCPではなく、UDPの上にTLS 1.3を組み込んだQUICを使う。FWでUDP 443を塞ぐと、ブラウザはHTTP/2(TCP 443)に切り替えて接続する。',
+'p-infra':'DNSの通常の問合せはUDPだが、応答がUDPに収まらないとき(TCビットが立ったとき)とゾーン転送はTCPを使う。TCPへの対応は全実装で必須(RFC 7766)。DHCPは、まだIPアドレスを持たない端末がブロードキャストで探すのでUDP。SNMPは、マネージャがエージェントに問い合わせる(161)のと、エージェントがマネージャに通知する(162)で向きが逆。',
+'p-route':'BGPは隣のルータとTCPのセッションを張るので、FWで179番を通す必要がある。IKEは送信元・宛先とも500番を使い、途中にNATがあると検知して4500番(NAT-T)に切り替える。VXLANはL2フレームをUDPで包み、IP網の上に仮想的なL2を広げる。',
+'p-auth':'RADIUSは無線LANの802.1X認証やVPNの利用者認証で、TACACS+はルータ・スイッチへの管理者ログインやコマンドの認可で使われることが多い。SIPは呼の制御だけを行い、音声そのものはRTPで別のポートを使う。',
+'prange':'クライアント側の送信元ポートは自動で割り当てられる(エフェメラルポート。IANAの推奨は動的ポートの範囲だが、実際の範囲はOSによって違う)。NAPTはこの送信元ポートを書き換えて、複数の端末を1つのグローバルIPで区別する。',
+'ipproto':'IPヘッダの「プロトコル」(IPv6では「次ヘッダ」)に入る値で、IPの中身が何かを示す。ポート番号を持たないプロトコル(ESP・GRE・OSPFなど)は、FWではこの番号で許可する。ESPはポート番号がないので通常のNAPTでは多重化できず、NAT-T(UDP 4500)で包む。AHはIPヘッダも認証するので、NATとは共存できない。',
+'ethertype':'Ethernetヘッダの「タイプ」に入る値(0x0600以上)で、ペイロードのプロトコルを示す(ARPやEAPOLのようにL3ではないものも含む)。VLANタグ付きのフレームでは、本来タイプがある位置にTPID(0x8100)が入り、本当のタイプはタグの後ろにずれる。',
+'ndp':'IPv6では、ARP・ルータの探索・リダイレクトをすべてICMPv6で行う(NDP)。そのためIPv6環境でICMPv6を全部遮断すると通信できなくなる。RAを偽装されると不正なルータに誘導されるので、スイッチのRAガードで防ぐ。',
+'v4sp':'プライベートアドレスはインターネット上では経路がないので、外に出るときはNAPTで変換する。100.64.0.0/10は、ISPがキャリアグレードNATで使う範囲で、家庭や会社のプライベートアドレスと重ならないように別に用意された。',
+'cls':'クラスはCIDRより前の古い区切り方で、先頭のビットでネットワーク部の長さを固定していた(A=/8、B=/16、C=/24)。今は使われないが、プライベートアドレスの範囲や、RIPv1などクラスフルなプロトコルの問題の前提として出てくる。',
+'v6':'IPv6アドレスは128bitを16bitずつ8ブロックに区切り、16進数で書く。普通は上位64bitがネットワーク部(プレフィックス)、下位64bitがインタフェースID。1つのインタフェースがリンクローカルとグローバルなど複数のアドレスを同時に持つのが普通。',
+'mcast':'224.0.0.0/24 と ff02::/16 はリンクローカルの範囲で、ルータを越えない。ルーティングプロトコルや冗長化プロトコルは、この範囲のマルチキャストで隣のルータと話す。',
+'mmac':'マルチキャストのIPアドレスから宛先MACアドレスを機械的に作れるので、ARPは要らない。VRRPの仮想MACも決まった形なので、マスタが切り替わってもMACが変わらず、端末のARPキャッシュを書き換えずに済む。',
+'eui':'SLAACでインタフェースIDを自動生成する方式の一つ。MACアドレスが外から見えてしまい端末を追跡できるので、今のOSはランダムなID(安定アドレスにはRFC 7217方式、一時アドレスにはRFC 8981のプライバシー拡張)を使うことが多い。',
+'subnet':'/30はルータ同士を1対1でつなぐリンクで使う(使えるアドレスは2つ)。ホスト数の −2 は、ネットワークアドレス(ホスト部が全部0)とブロードキャストアドレス(全部1)の分。',
+'stpval':'STPはL2のループ(ブロードキャストストームの原因)を防ぐため、冗長なリンクの一部を論理的に止める。ブリッジ優先度を小さくしたスイッチがルートブリッジになるので、設計ではコアスイッチの優先度を小さく設定する。',
+'stpcost':'コストは「速いリンクほど小さい」。ルートブリッジまでのコストの合計(ルートパスコスト)が小さい経路が選ばれる。',
+'stpel':'すべてのスイッチがBPDUを交換し、まずルートブリッジを1台決め、各スイッチがルートへの最短経路のポート(ルートポート)を決め、セグメントごとの代表(指定ポート)を決める。どれにも選ばれなかったポートがブロッキングになり、ループが切れる。',
+'stpst':'リスニング中はBPDUのやり取りでトポロジを確かめ、ラーニング中はMACアドレスを学習しながら待つ。どちらもForward Delay(15秒)ずつかかるので、ポートに挿してから通信できるまで30秒かかる(PortFastで回避できる)。',
+'rstprole':'RSTPは代替ポートを事前に用意しておくので、ルートポートが落ちたら即座に切り替えられる。隣のスイッチとの提案・合意(Proposal/Agreement)のやり取りで、タイマを待たずに収束する。',
+'stpgd':'端末用のポートに勝手にスイッチをつながれると、トポロジが変わったり、ルートブリッジを乗っ取られたりする。BPDUガードとルートガードはそれを防ぐ。',
+'ad':'異なるルーティングプロトコルで同じ宛先の経路を学習したときに、どちらを採用するかを決める値(メトリックは同じプロトコルの中での比較用)。ADを大きくしたスタティック経路を用意し、動的な経路が消えたときだけ使う方法を「フローティングスタティック」という。',
+'rcmp':'RIPは隣のルータから聞いた距離だけで判断するので、遠くの障害に気付くのが遅い。OSPFは全ルータが同じ地図(LSDB)を持って各自で計算するので収束が速い。BGPは組織(AS)の間でポリシーに従って経路を交換するためのもので、速さより制御のしやすさを重視する。',
+'lsa':'LSAはOSPFルータが交換する「地図の部品」。同じエリアの中では詳しい地図(タイプ1・2)を共有し、エリアの外へはABRが要約(タイプ3)して伝える。エリアを分けると計算量が減るのはこのため。',
+'area':'スタブ系のエリアは、外の経路をデフォルトルートで代用して、経路表とLSDBを小さくする仕組み。出口が1か所しかない拠点のエリアに向いている(NSSAではデフォルトルートは自動では入らず、ABRで設定して流す)。',
+'ospfval':'Helloで隣接関係を保ち、Dead間隔のあいだHelloが届かなければ隣接ダウンと判断する。Hello・Dead間隔やエリアIDが一致しないとネイバーにならない、は頻出の障害原因。DRは、マルチアクセス網でLSAの交換をまとめてトラフィックを減らす役。',
+'nbr':'Fullになって初めてLSDBが同期し、経路を計算できる。障害調査で ExStart・Exchange で止まるならMTUの不一致を、Init で止まるなら片方向しか通信できていないことを疑う、が定番。',
+'bgp':'BGPには複数のパス属性があり、上から順に比べて最初に差が付いたところで決まる。自ASから出ていく通信の経路を制御するなら LOCAL_PREF、入ってくる通信を制御するなら MED や AS_PATH の水増し(AS_PATHプリペンド)を使う。',
+'bgpval':'iBGPではAS_PATHが変わらずループを検出できないので、iBGPで受けた経路を他のiBGPへ渡さない決まりになっている。ルートリフレクタはこの制限をゆるめて、フルメッシュを不要にする。',
+'fhrp':'端末のデフォルトゲートウェイを冗長化するプロトコル。複数のルータが1つの仮想IP・仮想MACを共有し、マスタ(アクティブ)が落ちるとバックアップが引き継ぐ。端末の設定は変えなくてよい。上流の回線障害を検知して優先度を下げる機能(トラッキング)と組み合わせることが多い。',
+'tcpst':'TIME_WAITは、最後のACKが失われたときに再送されてくるFINに応えるためと、古いパケットが次の接続に紛れ込まないようにするために待つ状態。サーバ側から大量に切断すると、TIME_WAITのソケットが溜まる。',
+'cc':'TCPは「受信側が受け取れる量(ウィンドウ)」と「ネットワークが詰まらない量(輻輳ウィンドウ)」の小さいほうまで、ACKを待たずに送れる。遅延の大きい回線(海外・衛星)では、ウィンドウが小さいと帯域を使い切れない。',
+'ovh':'トンネルやタグでヘッダが増えると、1パケットに入るデータが減り、MTUを超えやすくなる。設計問題では「元の1500バイトのフレームを通すには、経路のMTUをいくつにすべきか」という形で出る。',
+'mplsh':'MPLSは、IPヘッダを見ずに短いラベルだけで転送する技術。ラベルは区間ごとに付け替えられる。L3VPNでは2段のラベル(外側=網内の転送用、内側=どのVPNか)を積む。',
+'vxlanh':'VXLANは、L2フレームをUDP/IPで包み、L3のネットワーク越しに同じL2セグメントを延ばす技術。データセンタで仮想マシンを別のサーバへ移しても、同じセグメントのままにできる。',
+'bits':'ビット長が分かれば「最大いくつ作れるか」が計算できる(2のビット数乗)。VLANが4094個しか作れない問題を、24bitのVNIで解決したのがVXLAN、という流れで出題されやすい。',
+'esp':'AHはIPヘッダ(途中で変わるTTLなどを除く)まで含めて改ざんを検知するので、NATでアドレスを書き換えると検証に失敗する。暗号化もできないので、実際のVPNはほぼESPを使う。',
+'ipsecmode':'拠点間VPNでは、ルータ(VPNゲートウェイ)同士がトンネルモードで通信し、内部の端末のIPアドレスは暗号化された中に隠れる。トランスポートモードは、端末同士の通信や、GRE over IPsec でGREパケットを保護するときに使う。',
+'ike':'IKEは、IPsecで使う鍵を安全に決めるための手順。まず自分たちのやり取りを守るSA(IKE SA)を作り、その中でデータ通信用のSA(IPsec SA / Child SA)を決める。IKEv2のほうがメッセージが少なく、NAT越えや相手の生存確認(DPD)も標準で備えている。',
+'mpls':'MPLS-VPN(L3VPN)は、通信事業者が複数の顧客の網を1つのMPLS網で運ぶサービス。顧客ごとに別の経路表(VRF)を持ち、顧客間でアドレスが重なっていてもRDで区別する。',
+'snmp':'SNMPは、マネージャ(監視サーバ)がエージェント(ネットワーク機器)の情報(MIB)を読み書きする管理プロトコル。定期的な問合せ(ポーリング)と、障害時の通知(トラップ)を組み合わせて監視する。v1・v2cのコミュニティ名は平文で流れる。',
+'syslog':'syslogは、機器のログをネットワーク経由でログサーバに送る仕組み。重要度(Severity)と発生元の種類(Facility)を持ち、「重要度4(Warning)以上を転送」のように閾値で絞り込む。従来のsyslogはUDP(514番)なので、届いたかどうかは保証されない(TCPやTLSで送る方式もある)。',
+'dns':'DNSは、ドメイン名とIPアドレスなどを対応付ける分散データベース。MXは宛先のメールサーバ、PTRは逆引き(IPから名前)、CNAMEは別名を引くために使う。CNAMEはゾーンの頂点(example.com そのもの)には設定できない。',
+'dnssec':'DNSSECは、DNSの応答に電子署名を付けて、改ざんされていないことを確かめる仕組み(暗号化はしない)。親ゾーンのDSレコードで子ゾーンの鍵を保証する、という連鎖をルートゾーンまでたどる。',
+'mail':'送信元を偽ったなりすましメールを見抜く仕組み。SPFはメールが転送されると失敗しやすく、DKIMは途中で本文を変えられると失敗する。DMARCは、どちらかが成功し、かつ表示上の差出人(ヘッダFrom)のドメインと一致すれば合格とし、不合格のメールの扱いを送信側が宣言する。DMARCは2026年5月にRFC 9989(DMARCbis)として標準化され、組織ドメインの判定がPublic Suffix ListからDNSのツリーウォークに変わり、pctタグは廃止された(代わりにテスト用のtタグ)。',
+'smtp':'MAIL FROM と RCPT TO は「封筒(エンベロープ)」、DATA の中身が「便箋(ヘッダと本文)」。なりすましメールは、封筒の差出人と便箋の差出人(ヘッダFrom)を別にして偽装することが多い。',
+'http':'ステータスコードは百の位で大分類:1xx=情報、2xx=成功、3xx=リダイレクト、4xx=クライアント側の誤り、5xx=サーバ側の誤り。ロードバランサやプロキシの障害の切り分けでは、502・503・504の違いが問われる。',
+'httpv':'HTTP/1.1は1つの接続で1つずつ順番に処理するので、前の応答が遅いと後ろが詰まる(HoLブロッキング)。HTTP/2は1つのTCP接続の中で複数のリクエストを並行して流すが、TCPでパケットが1つ失われると全部のストリームが待たされる。HTTP/3はQUICのストリームごとに独立して再送するので、この問題も解消した。',
+'tls':'TLSは、通信の暗号化・改ざんの検知・サーバの認証(証明書)を行うプロトコル。TLS 1.3では古い暗号方式を廃止し、ハンドシェイクを短くした。SNIは通常ホスト名を平文で送るので、FWやプロキシが接続先を判別するのに使える(ただし2026年に標準化されたECH〔RFC 9849〕を使うと暗号化される)。',
+'sip':'SIPは、IP電話の呼の制御(発信・着信・切断)を行うプロトコルで、HTTPに似たテキスト形式のメッセージを使う。通話の流れは INVITE → 100 Trying → 180 Ringing → 200 OK → ACK →(RTPで通話)→ BYE → 200 OK。',
+'dhcp':'クライアントはまだIPアドレスを持たないので、DiscoverとRequestはブロードキャストで送る。Requestもブロードキャストなのは、複数のサーバからOfferが来たとき、どのサーバを選んだかを全サーバに知らせるため。リース期間の半分が過ぎると更新を試みる。',
+'aaa':'AAAは Authentication(認証:誰か)・Authorization(認可:何をしてよいか)・Accounting(記録:何をしたか)。TACACS+はこの3つを分けて扱えるので、機器ごと・コマンドごとの細かい権限管理に向いている。なお、TACACS+の保護はRFC 8907では暗号化ではなく「難読化」とされ、2025年にTLS 1.3で包む方式(RFC 9887)が標準化された。',
+'lb':'ロードバランサは複数のサーバに通信を振り分け、ヘルスチェックで応答しないサーバを外す。L7で振り分けるにはHTTPの中身を見る必要があるので、HTTPSの場合はLBでTLSを終端する。',
+'dscp':'DSCPはIPヘッダのToS欄に書く優先度の目印(L3)、CoSはVLANタグに書く目印(L2)。ルータやスイッチは、この値を見てキューを選ぶ。どこで値を付けて(マーキング)、どこからの値を信頼するか(トラスト境界)が設計のポイント。',
+'voice':'音声は一定間隔で小さなパケットを送り続けるので、ヘッダの割合が大きい(ペイロード160バイトに対しヘッダ40バイト)。必要な帯域 = 1パケットのバイト数 × 8 × 1秒あたりのパケット数。',
+'queue':'混雑したときに「どのパケットを先に送り、どれを捨てるか」を決める仕組み。音声は遅延の小さいLLQ(優先キュー)に入れ、業務データにはCBWFQで最低限の帯域を保証する、が典型的な設計。',
+'formula':'稼働率は、直列なら全部が動いていないとダメなので掛け算、並列ならどれか1つ動けばよいので「全部止まる確率」を1から引く。伝送効率は、ヘッダや制御のぶんを除いて実際にデータに使える割合のこと。',
+'attack':'午前IIでは「攻撃名 → 手口 → 対策」の対応がそのまま問われる。送信元を偽装する攻撃(リフレクション・Smurf)には、自組織から偽装パケットを出さないこと(フィルタリング)が根本的な対策になる。',
+'secdev':'IDSはミラーポートにつないで検知だけするので、通信には影響しない。IPSは通信の経路上に置いて遮断するので、誤検知すると正常な通信も止まる。WAFは、通常のFWでは見ないHTTPの中身まで検査する。'
+};
+/* ---------- フィールドの解説(ヘッダ図) ---------- */
+var FD={
+'frame':{'プリアンブル+SFD':'10101010 の繰り返し(7バイト)+ SFD(10101011)。受信側がタイミングを合わせ、フレームの始まりを知るための信号。','宛先MAC':'受け取るNICのMACアドレス。全ビット1(FF-FF-FF-FF-FF-FF)ならブロードキャスト、先頭バイトの最下位ビットが1ならマルチキャスト。','送信元MAC':'送ったNICのMACアドレス。スイッチはこれをMACアドレステーブルに学習する。','タイプ':'中身のプロトコル。0x0800=IPv4、0x86DD=IPv6、0x0806=ARP。','データ':'IPパケットなど。46バイト未満(タグ付きは42バイト未満)ならパディングで埋める。最大1500バイト(=MTU)。','FCS':'宛先MACからデータ(パディング含む)までを対象に計算したCRC-32の値。プリアンブルとFCS自身は含まない。受信側で計算し直し、合わなければ破棄する。','802.1Qタグ':'VLAN IDと優先度を示す4バイト。トランクポートで付く。'},
+'tag':{'TPID(0x8100)':'タグ付きフレームであることを示す値。通常のフレームならタイプが来る位置にある。','PCP':'優先度0〜7(CoS)。音声は5が一般的。','DEI':'1なら、輻輳時に優先して捨ててよいフレーム。','VID(VLAN ID)':'所属するVLANの番号(1〜4094)。'},
+'ipv4':{'バージョン':'IPのバージョン番号。IPv4なら4(2進数 0100)。IPv6ヘッダでは同じ位置に6が入る。','IHL':'ヘッダの長さを4バイト単位で表す。オプションなしなら5(=20バイト)、最大15(=60バイト)。','ToS(DSCP+ECN)':'上位6bitがDSCP(優先度)、下位2bitがECN(輻輳通知)。昔は上位3bitをIP Precedenceとして使った。','全長':'ヘッダ+データのバイト数。16bitなので最大65535バイト。','識別子':'フラグメントされたときに、同じ元パケットの断片だと分かるようにする番号。','フラグ':'3bit。先頭は予約(0)、次がDF(1=分割禁止)、最後がMF(1=後ろに続きの断片がある)。','フラグメントオフセット':'その断片が元のパケットのどの位置にあたるか。8バイト単位。','TTL':'生存時間。ルータを通るたびに1減り、0になると破棄してICMP時間超過を返す。初期値はOSにより64・128・255など。','プロトコル':'中身のプロトコル番号。1=ICMP、6=TCP、17=UDP、50=ESP、89=OSPF。','ヘッダチェックサム':'ヘッダ部分だけの誤り検出。TTLが変わるので、ルータごとに計算し直す。','送信元IPアドレス':'送信元のアドレス。NAT装置はここを書き換える。','宛先IPアドレス':'宛先のアドレス。ルータはここを見て、ロンゲストマッチで転送先を決める。','オプション+パディング':'ほとんど使われない。長さを32bitの倍数に揃えるため、パディングで埋める。'},
+'ipv6':{'バージョン':'IPv6なら6(2進数 0110)。','トラフィッククラス':'IPv4のToSと同じ。上位6bitがDSCP、下位2bitがECN。','フローラベル':'同じ通信の流れ(フロー)を識別する値。ルータは、ポート番号まで見なくても同じ流れとして扱える。','ペイロード長':'IPv6ヘッダ(40バイト)より後ろの長さ。拡張ヘッダも含む。','次ヘッダ':'直後に来るヘッダの種類。拡張ヘッダの番号か、上位プロトコルの番号(6=TCP、17=UDP、58=ICMPv6)。','ホップリミット':'IPv4のTTLと同じ。ルータを通るたびに1減る。','送信元IPアドレス':'128bitの送信元アドレス。','宛先IPアドレス':'128bitの宛先アドレス。'},
+'tcph':{'送信元ポート':'送信側アプリのポート番号。クライアントなら動的ポートから自動で割り当てられる。','宛先ポート':'受信側アプリのポート番号。サーバなら80や443など。','シーケンス番号':'送るデータの先頭バイトの通し番号。初期値はランダム。SYNとFINも1つ分消費する。','確認応答番号':'次に受け取りたいバイトの番号(=ここまでは届いた、という意味)。ACKフラグが1のとき有効。','データオフセット':'TCPヘッダの長さを4バイト単位で表す。オプションなしなら5(=20バイト)。','予約':'将来のための領域(4bit)で、0にする。RFC 9768(2026年)で最後の1bitはAE(Accurate ECN)フラグに割り当てられた。試験ではRFC 9293の「予約4bit + フラグ8bit」で答えるのが無難。','フラグ':'CWR・ECE・URG・ACK・PSH・RST・SYN・FIN の8bit。','ウィンドウサイズ':'受信側がまだ受け取れるバイト数(フロー制御)。0なら送信を止める。','チェックサム':'疑似ヘッダ(IPアドレスなど)+ TCP全体の誤り検出。','緊急ポインタ':'URGが1のとき、緊急データの直後のバイトの位置を、シーケンス番号からのオフセットで示す。ほとんど使われない。','オプション(MSS・SACKなど)':'MSS(SYNで通知)、ウィンドウスケール、SACK(選択的確認応答)、タイムスタンプなど。'},
+'flags':{'CWR':'輻輳ウィンドウを減らしたことを相手に知らせる。','ECE':'ECNで輻輳の通知を受けたことを、相手に返す。','URG':'緊急ポインタが有効。','ACK':'確認応答番号が有効。接続が確立したあとは、ほぼ常に1。','PSH':'バッファに溜めず、すぐアプリに渡すよう求める。','RST':'接続を即座に強制切断する。閉じているポートへのSYNにも返ってくる。','SYN':'接続の開始。シーケンス番号の初期値を相手と同期する。','FIN':'もう送るデータがないことを知らせる(片方向ずつ閉じる)。'},
+'udph':{'送信元ポート':'返信先のポート番号。返信が要らなければ0でもよい。','宛先ポート':'宛先アプリのポート番号。','長さ':'UDPヘッダ(8バイト)+ データのバイト数。','チェックサム':'疑似ヘッダ + UDP全体の誤り検出。IPv4では省略(0)できるが、IPv6では原則必須(トンネル用途のみ条件付きの例外あり)。'},
+'icmph':{'タイプ':'メッセージの種類。8=エコー要求、0=エコー応答、3=到達不能、11=時間超過。','コード':'タイプの中の詳細。エコーでは0。','チェックサム':'ICMPメッセージ全体の誤り検出。','識別子':'どのpingのプロセスからの要求かを区別する。','シーケンス番号':'何回目の要求かを示す。応答と対応付けて、往復時間や損失を測る。'},
+'mplsh':{'ラベル':'転送に使う番号。各ルータ(LSR)はこれを見て出力先を決め、ラベルを付け替える。','TC':'Traffic Class。QoSの優先度(旧名EXP)。','S':'Bottom of Stack。1なら最後のラベル(この後ろはペイロード。通常はIPパケット)。','TTL':'IPのTTLと同じく、ループ防止のために1ずつ減らす。'},
+'vxlanh':{'フラグ':'Iフラグ(VNIが有効)が1になる。','予約':'将来のための領域で、0にする。','VNI':'どの仮想L2セグメントかを示す24bitの番号。VLAN IDに相当する。'}
+};
+
+/* ---------- 出典(2026年10月18日に照合) ---------- */
+var VERIFIED='2026年10月18日';
+var RFCT={768:'UDP',791:'IPv4',792:'ICMP',959:'FTP',1034:'DNS 概念',1035:'DNS 実装と仕様',1112:'IPマルチキャスト',1191:'Path MTU Discovery',1350:'TFTP',1812:'ルータの要件',1918:'プライベートアドレス',1939:'POP3',1995:'IXFR',2131:'DHCP',2181:'DNS仕様の明確化',2281:'HSRP',2328:'OSPFv2',2409:'IKE(v1)',2453:'RIPv2',2464:'IPv6 over Ethernet',2474:'DSフィールド(DSCP)',2516:'PPPoE',2597:'AF PHB',2661:'L2TP',2782:'SRVレコード',2784:'GRE',2827:'イングレスフィルタリング(BCP 38)',2865:'RADIUS',2866:'RADIUSアカウンティング',3021:'/31 プレフィックス',3031:'MPLSアーキテクチャ',3032:'MPLSラベルスタック',3101:'OSPF NSSA',3168:'ECN',3246:'EF PHB',3261:'SIP',3411:'SNMPアーキテクチャ',3414:'SNMPv3 USM',3416:'SNMPのプロトコル操作',3550:'RTP',3704:'uRPF(マルチホーム環境のイングレスフィルタ)',3748:'EAP',3849:'IPv6ドキュメント用プレフィックス',3927:'IPv4リンクローカル',3948:'ESPのUDPカプセル化(NAT-T)',4033:'DNSSEC 概要',4034:'DNSSEC レコード',4035:'DNSSEC プロトコル',4193:'IPv6 ULA',4271:'BGP-4',4291:'IPv6アドレス体系',4301:'IPsecアーキテクチャ',4302:'AH',4303:'ESP',4364:'BGP/MPLS IP VPN',4251:'SSHアーキテクチャ',4443:'ICMPv6',4456:'BGPルートリフレクタ',4511:'LDAP',4594:'DiffServのサービスクラス',4632:'CIDR',4861:'IPv6 近隣探索(NDP)',4987:'SYNフラッド攻撃と対策',5155:'NSEC3',5216:'EAP-TLS',5280:'X.509証明書とCRL',5281:'EAP-TTLS',5321:'SMTP',5358:'DNS再帰サーバの反射攻撃対策',5424:'syslog',5425:'syslog over TLS',5452:'DNS偽造応答への耐性',5681:'TCP輻輳制御',5737:'IPv4ドキュメント用アドレス',5798:'VRRPv3(旧版)',5905:'NTPv4',5936:'AXFR',6056:'送信元ポートのランダム化',6066:'TLS拡張(SNI)',6105:'RAガード',6335:'ポート番号の管理手続き',6376:'DKIM',6409:'メール投稿(サブミッション)',6587:'syslog over TCP',6598:'共有アドレス空間 100.64/10',6935:'IPv6トンネルのUDPゼロチェックサム',6960:'OCSP',6996:'プライベートAS番号',7143:'iSCSI',7208:'SPF',7217:'安定したインタフェースID',7239:'Forwardedヘッダ',7296:'IKEv2',7301:'ALPN',7323:'TCPウィンドウスケール',7348:'VXLAN',7567:'AQMの推奨',7766:'DNS over TCP',8064:'インタフェースIDの推奨方式',8200:'IPv6',8201:'IPv6のPath MTU Discovery',8314:'メールのTLS(暗黙的TLSのポート)',8415:'DHCPv6',8446:'TLS 1.3',8489:'STUN',8656:'TURN',8659:'CAAレコード',8866:'SDP',8907:'TACACS+',8981:'IPv6一時アドレス',9000:'QUIC',9051:'IMAP4rev2',9110:'HTTPのセマンティクス',9112:'HTTP/1.1',9113:'HTTP/2',9114:'HTTP/3',9190:'EAP-TLS 1.3',9293:'TCP',9568:'VRRPv3',9637:'IPv6ドキュメント用 3fff::/20',9768:'AccECN(AEフラグ)',9849:'TLS ECH',9887:'TACACS+ over TLS 1.3',9989:'DMARC'};
+var SX={
+ iana_port:['IANA ポート番号の登録簿','https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml'],
+ iana_proto:['IANA IPプロトコル番号の登録簿','https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml'],
+ iana_802:['IANA IEEE 802番号(EtherType)の登録簿','https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml'],
+ iana_v4sp:['IANA IPv4特殊用途アドレスの登録簿','https://www.iana.org/assignments/iana-ipv4-special-registry/iana-ipv4-special-registry.xhtml'],
+ iana_v6sp:['IANA IPv6特殊用途アドレスの登録簿','https://www.iana.org/assignments/iana-ipv6-special-registry/iana-ipv6-special-registry.xhtml'],
+ iana_mc4:['IANA IPv4マルチキャストアドレスの登録簿','https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml'],
+ iana_mc6:['IANA IPv6マルチキャストアドレスの登録簿','https://www.iana.org/assignments/ipv6-multicast-addresses/ipv6-multicast-addresses.xhtml'],
+ iana_icmp:['IANA ICMPパラメータの登録簿','https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml'],
+ iana_icmp6:['IANA ICMPv6パラメータの登録簿','https://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml'],
+ iana_dscp:['IANA DSCPの登録簿','https://www.iana.org/assignments/dscp-registry/dscp-registry.xhtml'],
+ iana_dns:['IANA DNSパラメータの登録簿','https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml'],
+ iana_http:['IANA HTTPステータスコードの登録簿','https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml'],
+ iana_sip:['IANA SIPパラメータの登録簿','https://www.iana.org/assignments/sip-parameters/sip-parameters.xhtml'],
+ ieee1:['IEEE 802.1 ワーキンググループ(802.1D/Q/w/s/X/AX/AB)','https://www.ieee802.org/1/'],
+ ieee3:['IEEE 802.3 ワーキンググループ(Ethernet・PoE)','https://www.ieee802.org/3/'],
+ ieee11:['IEEE 802.11 ワーキンググループ(無線LAN)','https://www.ieee802.org/11/'],
+ ieee3er:['IEEE 802.3 メンテナンス:10GBASE-ERの距離','https://grouper.ieee.org/groups/802/3/maint/email/msg00291.html'],
+ wfa:['Wi-Fi Alliance','https://www.wi-fi.org/'],
+ fluke:['Fluke Networks:1000BASE-T over Category 5','https://www.flukenetworks.com/knowledge-base/application-or-standards-articles-copper/1000base-t-over-category-5'],
+ soumu52:['総務省:5.2GHz帯無線LANの屋外利用(2018年の制度改正)','https://www.soumu.go.jp/main_content/000560679.pdf'],
+ impress52:['INTERNET Watch:5GHz帯の屋外利用の条件(解説記事)','https://internet.watch.impress.co.jp/docs/column/homewifi/1196253.html'],
+ hitachi24:['日立ソリューションズ:2.4GHz帯のチャネル設計(解説記事)','https://www.hitachi-solutions.co.jp/aruba/sp/guide/tech/channel.html'],
+ cisco_ad:['Cisco:Understand Administrative Distance','https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/15986-admin-distance.html'],
+ cisco_bgp:['Cisco:BGP Best Path Selection Algorithm','https://www.cisco.com/c/en/us/support/docs/ip/border-gateway-protocol-bgp/13753-25.html'],
+ cisco_stp:['Cisco:Understand and Configure STP','https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/5234-5.html'],
+ cisco_rg:['Cisco:STP Root Guard Enhancement','https://www.cisco.com/c/en/us/support/docs/lan-switching/spanning-tree-protocol/10588-74.html'],
+ cisco_hsrp:['Cisco:HSRP Features and Functionality(仮想MAC)','https://www.cisco.com/c/en/us/support/docs/ip/hot-standby-router-protocol-hsrp/9234-hsrpguidetoc.html'],
+ cisco_wred:['Cisco:WRED の設定(TCPグローバル同期)','https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/qos_conavd/configuration/xe-16/qos-conavd-xe-16-book/qos-conavd-cfg-wred.html'],
+ itu711:['ITU-T G.711','https://www.itu.int/rec/T-REC-G.711'],
+ itu729:['ITU-T G.729','https://www.itu.int/rec/T-REC-G.729'],
+ itu114:['ITU-T G.114(片道伝送時間)','https://www.itu.int/rec/T-REC-G.114']
+};
+var SRC={
+ eth:['ieee3','fluke','ieee3er'],cat:['ieee3','fluke'],poe:['ieee3'],ieee:['ieee1','ieee3'],frame:['ieee3','iana_802'],tag:['ieee1'],
+ wgen:['ieee11','wfa'],walpha:['ieee11'],wsec:['ieee11','wfa'],eap:[3748,5216,9190,5281],wfreq:['soumu52','impress52','hitachi24','ieee11'],
+ ipv4:[791,3168,2474],ipv6:[8200],v4v6:[791,8200],tcph:[9293,9768],flags:[9293,3168,9768],udph:[768,8200,6935],icmph:[792,1812],
+ hlen:[791,8200,9293,768,2516,2784,7348,3032],mtu:[8200,2516,1191,8201],icmp:[792,'iana_icmp',1191],
+ 'p-file':['iana_port',959,4251,1350],'p-mail':['iana_port',5321,6409,8314,1939,9051],'p-web':['iana_port',9110,9114,9000],
+ 'p-infra':['iana_port',7766,2131,8415,5905,3411,5424,4511],'p-route':['iana_port',4271,2453,7296,3948,2661,7348],'p-auth':['iana_port',2865,2866,8907,3261,7143],
+ prange:[6335,6056],ipproto:['iana_proto',3948],ethertype:['iana_802'],ndp:[4861,4443,'iana_icmp6',6105],
+ v4sp:['iana_v4sp',1918,6598,5737,3927],cls:[791,4632],v6:[4291,'iana_v6sp',4193,3849,9637],mcast:['iana_mc4','iana_mc6',9568],
+ mmac:[1112,2464,9568,'cisco_hsrp'],eui:[4291,7217,8064,8981],subnet:[4632,3021],
+ stpval:['ieee1','cisco_stp'],stpcost:['ieee1','cisco_stp'],stpel:['ieee1','cisco_stp'],stpst:['ieee1','cisco_stp'],rstprole:['ieee1'],stpgd:['cisco_stp','cisco_rg'],
+ ad:['cisco_ad'],rcmp:[2453,2328,4271],lsa:[2328,3101],area:[2328,3101],ospfval:[2328],nbr:[2328],bgp:['cisco_bgp',4271],bgpval:[4271,4456,6996],
+ fhrp:[9568,5798,2281,'cisco_hsrp'],tcpst:[9293],cc:[5681,7323,4987],ovh:[2516,2784,7348,3032,4303],mplsh:[3032],vxlanh:[7348],
+ bits:['ieee1',7348,3032,8200,2474],esp:[4302,4303,3948],ipsecmode:[4301],ike:[2409,7296],mpls:[3031,4364,7348],
+ snmp:[3411,3414,3416],syslog:[5424,5425,6587],dns:[1034,1035,2181,5936,1995,2782,8659,'iana_dns'],dnssec:[4033,4034,4035,5155],
+ mail:[7208,6376,9989],smtp:[5321],http:[9110,'iana_http'],httpv:[9112,9113,9114,9000],tls:[8446,6066,7301,9849,6960,5280],
+ sip:[3261,8866,3550,'iana_sip'],dhcp:[2131],aaa:[2865,2866,8907,9887],lb:[7239,9110,8489,8656],
+ dscp:[2474,2597,3246,4594,'iana_dscp'],voice:['itu711','itu729','itu114',3550],queue:[7567,'cisco_wred'],formula:[3021],
+ attack:[4987,5358,5452,2827,3704],secdev:[]
+};
+function srcItem(k){if(typeof k==='number')return ['RFC '+k+'('+(RFCT[k]||'')+')','https://www.rfc-editor.org/rfc/rfc'+k];return SX[k];}
+
+/* ---------- 略語辞書(略語|正式名称|補足) ---------- */
+var GLOSS={};
+['FTP|File Transfer Protocol','SSH|Secure Shell','SCP|Secure Copy','SFTP|SSH File Transfer Protocol','TFTP|Trivial File Transfer Protocol','SMB|Server Message Block','RDP|Remote Desktop Protocol',
+'SMTP|Simple Mail Transfer Protocol','SMTPS|SMTP Secure|SMTP over TLS','SMTP-AUTH|SMTP Authentication','POP3|Post Office Protocol version 3','POP3S|POP3 Secure|POP3 over TLS','IMAP|Internet Message Access Protocol','IMAPS|IMAP Secure|IMAP over TLS','OP25B|Outbound Port 25 Blocking',
+'HTTP|HyperText Transfer Protocol','HTTPS|HTTP Secure|HTTP over TLS','QUIC|QUIC|元は Quick UDP Internet Connections の略。今は固有名','DNS|Domain Name System','DHCP|Dynamic Host Configuration Protocol','DHCPv6|DHCP for IPv6','NTP|Network Time Protocol','SNMP|Simple Network Management Protocol','LDAP|Lightweight Directory Access Protocol','LDAPS|LDAP Secure|LDAP over TLS',
+'BGP|Border Gateway Protocol','eBGP|External BGP|異なるAS間','iBGP|Internal BGP|同じAS内','RIP|Routing Information Protocol','RIPng|RIP next generation|IPv6版','IKE|Internet Key Exchange','IKEv1|IKE version 1','IKEv2|IKE version 2','NAT|Network Address Translation','NAT-T|NAT Traversal','L2TP|Layer 2 Tunneling Protocol','VXLAN|Virtual eXtensible LAN',
+'RADIUS|Remote Authentication Dial In User Service','TACACS+|Terminal Access Controller Access-Control System Plus','SIP|Session Initiation Protocol','iSCSI|Internet Small Computer System Interface',
+'TCP|Transmission Control Protocol','UDP|User Datagram Protocol','IP|Internet Protocol','IPv4|Internet Protocol version 4','IPv6|Internet Protocol version 6','GRE|Generic Routing Encapsulation','ESP|Encapsulating Security Payload','AH|Authentication Header','ICMP|Internet Control Message Protocol','ICMPv6|ICMP for IPv6','IGMP|Internet Group Management Protocol',
+'OSPF|Open Shortest Path First','OSPFv3|OSPF version 3|IPv6対応版','VRRP|Virtual Router Redundancy Protocol','HSRP|Hot Standby Router Protocol','FHRP|First Hop Redundancy Protocol','ARP|Address Resolution Protocol','GARP|Gratuitous ARP','MPLS|Multiprotocol Label Switching','PPPoE|PPP over Ethernet','PPP|Point-to-Point Protocol','EAP|Extensible Authentication Protocol','EAPOL|EAP over LAN','LLDP|Link Layer Discovery Protocol',
+'RS|Router Solicitation|ルータ要請','RA|Router Advertisement|ルータ広告','NS|Neighbor Solicitation(NDP)/ Name Server(DNS)|文脈で意味が変わる','NA|Neighbor Advertisement|近隣広告','NDP|Neighbor Discovery Protocol','DAD|Duplicate Address Detection','PMTUD|Path MTU Discovery','MTU|Maximum Transmission Unit','MSS|Maximum Segment Size','SLAAC|Stateless Address Autoconfiguration',
+'UTP|Unshielded Twisted Pair','MMF|Multi-Mode Fiber','SMF|Single-Mode Fiber','PoE|Power over Ethernet','PoE+|Power over Ethernet Plus','PSE|Power Sourcing Equipment|給電側','PD|Powered Device|受電側','BASE|Baseband|ベースバンド伝送',
+'STP|Spanning Tree Protocol','RSTP|Rapid Spanning Tree Protocol','MSTP|Multiple Spanning Tree Protocol','BPDU|Bridge Protocol Data Unit','VLAN|Virtual LAN','LACP|Link Aggregation Control Protocol','QinQ|802.1Q in 802.1Q|タグの二重化','LAN|Local Area Network','IEEE|Institute of Electrical and Electronics Engineers',
+'SFD|Start Frame Delimiter','MAC|Medium Access Control|IEEEの表記。Media Access Control とも','FCS|Frame Check Sequence','CRC|Cyclic Redundancy Check','TPID|Tag Protocol Identifier','TCI|Tag Control Information','PCP|Priority Code Point','DEI|Drop Eligible Indicator','VID|VLAN Identifier','CoS|Class of Service','OUI|Organizationally Unique Identifier',
+'DSSS|Direct Sequence Spread Spectrum','OFDM|Orthogonal Frequency Division Multiplexing','OFDMA|Orthogonal Frequency Division Multiple Access','MIMO|Multiple-Input Multiple-Output','MU-MIMO|Multi-User MIMO','TWT|Target Wake Time','MLO|Multi-Link Operation','QAM|Quadrature Amplitude Modulation','QoS|Quality of Service','WMM|Wi-Fi Multimedia','FT|Fast BSS Transition','BSS|Basic Service Set','ESSID|Extended Service Set Identifier','BSSID|Basic Service Set Identifier','SSID|Service Set Identifier','PMF|Protected Management Frames','AP|Access Point',
+'WEP|Wired Equivalent Privacy','WPA|Wi-Fi Protected Access','WPA2|Wi-Fi Protected Access 2','WPA3|Wi-Fi Protected Access 3','TKIP|Temporal Key Integrity Protocol','AES|Advanced Encryption Standard','CCMP|Counter mode with CBC-MAC Protocol','AES-CCMP|AES + Counter mode with CBC-MAC Protocol','GCMP|Galois/Counter Mode Protocol','GCMP-256|256bit鍵のGCMP','PSK|Pre-Shared Key','SAE|Simultaneous Authentication of Equals','RC4|Rivest Cipher 4',
+'EAP-TLS|EAP-Transport Layer Security','PEAP|Protected EAP','EAP-TTLS|EAP-Tunneled Transport Layer Security','TLS|Transport Layer Security','DFS|Dynamic Frequency Selection','CSMA/CA|Carrier Sense Multiple Access with Collision Avoidance','CSMA/CD|Carrier Sense Multiple Access with Collision Detection','RTS|Request To Send','CTS|Clear To Send','RTS/CTS|Request To Send / Clear To Send',
+'IHL|Internet Header Length|4バイト単位のヘッダ長','ToS|Type of Service','DSCP|Differentiated Services Code Point','ECN|Explicit Congestion Notification','TTL|Time To Live','DF|Don’t Fragment','MF|More Fragments','CWR|Congestion Window Reduced','ECE|ECN-Echo','URG|Urgent','ACK|Acknowledgment','PSH|Push','RST|Reset','SYN|Synchronize','FIN|Finish','SACK|Selective Acknowledgment',
+'CGNAT|Carrier-Grade NAT','ULA|Unique Local Address','VRID|Virtual Router Identifier','EUI-64|64-bit Extended Unique Identifier','U/L|Universal / Local','LSA|Link State Advertisement','ABR|Area Border Router','ASBR|Autonomous System Boundary Router','AS|Autonomous System','NSSA|Not-So-Stubby Area','DR|Designated Router','BDR|Backup Designated Router','SPF|Shortest Path First(OSPF)/ Sender Policy Framework(メール)|文脈で意味が変わる',
+'AD|Administrative Distance','IGP|Interior Gateway Protocol','EGP|Exterior Gateway Protocol','MED|Multi-Exit Discriminator','LOCAL_PREF|Local Preference','AS_PATH|AS Path','NEXT_HOP|Next Hop','RTT|Round Trip Time','BDP|Bandwidth-Delay Product','MSL|Maximum Segment Lifetime','ssthresh|slow start threshold',
+'IV|Initialization Vector','ICV|Integrity Check Value','SA|Security Association','SPI|Security Parameter Index','ISAKMP|Internet Security Association and Key Management Protocol','TC|Traffic Class','LER|Label Edge Router','LSR|Label Switching Router','RD|Route Distinguisher','RT|Route Target','VRF|VPN Routing and Forwarding|RFC 4364の表記。Virtual Routing and Forwarding とも','VTEP|VXLAN Tunnel End Point','VNI|VXLAN Network Identifier','VPN|Virtual Private Network',
+'USM|User-based Security Model','DNSSEC|DNS Security Extensions','RRSIG|Resource Record Signature','DNSKEY|DNS Key','DS|Delegation Signer','NSEC|Next Secure','NSEC3|NSEC3(略語ではないレコード名)|ハッシュを使って不存在を証明するNSECの改良版(RFC 5155)','KSK|Key Signing Key','ZSK|Zone Signing Key','SOA|Start of Authority','MX|Mail Exchanger','CNAME|Canonical Name','PTR|Pointer','TXT|Text','SRV|Service','CAA|Certification Authority Authorization','AXFR|Authoritative Transfer|全体転送','IXFR|Incremental Zone Transfer|差分転送',
+'DKIM|DomainKeys Identified Mail','DMARC|Domain-based Message Authentication, Reporting and Conformance','EHLO|Extended HELLO','HELO|HELLO','HoL|Head-of-Line','HPACK|HTTP/2 のヘッダ圧縮方式','QPACK|HTTP/3 のヘッダ圧縮方式','SNI|Server Name Indication','ALPN|Application-Layer Protocol Negotiation','OCSP|Online Certificate Status Protocol','CRL|Certificate Revocation List','DHE|Diffie-Hellman Ephemeral','ECDHE|Elliptic Curve Diffie-Hellman Ephemeral',
+'SDP|Session Description Protocol','RTP|Real-time Transport Protocol','RTCP|RTP Control Protocol','DORA|Discover / Offer / Request / Ack','LB|Load Balancer','DSR|Direct Server Return','STUN|Session Traversal Utilities for NAT','TURN|Traversal Using Relays around NAT',
+'EF|Expedited Forwarding','AF|Assured Forwarding','CS|Class Selector','BE|Best Effort','PQ|Priority Queuing','WFQ|Weighted Fair Queuing','CBWFQ|Class-Based Weighted Fair Queuing','LLQ|Low Latency Queuing','WRED|Weighted Random Early Detection','MTBF|Mean Time Between Failures','MTTR|Mean Time To Repair','ITU-T|International Telecommunication Union Telecommunication Standardization Sector','RFC|Request for Comments',
+'IDS|Intrusion Detection System','IPS|Intrusion Prevention System','WAF|Web Application Firewall','UTM|Unified Threat Management','FW|Firewall','uRPF|Unicast Reverse Path Forwarding','XSS|Cross-Site Scripting','SQL|Structured Query Language','SW|Switch','IF|Interface','ISP|Internet Service Provider','PPS|Packets Per Second','pps|packets per second'
+].forEach(function(s){var p=s.split('|');GLOSS[p[0]]={f:p[1],n:p[2]||''};});
+</script>
+
+<script>
+(function(){
+'use strict';
+var DAY=864e5, IV=[1,3,7,16,35], KEY='nespe-note-v1';
+var $=function(s){return document.querySelector(s);};
+var S={r:{},t:{},o:{theme:'',intro:true}};
+try{var raw=localStorage.getItem(KEY);if(raw){var p=JSON.parse(raw);if(p&&typeof p==='object'){S.r=p.r||{};S.t=p.t||{};for(var k in (p.o||{}))S.o[k]=p.o[k];}}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function applyTheme(){if(S.o.theme)document.documentElement.setAttribute('data-theme',S.o.theme);else document.documentElement.removeAttribute('data-theme');}
+applyTheme();
+
+var BY={};TABLES.forEach(function(t){BY[t.id]=t;if(!t.hide){t.hide=[];for(var i=1;i<t.cols.length;i++)t.hide.push(i);}});
+var R={}; /* runtime per table: stage, holes, open, marks */
+function rt(id){if(!R[id])R[id]={stage:'see',holes:{},open:{},marks:{}};return R[id];}
+var U={cur:'all',filter:'all'};
+function today(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function ts(id){return S.t[id]||{c:0,d:0,day:''};}
+function rowOk(id,i){return S.r[id+'-'+i]===1;}
+function touched(id){var t=BY[id];for(var i=0;i<t.rows.length;i++)if((id+'-'+i) in S.r)return true;return false;}
+function okCount(id){var t=BY[id],n=0;for(var i=0;i<t.rows.length;i++)if(rowOk(id,i))n++;return n;}
+function status(id){
+  var x=ts(id),now=Date.now();
+  if(!x.c)return touched(id)?'prac':'new';
+  if(now>=x.d)return 'due';
+  return x.c>=3?'done':'clr';
+}
+function statusText(id){
+  var x=ts(id),st=status(id),t=BY[id];
+  if(st==='new')return '未着手';
+  if(st==='prac')return '練習中・○ '+okCount(id)+' / '+t.rows.length+'行';
+  if(st==='due')return '復習どき(クリア'+x.c+'回)';
+  var d=Math.ceil((x.d-Date.now())/DAY);
+  return (st==='done'?'定着':'クリア'+x.c+'回')+'・次は'+d+'日後';
+}
+function hidden(t,r,ri,ci){
+  if(r.stage==='see')return false;
+  if(r.stage==='hide')return t.hide.indexOf(ci)>=0;
+  if(r.stage==='rev')return ci===0;
+  return !!r.holes[ri+'-'+ci];
+}
+function makeHoles(t,r){
+  r.holes={};
+  if(t.kind){
+    t.rows.forEach(function(row,ri){var p=rowOk(t.id,ri)?0.3:0.6,any=false;row.forEach(function(f,fi){if(Math.random()<p){r.holes[ri+'-'+fi]=1;any=true;}});if(!any)r.holes[ri+'-'+Math.floor(Math.random()*row.length)]=1;});
+    return;
+  }
+  t.rows.forEach(function(row,ri){
+    var p=rowOk(t.id,ri)?0.3:0.65, any=false;
+    t.hide.forEach(function(ci){if(row[ci]==='—')return;if(Math.random()<p){r.holes[ri+'-'+ci]=1;any=true;}});
+    if(!any){var cand=t.hide.filter(function(ci){return row[ci]!=='—';});if(cand.length)r.holes[ri+'-'+cand[Math.floor(Math.random()*cand.length)]]=1;}
+  });
+}
+function setStage(id,s){
+  var t=BY[id],r=rt(id);
+  if(s==='rev'&&!t.rev)s='hide';
+  r.stage=s;r.open={};r.marks={};
+  if(s==='holes')makeHoles(t,r);
+}
+function cellHTML(t,r,ri,ci,val){
+  var cls=ci===0?'cue':'';
+  var hid=hidden(t,r,ri,ci);
+  var inner=val;
+  if(hid&&val!=='—'){
+    var k=ri+'-'+ci,op=!!r.open[k];
+    inner='<span class="m '+(op?'peek':'hid')+'" data-k="'+k+'">'+val+'</span>';
+  }
+  if(ci===0&&r.stage!=='see')cls+=' tap';
+  return '<td class="'+cls+'"'+(ci===0?' data-row="'+ri+'"':'')+'>'+inner+'</td>';
+}
+function fState(t,r,ri,fi){
+  if(r.stage==='see')return '';
+  var k=ri+'-'+fi,h=r.stage==='rev'?'hidb':(r.stage==='hide'||r.holes[k])?'hid':'';
+  if(!h)return '';
+  return r.open[k]?'peek':h;
+}
+function judgeHTML(test,ri){return test?'<div class="djudge"><button class="jb" data-j="1" data-row="'+ri+'">○</button><button class="jb" data-j="0" data-row="'+ri+'">✗</button></div>':'';}
+function diagHTML(t,r){
+  var test=r.stage!=='see',W=t.width,h='<div class="diag"><div class="dwrap'+(W<32?' w8':'')+(t.kind==='bar'?' isbar':'')+'">';
+  if(t.kind==='bits'){
+    var step=W>8?8:1,lab='';
+    for(var i=0;i<W;i+=step)lab+='<span style="grid-column:span '+step+'">'+i+'</span>';
+    h+='<div class="drow"><div class="ruler" style="grid-template-columns:repeat('+W+',1fr)">'+lab+'</div>'+(test?'<div class="djudge sp"></div>':'')+'</div>';
+  }
+  t.rows.forEach(function(row,ri){
+    var m=r.marks[ri],cls=m===1?' ok':m===0?' ng':'';
+    if(t.kind==='bits'){
+      var col=0,line=0,fh='';
+      row.forEach(function(f,fi){
+        var b=f[1],cs,rs;
+        if(b>=W&&b%W===0&&col===0){cs=W;rs=b/W;}else{cs=b;rs=1;}
+        var st=fState(t,r,ri,fi);
+        fh+='<div class="f'+(test?' tg':'')+(st?' '+st:'')+(rs>1?' tall':'')+'" data-k="'+ri+'-'+fi+'" style="grid-column:'+(col+1)+' / span '+cs+';grid-row:'+(line+1)+' / span '+rs+'"><span class="fn">'+f[0]+'</span><span class="fb">'+(f[2]||b+'bit')+'</span></div>';
+        col+=cs;if(col>=W){col=0;line+=rs;}
+      });
+      h+='<div class="drow'+cls+'"><div class="dgrid" style="grid-template-columns:repeat('+W+',1fr)">'+fh+'</div>'+judgeHTML(test,ri)+'</div>';
+    }else{
+      var fb=row.map(function(f,fi){var st=fState(t,r,ri,fi);return '<div class="f'+(test?' tg':'')+(st?' '+st:'')+'" data-k="'+ri+'-'+fi+'" style="flex:'+(f[3]||f[1])+' 1 0"><span class="fn">'+f[0]+'</span><span class="fb">'+(f[2]||f[1])+'バイト</span></div>';}).join('');
+      h+='<div class="drow'+cls+'" style="margin-top:'+(ri?10:0)+'px"><div class="dbar">'+fb+'</div>'+judgeHTML(test,ri)+'</div>';
+    }
+  });
+  return h+'</div></div>';
+}
+function cardHTML(t){
+  var r=rt(t.id),test=r.stage!=='see',st=status(t.id);
+  var stages=[['see','見る'],['holes','穴あき'],['hide','隠す'],['rev','逆']];
+  var h='<section class="tcard'+(st==='done'?' cleared':'')+'" id="t-'+t.id+'" data-t="'+t.id+'">';
+  h+='<div class="thead"><h3>'+t.title+'</h3><span class="tstat '+(st==='due'?'due':st==='done'?'done':'')+'">'+statusText(t.id)+'</span></div>';
+  h+='<div class="ctrl"><div class="seg">'+stages.map(function(s){return '<button data-stage="'+s[0]+'"'+(r.stage===s[0]?' class="on"':'')+(s[0]==='rev'&&!t.rev?' disabled':'')+'>'+s[1]+'</button>';}).join('')+'</div>';
+  if(r.stage==='holes')h+='<button class="mini" data-act="reshuffle">別の穴</button>';
+  if(test)h+='<button class="mini" data-act="flip">全部めくる</button>';
+  h+='</div>';
+  if(t.kind){h+=diagHTML(t,r);}
+  else{
+  h+='<div class="tbl"><table><thead><tr>'+t.cols.map(function(c,ci){return '<th'+(ci===0?' class="cue"':'')+'>'+c+'</th>';}).join('')+(test?'<th class="judge">判定</th>':'')+'</tr></thead><tbody>';
+  t.rows.forEach(function(row,ri){
+    var m=r.marks[ri];
+    h+='<tr'+(m===1?' class="ok"':m===0?' class="ng"':'')+'>'+row.map(function(v,ci){return cellHTML(t,r,ri,ci,v);}).join('');
+    if(test)h+='<td class="judge"><button class="jb" data-j="1" data-row="'+ri+'">○</button> <button class="jb" data-j="0" data-row="'+ri+'">✗</button></td>';
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  }
+  if(test){
+    var n=0,ng=0;for(var k in r.marks){n++;if(r.marks[k]===0)ng++;}
+    var unit=t.kind?'段':'行';
+    var msg=r.stage==='holes'?'穴あきは練習用。「隠す」か「逆」で全'+unit+'○になるとクリア。':'全'+unit+'○でクリア。';
+    var how=t.kind?(r.stage==='rev'?' 逆=フィールド名を見て、ビット数(バイト数)を答える。':' 隠したフィールドは、名前と長さを思い出してからタップでめくる。'):(t.rows.length>1?' 行の左端をタップすると、その行をまとめてめくれます。':'');
+    h+='<div class="tfoot">判定 '+n+' / '+t.rows.length+unit+(ng?'・✗ '+ng+unit:'')+' ― '+msg+how+'</div>';
+  }
+  if(t.note)h+='<details class="memo"'+(r.stage==='see'?' open':'')+'><summary>覚え方</summary><p>'+t.note+'</p></details>';
+  var ex=EX[t.id],fd=FD[t.id],sr=(SRC[t.id]||[]).map(srcItem).filter(Boolean);
+  if(ex||fd||sr.length){
+    h+='<details class="memo ex"'+(r.exOpen?' open':'')+' data-ex="1"><summary>解説</summary>'+(ex?'<p>'+ex+'</p>':'');
+    if(fd){var seen={};h+='<dl class="fdl">';t.rows.forEach(function(row){row.forEach(function(f){if(seen[f[0]]||!fd[f[0]])return;seen[f[0]]=1;h+='<dt>'+f[0]+'<span>'+(f[2]||f[1])+(t.kind==='bar'?'バイト':(f[2]?'':'bit'))+'</span></dt><dd>'+fd[f[0]]+'</dd>';});});h+='</dl>';}
+    h+='<div class="srcs"><b>出典</b>(<span>'+VERIFIED+'に照合</span>)'+(sr.length?'<ul>'+sr.map(function(s){return '<li><a href="'+s[1]+'" target="_blank" rel="noopener">'+s[0]+'</a></li>';}).join('')+'</ul>':'<div class="nosrc">一般的な用語・公式のため、個別の一次ソースはありません。</div>')+'</div>';
+    h+='</details>';
+  }
+  h+='</section>';
+  return h;
+}
+function visibleTables(){
+  return TABLES.filter(function(t){
+    if(U.cur!=='all'&&t.ch!==U.cur)return false;
+    var st=status(t.id);
+    if(U.filter==='todo')return st==='new'||st==='prac'||st==='due';
+    if(U.filter==='due')return st==='due';
+    return true;
+  });
+}
+function renderList(){
+  var ts_=visibleTables(),h='',last='';
+  ts_.forEach(function(t){
+    if(t.ch!==last){last=t.ch;var c=CH.filter(function(x){return x.id===t.ch;})[0];h+='<div class="ch-head">'+c.name+'</div>';}
+    h+=cardHTML(t);
+  });
+  if(!ts_.length)h='<div class="empty">'+(U.filter==='due'?'今日の復習はありません。新しい表を進めるか、また明日。':'該当する表はありません。')+'</div>';
+  $('#list').innerHTML=h;
+  wrapGloss($('#list'));
+}
+function rerenderCard(id){var el=document.getElementById('t-'+id);if(!el)return;var tmp=document.createElement('div');tmp.innerHTML=cardHTML(BY[id]);var nw=tmp.firstChild;el.parentNode.replaceChild(nw,el);wrapGloss(nw);}
+/* ---- 略語 ---- */
+var GKEYS=Object.keys(GLOSS).sort(function(a,b){return b.length-a.length;});
+var GSRC='(?<![A-Za-z0-9_])('+GKEYS.map(function(k){return k.replace(/[.*+?^${}()|[\]\\\/]/g,'\\$&');}).join('|')+')(?![A-Za-z_])';
+var GRE1,GREG;try{GRE1=new RegExp(GSRC);GREG=new RegExp(GSRC,'g');}catch(e){GRE1=null;}
+function wrapGloss(root){
+  if(S.o.gloss===false||!GRE1||!root)return;
+  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentNode;if(!p||p.closest('button,abbr,summary,.tstat,a,.srcs,.srcall'))return NodeFilter.FILTER_REJECT;return GRE1.test(n.nodeValue)?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT;}});
+  var list=[];while(w.nextNode())list.push(w.currentNode);
+  list.forEach(function(n){
+    var s=n.nodeValue,frag=document.createDocumentFragment(),last=0,m;
+    GREG.lastIndex=0;
+    while((m=GREG.exec(s))){
+      if(m.index>last)frag.appendChild(document.createTextNode(s.slice(last,m.index)));
+      var a=document.createElement('abbr');a.className='ab';a.setAttribute('data-g',m[1]);a.textContent=m[1];frag.appendChild(a);
+      last=m.index+m[0].length;
+    }
+    if(last<s.length)frag.appendChild(document.createTextNode(s.slice(last)));
+    n.parentNode.replaceChild(frag,n);
+  });
+}
+function glossOK(a){return S.o.gloss!==false&&a&&!a.closest('.hid')&&!a.closest('.hidb .fb');}
+function showGloss(a){
+  var k=a.getAttribute('data-g'),g=GLOSS[k];if(!g)return;
+  var el=$('#gloss');el.innerHTML='<b>'+k+'</b>'+g.f+(g.n?'<div style="opacity:.8;margin-top:2px">'+g.n+'</div>':'');
+  var rc=a.getBoundingClientRect(),vw=document.documentElement.clientWidth;
+  el.style.left=(window.scrollX+Math.max(8,Math.min(rc.left,vw-Math.min(300,vw-16)-8)))+'px';
+  el.style.top=(window.scrollY+rc.bottom+6)+'px';
+  el.classList.add('show');
+}
+function hideGloss(){$('#gloss').classList.remove('show');}
+function fieldDesc(fe){
+  if(!fe||fe.classList.contains('hid')||fe.classList.contains('hidb'))return null;
+  var card=fe.closest('.tcard');if(!card)return null;
+  var tid=card.getAttribute('data-t'),fd=FD[tid];if(!fd)return null;
+  var k=fe.getAttribute('data-k').split('-'),f=BY[tid].rows[+k[0]][+k[1]];
+  return fd[f[0]]?{n:f[0],d:fd[f[0]]}:null;
+}
+function showAt(el,html){
+  var g=$('#gloss');g.innerHTML=html;
+  var rc=el.getBoundingClientRect(),vw=document.documentElement.clientWidth;
+  g.style.left=(window.scrollX+Math.max(8,Math.min(rc.left,vw-Math.min(300,vw-16)-8)))+'px';
+  g.style.top=(window.scrollY+rc.bottom+6)+'px';
+  g.classList.add('show');
+}
+document.addEventListener('mouseover',function(e){
+  if(!e.target.closest)return;
+  var a=e.target.closest('.ab');
+  if(a&&glossOK(a)){showGloss(a);return;}
+  var fe=e.target.closest('.f'),fdd=fieldDesc(fe);
+  if(fdd)showAt(fe,'<b>'+fdd.n+'</b>'+fdd.d);
+});
+document.addEventListener('mouseout',function(e){if(e.target.closest&&(e.target.closest('.ab')||e.target.closest('.f')))hideGloss();});
+window.addEventListener('scroll',hideGloss,{passive:true});
+function renderGlossList(){
+  var q=($('#gq').value||'').toLowerCase();
+  var ks=Object.keys(GLOSS).sort(function(a,b){return a.toLowerCase()<b.toLowerCase()?-1:1;});
+  $('#glist').innerHTML=ks.filter(function(k){var g=GLOSS[k];return !q||(k+' '+g.f+' '+g.n).toLowerCase().indexOf(q)>=0;}).map(function(k){var g=GLOSS[k];return '<dt>'+k+'</dt><dd>'+g.f+(g.n?'<span style="color:var(--sub)">('+g.n+')</span>':'')+'</dd>';}).join('');
+}
+function renderStats(){
+  var c={done:0,clr:0,prac:0,'new':0,due:0},n=TABLES.length,rows=0,ok=0;
+  TABLES.forEach(function(t){var st=status(t.id);if(st==='due'){c.due++;c.clr++;}else c[st]++;rows+=t.rows.length;ok+=okCount(t.id);});
+  $('#subtitle').textContent='表 '+n+'枚・'+rows+'行。表ごと覚えて、赤シートのように隠して確かめる';
+  $('#stats').innerHTML='<div class="bar"><i style="width:'+(c.done/n*100)+'%;background:var(--ok)"></i><i style="width:'+(c.clr/n*100)+'%;background:var(--mid)"></i><i style="width:'+(c.prac/n*100)+'%;background:var(--ng)"></i></div>'+
+   '<div class="nums"><span><span class="sw" style="background:var(--ok)"></span>定着 <b>'+c.done+'</b></span><span><span class="sw" style="background:var(--mid)"></span>クリア済み '+c.clr+'</span><span><span class="sw" style="background:var(--ng)"></span>練習中 '+c.prac+'</span><span><span class="sw" style="background:var(--new)"></span>未着手 '+c['new']+'</span><span>今日の復習 <b>'+c.due+'</b></span><span>○の行 '+ok+' / '+rows+'</span></div>';
+  var fd=document.querySelector('#filterSeg [data-f="due"]');if(fd)fd.textContent='今日の復習'+(c.due?'('+c.due+')':'');
+}
+function renderNav(){
+  function chip(id,name,list){var d=list.filter(function(t){var s=status(t.id);return s==='done'||s==='clr'||s==='due';}).length;return '<button class="chip'+(U.cur===id?' on':'')+'" data-cat="'+id+'">'+name+'<small>'+d+'/'+list.length+'</small><i style="width:'+(d/list.length*100)+'%"></i></button>';}
+  var h=chip('all','全部',TABLES);
+  CH.forEach(function(c){h+=chip(c.id,c.name,TABLES.filter(function(t){return t.ch===c.id;}));});
+  $('#chips').innerHTML=h;
+}
+function renderIntro(){
+  if(!S.o.intro){$('#intro').innerHTML='';return;}
+  $('#intro').innerHTML='<div class="intro"><button class="close" id="introClose">閉じる</button><h3>回し方</h3><ol>'+
+   '<li><b>見る</b>で表と「覚え方」を眺め、並び方ごと頭に入れる。</li>'+
+   '<li><b>穴あき</b> → <b>隠す</b> → <b>逆</b> と、手がかりを減らしていく。隠れたセルは、思い出してからタップでめくる。</li>'+
+   '<li>各行に ○ / ✗。「隠す」か「逆」で全行○になればクリア。翌日以降「今日の復習」に戻ってくる。</li></ol></div>';
+}
+function srcHTML(){
+  var h='<h2>出典と照合の記録</h2><p>このノートの内容は、'+VERIFIED+'に、RFC・IANAの登録簿・IEEE・ITU-T・総務省・Ciscoの公式資料などの一次ソースと照合し、誤りを修正しています。2026年に出た新しいRFC(RFC 9768・9849・9887・9989)は、RFC Editorの原文で実在と内容を確認しました。試験の慣例と規格が食い違う箇所は、本文に注記しています。</p><p>各表の「解説」の中にも、その表の出典を載せています。</p>';
+  CH.forEach(function(c){
+    var seen={},items=[];
+    TABLES.filter(function(t){return t.ch===c.id;}).forEach(function(t){(SRC[t.id]||[]).forEach(function(k){if(seen[k])return;seen[k]=1;var it=srcItem(k);if(it)items.push(it);});});
+    if(!items.length)return;
+    h+='<h3>'+c.name+'</h3><ul>'+items.map(function(s){return '<li><a href="'+s[1]+'" target="_blank" rel="noopener">'+s[0]+'</a></li>';}).join('')+'</ul>';
+  });
+  return h;
+}
+function renderAll(){renderStats();renderNav();renderIntro();renderList();$('#srcAll').innerHTML=srcHTML();}
+var toastTimer;
+function toast(m){var el=$('#toast');el.textContent=m;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){el.classList.remove('show');},2600);}
+function checkClear(id){
+  var t=BY[id],r=rt(id);
+  if(r.stage!=='hide'&&r.stage!=='rev')return;
+  for(var i=0;i<t.rows.length;i++)if(r.marks[i]!==1)return;
+  var x=ts(id),now=Date.now(),d=today();
+  if(x.c&&now<x.d){toast('クリア!(次の復習日前なので回数はそのまま。間を空けた方が定着します)');return;}
+  if(x.day===d&&x.c){toast('今日はクリア済みです');return;}
+  x.c=(x.c||0)+1;x.day=d;x.d=now+IV[Math.min(x.c-1,IV.length-1)]*DAY;S.t[id]=x;save();
+  toast('クリア'+x.c+'回目!次の復習は'+IV[Math.min(x.c-1,IV.length-1)]+'日後'+(x.c>=3?'・定着':''));
+  renderStats();renderNav();
+}
+
+document.addEventListener('click',function(e){
+  var t=e.target;
+  var ab=t.closest('.ab');
+  if(ab&&glossOK(ab)){showGloss(ab);return;}
+  hideGloss();
+  if(t.id==='srcBtn'){$('#srcDlgBody').innerHTML=srcHTML();$('#srcDlg').showModal();return;}
+  if(t.id==='glossBtn'){$('#gq').value='';renderGlossList();$('#glossDlg').showModal();return;}
+  var chip=t.closest('.chip');
+  if(chip){U.cur=chip.getAttribute('data-cat');renderNav();renderList();var top=$('#list').getBoundingClientRect().top+window.scrollY-110;if(window.scrollY>top)window.scrollTo(0,top);return;}
+  if(t.id==='introClose'){S.o.intro=false;save();renderIntro();return;}
+  var fb=t.closest('#filterSeg button');
+  if(fb){U.filter=fb.getAttribute('data-f');[].forEach.call(document.querySelectorAll('#filterSeg button'),function(b){b.classList.toggle('on',b===fb);});renderList();return;}
+  var bb=t.closest('#bulkSeg button');
+  if(bb){var s=bb.getAttribute('data-s');visibleTables().forEach(function(x){setStage(x.id,s);});renderList();toast('表示中の表をすべて「'+bb.textContent+'」にしました');return;}
+  var card=t.closest('.tcard');
+  if(card){
+    var id=card.getAttribute('data-t'),tb=BY[id],r=rt(id);
+    var sb=t.closest('[data-stage]');
+    if(sb&&!sb.disabled){setStage(id,sb.getAttribute('data-stage'));rerenderCard(id);return;}
+    var act=t.closest('[data-act]');
+    if(act){var a=act.getAttribute('data-act');
+      if(a==='reshuffle'){makeHoles(tb,r);r.open={};r.marks={};}
+      if(a==='flip'){var sel=tb.kind?'.f.hid,.f.hidb,.f.peek':'.m';var els=card.querySelectorAll(sel),all=true;els.forEach(function(m){if(!r.open[m.getAttribute('data-k')])all=false;});els.forEach(function(m){var k=m.getAttribute('data-k');if(all)delete r.open[k];else r.open[k]=1;});}
+      rerenderCard(id);return;}
+    var fsee=t.closest('.f');
+    if(fsee&&!fsee.classList.contains('tg')){var fdd=fieldDesc(fsee);if(fdd)showAt(fsee,'<b>'+fdd.n+'</b>'+fdd.d);return;}
+    var exd=t.closest('details[data-ex] summary');
+    if(exd){setTimeout(function(){r.exOpen=exd.parentNode.open;},0);}
+    var fe=t.closest('.f.tg');
+    if(fe){if(fe.classList.contains('hid')||fe.classList.contains('hidb')||fe.classList.contains('peek')){var fk=fe.getAttribute('data-k');if(r.open[fk])delete r.open[fk];else r.open[fk]=1;rerenderCard(id);}return;}
+    var m=t.closest('.m');
+    if(m){var k=m.getAttribute('data-k');if(r.open[k])delete r.open[k];else r.open[k]=1;m.className='m '+(r.open[k]?'peek':'hid');return;}
+    var jb=t.closest('.jb');
+    if(jb){var ri=+jb.getAttribute('data-row'),j=+jb.getAttribute('data-j');
+      r.marks[ri]=j;S.r[id+'-'+ri]=j;save();
+      if(tb.kind)tb.rows[ri].forEach(function(f,fi){r.open[ri+'-'+fi]=1;});
+      else{tb.hide.forEach(function(ci){r.open[ri+'-'+ci]=1;});if(r.stage==='rev')r.open[ri+'-0']=1;}
+      checkClear(id);rerenderCard(id);renderStats();
+      return;}
+    var cue=t.closest('td.cue.tap');
+    if(cue){var row=+cue.getAttribute('data-row');var ms=cue.parentNode.querySelectorAll('.m');var allOpen=true;ms.forEach(function(x){if(!r.open[x.getAttribute('data-k')])allOpen=false;});ms.forEach(function(x){var kk=x.getAttribute('data-k');if(allOpen)delete r.open[kk];else r.open[kk]=1;x.className='m '+(r.open[kk]?'peek':'hid');});return;}
+  }
+  if(t.id==='helpBtn'){$('#helpDlg').showModal();return;}
+  if(t.id==='setBtn'){$('#optTheme').value=S.o.theme||'';$('#setDlg').showModal();return;}
+  if(t.hasAttribute('data-close')){t.closest('dialog').close();return;}
+  if(t.id==='expBtn'){var blob=new Blob([JSON.stringify(S)],{type:'application/json'});var a2=document.createElement('a');a2.href=URL.createObjectURL(blob);a2.download='nespe-note-progress.json';document.body.appendChild(a2);a2.click();setTimeout(function(){URL.revokeObjectURL(a2.href);a2.remove();},500);return;}
+  if(t.id==='impBtn'){$('#impFile').click();return;}
+  if(t.id==='resetBtn'){if(confirm('進捗をすべて消します。よろしいですか?')){S.r={};S.t={};save();R={};renderAll();}return;}
+});
+$('#optTheme').addEventListener('change',function(e){S.o.theme=e.target.value;save();applyTheme();});
+$('#gq').addEventListener('input',renderGlossList);
+$('#glossOn').checked=S.o.gloss!==false;
+document.body.classList.toggle('nogloss',S.o.gloss===false);
+$('#glossOn').addEventListener('change',function(e){S.o.gloss=e.target.checked;save();document.body.classList.toggle('nogloss',!e.target.checked);hideGloss();renderList();});
+$('#impFile').addEventListener('change',function(e){
+  var f=e.target.files&&e.target.files[0];if(!f)return;
+  var rd=new FileReader();
+  rd.onload=function(){try{var p=JSON.parse(rd.result);if(!p||typeof p!=='object'||typeof p.t!=='object')throw 0;S.r=p.r||{};S.t=p.t;if(p.o)for(var k in p.o)S.o[k]=p.o[k];save();applyTheme();renderAll();alert('読み込みました。');}catch(err){alert('このファイルは読み込めませんでした。');}e.target.value='';};
+  rd.readAsText(f);
+});
+renderAll();
+})();
+</script>
+</body>
+</html>
