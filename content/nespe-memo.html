@@ -239,7 +239,7 @@ body.nogloss .ab{text-decoration:none;cursor:inherit}
 var CH=[
  {id:'phy',name:'LAN・物理'},{id:'wifi',name:'無線LAN'},{id:'hdr',name:'ヘッダ'},{id:'num',name:'番号'},
  {id:'addr',name:'アドレス'},{id:'stp',name:'STP'},{id:'rt',name:'ルーティング'},{id:'vpn',name:'TCP・VPN'},
- {id:'app',name:'運用・アプリ'},{id:'qos',name:'QoS・計算・攻撃'}
+ {id:'app',name:'運用・アプリ'},{id:'qos',name:'QoS・計算・攻撃'},{id:'sys',name:'システム構成'}
 ];
 var TABLES=[];
 function T(id,ch,title,cols,rows,o){o=o||{};TABLES.push({id:id,ch:ch,title:title,cols:cols.split('|'),rows:rows.map(function(r){return r.split('|');}),note:o.note||'',rev:!!o.rev,hide:o.hide||null});}
@@ -803,13 +803,30 @@ T('queue','qos','キューイングと帯域制御','方式|内容',[
 T('formula','qos','計算の公式','対象|式',[
 '稼働率|MTBF ÷ (MTBF + MTTR)',
 '直列の稼働率|A × B',
-'並列の稼働率|1 − (1 − A)(1 − B)',
+'並列の稼働率|1 − (1 − A)(1 − B)(稼働率Aの機器n台なら 1 − (1 − A)^n)',
 '伝送時間|データ量(ビット)÷(回線速度 × 伝送効率)',
 '1Gbps をバイトに|125MB/s',
 '光ファイバの伝搬遅延|約5μs/km',
 'M/M/1 の平均待ち時間|ρ ÷ (1 − ρ) × 平均サービス時間',
 '呼量(アーラン)|呼数 × 平均保留時間 ÷ 観測時間',
-'ホスト数|2の(32 − プレフィックス長)乗 − 2(/30まで。/31は2アドレスとも使える:RFC 3021)'],{note:'バイトとビット(× 8)の変換と、通信速度は10進(1k = 1000)であることに注意。ρ = 到着率 ÷ サービス率。'});
+'ホスト数|2の(32 − プレフィックス長)乗 − 2(/30まで。/31は2アドレスとも使える:RFC 3021)',
+'共通鍵暗号の鍵の数(n人)|n(n − 1) ÷ 2 個',
+'公開鍵暗号の鍵の数(n人)|2n 個(1人1組の公開鍵と秘密鍵)',
+'フルメッシュの接続数(n拠点)|n(n − 1) ÷ 2 本',
+'送出遅延|フレーム長(ビット)÷ 回線速度',
+'伝搬遅延|距離 ÷ 伝搬速度(光ファイバで約 2 × 10^8 m/s)',
+'片道の遅延|送出遅延 + 伝搬遅延 + 処理遅延(ストア&フォワードでは中継のたびに送出遅延が加わる)',
+'Ethernetの最大フレームレート|回線速度 ÷ ((フレーム長 + 20) × 8)(20 = プリアンブル8 + フレーム間ギャップ12バイト)',
+'M/M/1 の平均応答時間|平均サービス時間 ÷ (1 − ρ)(= 平均待ち時間 + 平均サービス時間)',
+'IPv6のサブネット数|2の(64 − 割当てのプレフィックス長)乗(/48なら65,536個、/56なら256個)'],{note:'遅延の例:1500バイトを1Gbpsで送ると送出遅延は 12,000bit ÷ 10^9 = 12μs、光ファイバ100kmの伝搬遅延は約0.5ms。Ethernetの例:1Gbpsで64バイトのフレームなら 10^9 ÷ (84 × 8) ≒ 148万8千フレーム/秒、1518バイトなら約8万1千フレーム/秒。M/M/1:ρ = 0.5 なら待ち時間はサービス時間と同じ、0.8 なら4倍、0.9 なら9倍と急に伸びる。IPv6はサブネットを/64で切るのが基本なので、64から割当ての長さを引いた数がサブネット用のビット数。鍵の数:共通鍵は2人の組ごとに1つ要るので「n人から2人を選ぶ組合せ」= n(n − 1) ÷ 2。公開鍵は各自が鍵ペアを1組持つだけなので 2n。例:10人なら共通鍵45個、公開鍵20個。フルメッシュの接続数も同じ式で、iBGPのセッション数や拠点間VPNのトンネル数で出る(10拠点なら45本)。バイトとビット(× 8)の変換と、通信速度は10進(1k = 1000)であることに注意。ρ = 到着率 ÷ サービス率。'});
+T('kendall','qos','ケンドールの記号(待ち行列のモデル)','記号・位置|意味',[
+'1文字目|到着の仕方(到着間隔の分布)',
+'2文字目|サービス時間の分布',
+'3文字目|窓口(サーバ)の数',
+'M|ランダム(マルコフ性:到着はポアソン分布、到着間隔とサービス時間は指数分布)',
+'D|一定(Deterministic)',
+'G|一般の分布(General)',
+'M/M/1|ランダムに到着し、サービス時間も指数分布で、窓口が1つ'],{rev:1,note:'並びは「到着/サービス/窓口の数」。M はランダム(Markov)、D は一定、G は何でもよい。試験に出るのはほぼ M/M/1 だけ。'});
 T('attack','qos','攻撃と対策','攻撃|手口|対策',[
 'SYNフラッド|SYNを大量に送り、ハーフオープンで資源を枯渇させる|SYN Cookie',
 'DNSリフレクション|送信元を偽装した問合せで、大きな応答を被害者へ|オープンリゾルバをなくす',
@@ -826,7 +843,17 @@ T('secdev','qos','セキュリティ機器','機器・機能|役割',[
 'ステートフルインスペクション|セッションを記録し、戻りのパケットを動的に許可する',
 'UTM|FW・IPS・アンチウイルスなどを1台に統合'],{rev:1});
 
-/* ---------- 解説(表ごと) ---------- */
+/* ---------- システム構成 ---------- */
+T('raid','sys','RAID のレベル','RAID|方式|最小台数|使える容量(n台構成)|故障に耐える台数',[
+'RAID 0|ストライピング(データを分散して書く)|2台|n台分|0台(1台壊れると全損)',
+'RAID 1|ミラーリング(同じ内容を複製)|2台|1台分|n − 1台(2台構成なら1台)',
+'RAID 2|ビット単位のストライピング + ハミング符号|—|—|実用されていない',
+'RAID 3|バイト単位のストライピング + 専用パリティディスク|3台|n − 1台分|1台',
+'RAID 4|ブロック単位のストライピング + 専用パリティディスク|3台|n − 1台分|1台',
+'RAID 5|ブロック単位のストライピング + パリティを分散|3台|n − 1台分|1台',
+'RAID 6|ブロック単位のストライピング + 2種類のパリティを分散|4台|n − 2台分|2台',
+'RAID 1+0(10)|ミラーリングしたペアをストライピング|4台|n ÷ 2台分|1台(同じペアの2台が壊れなければ、最大 n ÷ 2台)'],{rev:1,note:'0 = 冗長なし、1 = 丸ごと複製、3・4・5 = パリティ1台分、6 = パリティ2台分。容量は「パリティの台数だけ引く」と覚える。3と4は専用のパリティディスクに書込みが集中してボトルネックになるので、5でパリティを全ディスクに分散して解消した。例:1TB × 4台なら、RAID 0 = 4TB、RAID 5 = 3TB、RAID 6 = 2TB、RAID 10 = 2TB。'});
+
 var EX={
 'eth':'BASE規格の名前は「速度 + 伝送方式 + 媒体」。ツイストペアは電気信号なので、減衰とノイズのため100mが上限。光ファイバは、コアが太く複数の光の通り道があるMMF(マルチモード:光が広がりやすく短距離向け)と、コアが細いSMF(シングルモード:長距離向け)に分かれる。SXとLXの距離の差は、主にMMFのモード分散(光の通り道ごとに到着時間がずれる現象)と波長による減衰の違いから来る。',
 'cat':'カテゴリはケーブルの品質の規格。扱える周波数帯域が広いほど、高い速度を通せる。Cat6Aは、隣のケーブルからのノイズ(エイリアンクロストーク)対策込みで、10Gbpsを100m保証する。今の新設はCat6Aが主流。',
@@ -909,6 +936,8 @@ var EX={
 'queue':'混雑したときに「どのパケットを先に送り、どれを捨てるか」を決める仕組み。音声は遅延の小さいLLQ(優先キュー)に入れ、業務データにはCBWFQで最低限の帯域を保証する、が典型的な設計。',
 'formula':'稼働率は、直列なら全部が動いていないとダメなので掛け算、並列ならどれか1つ動けばよいので「全部止まる確率」を1から引く。伝送効率は、ヘッダや制御のぶんを除いて実際にデータに使える割合のこと。',
 'attack':'午前IIでは「攻撃名 → 手口 → 対策」の対応がそのまま問われる。送信元を偽装する攻撃(リフレクション・Smurf)には、自組織から偽装パケットを出さないこと(フィルタリング)が根本的な対策になる。',
+'kendall':'ケンドールの記号は、待ち行列のモデルを「到着の分布/サービス時間の分布/窓口の数」の3つで表す書き方で、1953年にD. G. Kendallが提案した。M/M/1では、利用率 ρ(= 到着率 ÷ サービス率)が1に近づくほど待ち時間が急に伸びるので、設計では利用率に余裕を持たせる。平均待ち時間 = ρ ÷ (1 − ρ) × 平均サービス時間、平均応答時間 = 平均待ち時間 + 平均サービス時間。',
+'raid':'RAIDは、複数のディスクを組み合わせて速度・容量・信頼性を高める技術。1987年のPattersonらの論文でRAID 1〜5が定義され、0と6は後から加わった。パリティはデータのXOR(排他的論理和)で計算するので、1台壊れても残りのディスクから中身を復元できる。RAID 5は書込みのたびに「旧データと旧パリティを読む → 計算 → 書く」が必要で、書込みが遅い(書込みペナルティ)。大容量ディスクでは、1台目の復旧(リビルド)中に2台目が壊れて全損する危険があるので、RAID 6が推奨される。稼働率の計算では、RAID 0は直列、RAID 1は並列として考える。',
 'secdev':'IDSはミラーポートにつないで検知だけするので、通信には影響しない。IPSは通信の経路上に置いて遮断するので、誤検知すると正常な通信も止まる。WAFは、通常のFWでは見ないHTTPの中身まで検査する。'
 };
 /* ---------- フィールドの解説(ヘッダ図) ---------- */
@@ -959,7 +988,11 @@ var SX={
  cisco_wred:['Cisco:WRED の設定(TCPグローバル同期)','https://www.cisco.com/c/en/us/td/docs/ios-xml/ios/qos_conavd/configuration/xe-16/qos-conavd-xe-16-book/qos-conavd-cfg-wred.html'],
  itu711:['ITU-T G.711','https://www.itu.int/rec/T-REC-G.711'],
  itu729:['ITU-T G.729','https://www.itu.int/rec/T-REC-G.729'],
- itu114:['ITU-T G.114(片道伝送時間)','https://www.itu.int/rec/T-REC-G.114']
+ itu114:['ITU-T G.114(片道伝送時間)','https://www.itu.int/rec/T-REC-G.114'],
+ raid_paper:['Patterson, Gibson, Katz「A Case for Redundant Arrays of Inexpensive Disks (RAID)」UC Berkeley 1987','https://www2.eecs.berkeley.edu/Pubs/TechRpts/1987/CSD-87-391.html'],
+ kendall53:['D. G. Kendall(1953)Annals of Mathematical Statistics 24(3)(ケンドールの記号の原論文)','https://doi.org/10.1214/aoms/1177728975'],
+ wiki_kendall:['Wikipedia:Kendall\'s notation(解説記事)','https://en.wikipedia.org/wiki/Kendall%27s_notation'],
+ snia_raid6:['SNIA Dictionary:RAID 6','https://www.snia.org/education/online-dictionary/term/raid-6']
 };
 var SRC={
  eth:['ieee3','fluke','ieee3er'],cat:['ieee3','fluke'],poe:['ieee3'],ieee:['ieee1','ieee3'],frame:['ieee3','iana_802'],tag:['ieee1'],
@@ -978,8 +1011,9 @@ var SRC={
  snmp:[3411,3414,3416],syslog:[5424,5425,6587],dns:[1034,1035,2181,5936,1995,2782,8659,'iana_dns'],dnssec:[4033,4034,4035,5155],
  mail:[7208,6376,9989],smtp:[5321],http:[9110,'iana_http'],httpv:[9112,9113,9114,9000],tls:[8446,6066,7301,9849,6960,5280],
  sip:[3261,8866,3550,'iana_sip'],dhcp:[2131],aaa:[2865,2866,8907,9887],lb:[7239,9110,8489,8656],
- dscp:[2474,2597,3246,4594,'iana_dscp'],voice:['itu711','itu729','itu114',3550],queue:[7567,'cisco_wred'],formula:[3021],
- attack:[4987,5358,5452,2827,3704],secdev:[]
+ dscp:[2474,2597,3246,4594,'iana_dscp'],voice:['itu711','itu729','itu114',3550],queue:[7567,'cisco_wred'],formula:[3021,4456,'ieee3',4291],
+ kendall:['kendall53','wiki_kendall'],
+ attack:[4987,5358,5452,2827,3704],secdev:[],raid:['raid_paper','snia_raid6']
 };
 function srcItem(k){if(typeof k==='number')return ['RFC '+k+'('+(RFCT[k]||'')+')','https://www.rfc-editor.org/rfc/rfc'+k];return SX[k];}
 
@@ -1007,7 +1041,7 @@ var GLOSS={};
 'DKIM|DomainKeys Identified Mail','DMARC|Domain-based Message Authentication, Reporting and Conformance','EHLO|Extended HELLO','HELO|HELLO','HoL|Head-of-Line','HPACK|HTTP/2 のヘッダ圧縮方式','QPACK|HTTP/3 のヘッダ圧縮方式','SNI|Server Name Indication','ALPN|Application-Layer Protocol Negotiation','OCSP|Online Certificate Status Protocol','CRL|Certificate Revocation List','DHE|Diffie-Hellman Ephemeral','ECDHE|Elliptic Curve Diffie-Hellman Ephemeral',
 'SDP|Session Description Protocol','RTP|Real-time Transport Protocol','RTCP|RTP Control Protocol','DORA|Discover / Offer / Request / Ack','LB|Load Balancer','DSR|Direct Server Return','STUN|Session Traversal Utilities for NAT','TURN|Traversal Using Relays around NAT',
 'EF|Expedited Forwarding','AF|Assured Forwarding','CS|Class Selector','BE|Best Effort','PQ|Priority Queuing','WFQ|Weighted Fair Queuing','CBWFQ|Class-Based Weighted Fair Queuing','LLQ|Low Latency Queuing','WRED|Weighted Random Early Detection','MTBF|Mean Time Between Failures','MTTR|Mean Time To Repair','ITU-T|International Telecommunication Union Telecommunication Standardization Sector','RFC|Request for Comments',
-'IDS|Intrusion Detection System','IPS|Intrusion Prevention System','WAF|Web Application Firewall','UTM|Unified Threat Management','FW|Firewall','uRPF|Unicast Reverse Path Forwarding','XSS|Cross-Site Scripting','SQL|Structured Query Language','SW|Switch','IF|Interface','ISP|Internet Service Provider','PPS|Packets Per Second','pps|packets per second'
+'IDS|Intrusion Detection System','IPS|Intrusion Prevention System','WAF|Web Application Firewall','UTM|Unified Threat Management','FW|Firewall','uRPF|Unicast Reverse Path Forwarding','XSS|Cross-Site Scripting','SQL|Structured Query Language','SW|Switch','IF|Interface','ISP|Internet Service Provider','RAID|Redundant Arrays of Inexpensive Disks|元の論文の表記。今は Independent Disks とすることが多い','XOR|Exclusive OR|排他的論理和','PPS|Packets Per Second','pps|packets per second'
 ].forEach(function(s){var p=s.split('|');GLOSS[p[0]]={f:p[1],n:p[2]||''};});
 </script>
 
