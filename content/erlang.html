@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>アーラン計算ノート</title>
+<style>
+:root{
+  --bg:#f4f3ee;--surface:#ffffff;--surface2:#f9f8f4;--ink:#1c1c1f;--sub:#6a6a72;--line:#e1dfd7;--head:#efede6;
+  --accent:#2c49d1;--accent-ink:#fff;--mid:#d8981c;--ok:#2b9a58;--ng:#d4473f;--hl:rgba(44,73,209,.10);
+  --shadow:0 1px 2px rgba(0,0,0,.05),0 2px 10px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141416;--surface:#1d1d21;--surface2:#232328;--ink:#ececef;--sub:#9b9ba4;--line:#2f2f36;--head:#26262c;
+    --accent:#7d95ff;--accent-ink:#0f1330;--mid:#e9b04a;--ok:#4cc27e;--ng:#ef6a61;--hl:rgba(125,149,255,.16);--shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141416;--surface:#1d1d21;--surface2:#232328;--ink:#ececef;--sub:#9b9ba4;--line:#2f2f36;--head:#26262c;
+  --accent:#7d95ff;--accent-ink:#0f1330;--mid:#e9b04a;--ok:#4cc27e;--ng:#ef6a61;--hl:rgba(125,149,255,.16);--shadow:none;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 -apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI",Meiryo,sans-serif}
+.wrap{max-width:880px;margin:0 auto;padding:0 16px}
+header{padding:22px 0 4px}
+header h1{margin:0;font-size:22px}
+header p{margin:2px 0 0;color:var(--sub);font-size:13px}
+header a{color:var(--accent);text-decoration:none}
+nav.toc{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 0}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips a{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 12px;font-size:13px;color:var(--ink);text-decoration:none;white-space:nowrap}
+section.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:16px 0;box-shadow:var(--shadow);scroll-margin-top:60px}
+section.card h2{font-size:17px;margin:0 0 8px}
+section.card h3{font-size:15px;margin:16px 0 4px}
+p{margin:6px 0}
+.formula{background:var(--surface2);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:10px 14px;margin:10px 0;font-size:16px;font-weight:650;overflow-x:auto}
+.formula small{display:block;font-weight:500;font-size:12.5px;color:var(--sub);margin-top:2px}
+.memo{border-left:3px solid var(--mid);padding-left:10px;color:var(--ink);font-size:14px;margin:10px 0}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;margin:10px 0}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:5px 9px;text-align:left;vertical-align:top}
+th:last-child,td:last-child{border-right:0}
+tr:last-child td{border-bottom:0}
+th{background:var(--head);font-weight:650;white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr.hl td{background:var(--hl)}
+dl.terms{display:grid;grid-template-columns:minmax(110px,auto) 1fr;gap:6px 14px;margin:8px 0}
+dl.terms dt{font-weight:700}
+dl.terms dd{margin:0}
+ol.steps{padding-left:22px;margin:6px 0}
+ol.steps li{margin:3px 0}
+details.q{border:1px solid var(--line);border-radius:12px;margin:10px 0;background:var(--surface2)}
+details.q summary{cursor:pointer;padding:10px 14px;font-weight:650;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::after{content:"解答を見る";float:right;font-size:12px;font-weight:600;color:var(--accent)}
+details.q[open] summary::after{content:"閉じる"}
+details.q .ans{padding:0 14px 12px;border-top:1px dashed var(--line)}
+.calc{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:8px}
+.calc .box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--surface2)}
+.calc h3{margin:0 0 8px;font-size:14px}
+.calc label{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13.5px;margin:6px 0}
+.calc input{width:110px;font:inherit;padding:4px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);text-align:right}
+.calc .out{margin-top:8px;font-size:15px;font-weight:700}
+.calc .out small{display:block;font-weight:500;font-size:12.5px;color:var(--sub)}
+.src ul{padding-left:20px;margin:6px 0;font-size:13.5px}
+.src a{color:var(--accent);text-decoration:none;word-break:break-all}
+.src a:hover{text-decoration:underline}
+footer{color:var(--sub);font-size:12px;text-align:center;padding:20px 0 40px}
+footer a{color:var(--accent);text-decoration:none}
+@media (max-width:520px){header h1{font-size:19px}.formula{font-size:15px}}
+@media print{nav.toc{display:none}section.card{break-inside:avoid;box-shadow:none}details.q{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>アーラン計算ノート</h1>
+    <p>呼量・呼損率・回線数の計算をまとめたページ。<a href="nespe-memo.html">ネスペ暗記ノートへ戻る</a></p>
+  </header>
+</div>
+<nav class="toc"><div class="wrap"><div class="chips">
+  <a href="#terms">用語</a><a href="#load">呼量</a><a href="#loss">呼損率</a><a href="#table">呼損率表</a><a href="#lines">回線数の決め方</a><a href="#carried">回線使用率</a><a href="#voip">VoIPへの応用</a><a href="#ex">例題</a><a href="#calc">計算機</a><a href="#src">出典</a>
+</div></div></nav>
+<main class="wrap">
+
+<section class="card" id="terms">
+  <h2>用語</h2>
+  <dl class="terms">
+    <dt>呼(こ)</dt><dd>1回の通話(回線を占有する1回の利用)。</dd>
+    <dt>呼数</dt><dd>一定時間に発生した呼の数。ふつうは最繁時(1日で最も混む1時間)の呼数で考える。</dd>
+    <dt>平均保留時間</dt><dd>1呼が回線を占有する平均の時間(通話時間)。</dd>
+    <dt>呼量</dt><dd>回線がどれだけ使われているかを表す量。単位はアーラン(erl)。</dd>
+    <dt>1アーラン</dt><dd>1回線を1時間ずっと占有し続けるだけの量。</dd>
+    <dt>呼損</dt><dd>全回線がふさがっていて、呼がつながらずに捨てられること(話中になる)。</dd>
+    <dt>呼損率</dt><dd>発生した呼のうち、呼損になる割合。</dd>
+    <dt>生起呼量 / 運ばれた呼量</dt><dd>生起呼量=発生した呼量(加わった呼量)。運ばれた呼量=実際につながった分の呼量(運ばれた呼量 = 生起呼量 × (1 − 呼損率))。</dd>
+  </dl>
+</section>
+
+<section class="card" id="load">
+  <h2>呼量の計算</h2>
+  <div class="formula">呼量(アーラン)= 呼数 × 平均保留時間 ÷ 観測時間<small>呼数と保留時間の単位をそろえる。1時間あたりで考えるなら、平均保留時間(秒)÷ 3600 を掛ける。</small></div>
+  <p>例:最繁時の1時間に120呼、平均保留時間3分なら、120 × 3 ÷ 60 = <b>6アーラン</b>。</p>
+  <p>「回線の使用時間の合計 ÷ 観測時間」と同じ意味。1回線が1時間のうち36分使われていれば、その回線の呼量は 36 ÷ 60 = 0.6アーラン。</p>
+  <div class="memo">呼量は「平均して同時に何本の回線が使われているか」と読み替えると直感的。6アーランなら、平均して6本が同時に通話中。ただし呼の発生には波があるので、6回線では足りず、呼損率から必要な本数を決める。</div>
+</section>
+
+<section class="card" id="loss">
+  <h2>呼損率(アーランB式)</h2>
+  <p>呼損になった呼は待たずに捨てられる方式(即時式)で、呼がランダムに発生するときの呼損率は、アーランB式で求まる。</p>
+  <div class="formula">B(A, n)= (Aⁿ ÷ n!) ÷ (1 + A + A²÷2! + … + Aⁿ÷n!)<small>A = 生起呼量(アーラン)、n = 回線数。</small></div>
+  <p>手計算では、次の漸化式を使うと楽。B(0) = 1 から始め、回線を1本ずつ増やす。</p>
+  <div class="formula">B(k)= A × B(k−1) ÷ (k + A × B(k−1))</div>
+  <div class="memo">試験では、呼損率は式から計算させるより、問題文の呼損率表を読ませる形が多い。式は「呼量が増えると呼損率が上がり、回線を増やすと下がる」という関係を理解するために押さえておけば十分。待たせる方式(コールセンターなど、待時式)ではアーランC式を使うが、こちらはネスペではほとんど出ない。</div>
+</section>
+
+<section class="card" id="table">
+  <h2>呼損率表(アーランB)</h2>
+  <p>回線数 n 本のとき、呼損率を目標以下に抑えられる<b>最大の呼量</b>(アーラン)。値はアーランB式から計算した(小数第3位を四捨五入)。</p>
+  <div class="tbl"><table id="btable"></table></div>
+  <div class="memo">表の読み方:必要な呼量が、目標の呼損率の列で初めて「表の値以上」になる行の回線数を選ぶ。例:6アーランを呼損率1%以下 → 1%の列で12回線は5.88(足りない)、13回線は6.61(足りる)→ <b>13回線</b>。</div>
+</section>
+
+<section class="card" id="lines">
+  <h2>回線数の決め方</h2>
+  <ol class="steps">
+    <li>最繁時の呼数と平均保留時間から、呼量(アーラン)を出す。</li>
+    <li>目標の呼損率(例:1%)を決める。</li>
+    <li>呼損率表で、目標の列を上から見て、呼量以上の値が初めて出る行の回線数を選ぶ。</li>
+    <li>拠点が複数なら、拠点ごとに求めてから合計する(まとめて計算すると、回線を共有する効果で少なく済む)。</li>
+  </ol>
+  <div class="memo">回線をまとめるほど効率が上がる(大群化効果)。呼損率表で 1%・1アーランは5回線だが、1%・10アーランは18回線で済む。10倍の呼量を、3.6倍の回線で運べる。</div>
+</section>
+
+<section class="card" id="carried">
+  <h2>運ばれた呼量と回線使用率</h2>
+  <div class="formula">運ばれた呼量 = 生起呼量 × (1 − 呼損率)</div>
+  <div class="formula">1回線あたりの使用率 = 運ばれた呼量 ÷ 回線数</div>
+  <p>例:10アーランを15回線で運ぶと、呼損率は約3.6%。運ばれた呼量は 10 × (1 − 0.036)≒ 9.64アーラン、1回線あたりの使用率は 9.64 ÷ 15 ≒ <b>64%</b>。</p>
+</section>
+
+<section class="card" id="voip">
+  <h2>VoIPへの応用</h2>
+  <p>IP電話の帯域設計は「同時通話数(=回線数)× 1通話あたりの帯域」で考える。同時通話数を、上の回線数の決め方で求める。</p>
+  <div class="formula">必要な帯域 = 回線数(同時通話数)× 1通話あたりの帯域</div>
+  <p>例:G.711・20ms間隔は、Ethernetのヘッダ込みで1通話あたり87.2kbps(暗記ノートの「音声の帯域計算」を参照)。13回線分なら 13 × 87.2 = 1,133.6kbps ≒ <b>1.13Mbps</b>(片方向)。</p>
+  <div class="memo">音声は双方向なので、帯域は上りと下りのそれぞれに必要。問題文が「片方向あたり」か「双方向の合計」かを必ず確認する。</div>
+</section>
+
+<section class="card" id="ex">
+  <h2>例題</h2>
+  <details class="q"><summary>問1 最繁時の1時間に、平均保留時間2分の呼が90呼発生する。呼量は何アーランか。</summary>
+    <div class="ans"><p>90 × 2 ÷ 60 = <b>3アーラン</b>。</p></div></details>
+  <details class="q"><summary>問2 問1の呼量を、呼損率1%以下で運ぶには何回線必要か。</summary>
+    <div class="ans"><p>呼損率表の1%の列で、7回線は2.50(足りない)、8回線は3.13(足りる)。よって<b>8回線</b>。</p></div></details>
+  <details class="q"><summary>問3 1回線を1時間のうち45分使用している回線が4本ある。合計の呼量は何アーランか。</summary>
+    <div class="ans"><p>1本あたり 45 ÷ 60 = 0.75アーラン。4本で <b>3アーラン</b>。</p></div></details>
+  <details class="q"><summary>問4 呼量6アーランを10回線で運ぶ。呼損率は約何%か(計算機で確認してよい)。また、運ばれた呼量は約何アーランか。</summary>
+    <div class="ans"><p>アーランB式で B(6, 10)≒ <b>4.3%</b>。運ばれた呼量は 6 × (1 − 0.043)≒ <b>5.74アーラン</b>。</p></div></details>
+  <details class="q"><summary>問5 拠点Aは呼量4アーラン、拠点Bも4アーラン。呼損率1%で、①拠点ごとに回線を用意する場合と、②2拠点で回線を共有する場合の、合計の回線数をそれぞれ求めよ。</summary>
+    <div class="ans"><p>① 4アーランは1%の列で10回線(9回線は3.78で足りない、10回線は4.46)。2拠点で <b>20回線</b>。</p><p>② 合計8アーラン。1%の列で14回線は7.35(足りない)、15回線は8.11 → <b>15回線</b>。共有すると5回線少なく済む(大群化効果)。</p></div></details>
+  <details class="q"><summary>問6 問2で求めた回線数を、G.711(Ethernet込み1通話87.2kbps)のIP電話で置き換える。片方向に必要な帯域は約何kbpsか。</summary>
+    <div class="ans"><p>8 × 87.2 = <b>697.6kbps</b>。</p></div></details>
+</section>
+
+<section class="card" id="calc">
+  <h2>計算機</h2>
+  <div class="calc">
+    <div class="box"><h3>呼量を求める</h3>
+      <label>呼数(1時間)<input type="number" id="c1n" value="120" min="0" step="1"></label>
+      <label>平均保留時間(秒)<input type="number" id="c1t" value="180" min="0" step="1"></label>
+      <div class="out" id="c1o"></div></div>
+    <div class="box"><h3>呼損率を求める</h3>
+      <label>呼量(アーラン)<input type="number" id="c2a" value="6" min="0" step="0.1"></label>
+      <label>回線数<input type="number" id="c2n" value="10" min="0" step="1"></label>
+      <div class="out" id="c2o"></div></div>
+    <div class="box"><h3>必要な回線数を求める</h3>
+      <label>呼量(アーラン)<input type="number" id="c3a" value="6" min="0" step="0.1"></label>
+      <label>目標の呼損率(%)<input type="number" id="c3p" value="1" min="0.001" max="100" step="0.1"></label>
+      <div class="out" id="c3o"></div></div>
+  </div>
+</section>
+
+<section class="card src" id="src">
+  <h2>出典</h2>
+  <p style="color:var(--sub);font-size:13px">2026年10月19日に確認。呼損率表と例題の数値は、アーランB式で計算して検算した。</p>
+  <ul>
+    <li><a href="https://www.itu.int/rec/T-REC-E.600" target="_blank" rel="noopener">ITU-T E.600:Terms and definitions of traffic engineering(呼量・アーランなどの用語)</a></li>
+    <li><a href="https://www.itu.int/rec/T-REC-E.520" target="_blank" rel="noopener">ITU-T E.520:即時式での回線数の算定(アーランB式による回線数の決め方)</a></li>
+    <li><a href="https://www.itu.int/rec/T-REC-G.711" target="_blank" rel="noopener">ITU-T G.711(64kbpsの音声符号化)</a></li>
+  </ul>
+</section>
+</main>
+<div class="wrap"><footer><a href="nespe-memo.html">ネスペ暗記ノートへ戻る</a></footer></div>
+
+<script>
+(function(){
+'use strict';
+function B(A,n){var b=1;for(var k=1;k<=n;k++)b=A*b/(k+A*b);return b;}
+function maxA(n,p){var lo=0,hi=200;for(var i=0;i<80;i++){var m=(lo+hi)/2;if(B(m,n)<=p)lo=m;else hi=m;}return lo;}
+function need(A,p){var n=0;while(B(A,n)>p&&n<2000)n++;return n;}
+function f(x,d){return x.toLocaleString('ja-JP',{minimumFractionDigits:d,maximumFractionDigits:d});}
+var ps=[0.001,0.01,0.05],h='<tr><th class="num">回線数</th><th class="num">呼損率 0.1%</th><th class="num">呼損率 1%</th><th class="num">呼損率 5%</th></tr>';
+for(var n=1;n<=30;n++){h+='<tr'+(n===13?' class="hl"':'')+'><td class="num">'+n+'</td>'+ps.map(function(p){return '<td class="num">'+f(maxA(n,p),2)+'</td>';}).join('')+'</tr>';}
+document.getElementById('btable').innerHTML=h;
+function v(id){var x=parseFloat(document.getElementById(id).value);return isFinite(x)?x:NaN;}
+function upd(){
+  var n=v('c1n'),t=v('c1t');
+  document.getElementById('c1o').innerHTML=(n>=0&&t>=0)?f(n*t/3600,3)+' アーラン<small>'+n+' × '+t+' ÷ 3600</small>':'—';
+  var a=v('c2a'),k=Math.floor(v('c2n'));
+  if(a>=0&&k>=0){var b=B(a,k);document.getElementById('c2o').innerHTML='呼損率 '+f(b*100,2)+' %<small>運ばれた呼量 '+f(a*(1-b),3)+' アーラン'+(k>0?'・1回線の使用率 '+f(a*(1-b)/k*100,1)+' %':'')+'</small>';}
+  else document.getElementById('c2o').textContent='—';
+  var a3=v('c3a'),p=v('c3p')/100;
+  if(a3>=0&&p>0&&p<1){var m=need(a3,p);document.getElementById('c3o').innerHTML=m+' 回線<small>このときの呼損率 '+f(B(a3,m)*100,2)+' %'+(m>0?'('+(m-1)+'回線では '+f(B(a3,m-1)*100,2)+' %)':'')+'</small>';}
+  else document.getElementById('c3o').textContent='—';
+}
+['c1n','c1t','c2a','c2n','c3a','c3p'].forEach(function(id){document.getElementById(id).addEventListener('input',upd);});
+upd();
+})();
+</script>
+</body>
+</html>
