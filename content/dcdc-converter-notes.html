@@ -1,0 +1,704 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DC-DCコンバーター学習メモ</title>
+<style>
+:root{--bg:#faf9f5;--fg:#1f1e1d;--muted:#6b6a65;--faint:#a3a19a;--line:#dcd9cf;--card:#ffffff;--soft:#f3f1ea;
+--amber:#E08A1E;--teal:#1D9E75;--purple:#7F77DD;--coral:#D85A30;--accent:#2f6fd0;
+--g1:#F1EFE8;--g2:#888780;--g3:#2C2C2A;--g4:#5F5E5A;
+--p1:#EEEDFE;--p2:#534AB7;--p3:#26215C;--p4:#534AB7;
+--t1:#E1F5EE;--t2:#0F6E56;--t3:#04342C;--t4:#0F6E56;}
+@media (prefers-color-scheme:dark){:root{--bg:#1b1b1a;--fg:#ecebe6;--muted:#aaa89f;--faint:#6f6d66;--line:#3a3935;--card:#242422;--soft:#2c2c2a;
+--g1:#444441;--g2:#B4B2A9;--g3:#F1EFE8;--g4:#D3D1C7;
+--p1:#3C3489;--p2:#AFA9EC;--p3:#EEEDFE;--p4:#CECBF6;
+--t1:#085041;--t2:#5DCAA5;--t3:#E1F5EE;--t4:#9FE1CB;}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",Meiryo,sans-serif;font-size:16px;line-height:1.85}
+main{max-width:780px;margin:0 auto;padding:40px 16px 96px}
+h1{font-size:28px;line-height:1.4;margin:0 0 8px}
+h2{font-size:21px;margin:64px 0 12px;padding-top:28px;border-top:1px solid var(--line)}
+h3{font-size:17px;margin:32px 0 8px}
+p{margin:10px 0}
+.lead{color:var(--muted)}
+nav{background:var(--soft);border-radius:12px;padding:14px 20px;margin:24px 0;font-size:15px}
+nav ol{margin:6px 0;padding-left:22px}
+nav a{color:var(--accent);text-decoration:none}
+.fig{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 16px 14px;margin:22px 0}
+.fig-cap{font-weight:700;font-size:15px}
+.fig-where{font-size:13px;color:var(--muted);margin:2px 0 10px;line-height:1.6}
+.fig svg{width:100%;height:auto;display:block}
+.formula{background:var(--soft);border-left:3px solid var(--purple);padding:10px 16px;margin:14px 0;font-weight:600}
+.box{background:var(--soft);border-radius:10px;padding:12px 16px;margin:14px 0}
+.box b{display:block;margin-bottom:2px}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:12px 0}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-weight:600}
+.tw{overflow-x:auto}
+button{font:inherit;font-size:14px;background:transparent;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+button.sel{border-color:var(--accent);color:var(--accent)}
+input[type=range]{accent-color:var(--accent);flex:1;min-width:140px}
+.ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0;font-size:14px;color:var(--muted)}
+.ctrl b{color:var(--fg);font-weight:600;min-width:52px;text-align:right}
+.big{font-size:22px;font-weight:700;color:var(--fg)}
+.msg{font-size:14px;color:var(--muted);line-height:1.7;min-height:48px;margin:6px 0}
+.rd{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:12px 0}
+.rd div{background:var(--soft);border-radius:8px;padding:8px 12px}
+.rd span{display:block;font-size:12px;color:var(--muted)}
+.rd b{font-size:18px}
+.small{font-size:13px;color:var(--muted)}
+svg .t{font-size:14px;fill:var(--fg)}
+svg .ts{font-size:12px;fill:var(--muted)}
+svg .th{font-size:14px;font-weight:600;fill:var(--fg)}
+svg .arr{stroke:var(--muted);stroke-width:1.5;fill:none}
+.bx-g>rect{fill:var(--g1);stroke:var(--g2);stroke-width:.8}.bx-g>.th{fill:var(--g3)}.bx-g>.ts{fill:var(--g4)}
+.bx-p>rect{fill:var(--p1);stroke:var(--p2);stroke-width:.8}.bx-p>.th{fill:var(--p3)}.bx-p>.ts{fill:var(--p4)}
+.bx-t>rect{fill:var(--t1);stroke:var(--t2);stroke-width:.8}.bx-t>.th{fill:var(--t3)}.bx-t>.ts{fill:var(--t4)}
+.w{fill:none;stroke:var(--faint);stroke-width:2;stroke-linecap:round;transition:stroke .3s}
+svg.st-on .a,svg.st-off .b{stroke-dasharray:8 6}
+svg.st-on .a{stroke:var(--amber)}
+svg.st-off .b{stroke:var(--teal)}
+@media (prefers-reduced-motion:no-preference){svg.st-on .a,svg.st-off .b{animation:flow .7s linear infinite}}
+@keyframes flow{to{stroke-dashoffset:-14}}
+@media print{.ctrl,button{display:none}.fig{break-inside:avoid}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#8a887f" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs></svg>
+<main>
+<h1>DC-DCコンバーター学習メモ</h1>
+<p class="lead">降圧コンバーター(電圧を下げる)の仕組みを、パワー部から制御ICの中のトランジスタレベルまで順にたどり、最後に昇圧コンバーター(電圧を上げる)との違いをまとめたメモです。図には番号と「降圧コンバーターのどの部分の図か」を付けています。動く図はボタンやスライダーで操作できます。</p>
+
+<nav><b>目次</b>
+<ol>
+<li><a href="#s1">降圧コンバーターとは</a></li>
+<li><a href="#s2">回路記号の読み方とMOSFET</a>(図1)</li>
+<li><a href="#s3">全体の地図</a>(図2)</li>
+<li><a href="#s4">パワー部の動作</a>(図3)</li>
+<li><a href="#s5">「パルスを平均する」という考え方</a></li>
+<li><a href="#s6">フィードバックと出力電圧の決め方</a>(図4)</li>
+<li><a href="#s7">制御ICの中のブロック</a>(図5)</li>
+<li><a href="#s8">差動アンプ:比較の心臓部</a>(図6)</li>
+<li><a href="#s9">基準電圧0.8Vの作り方</a>(図7)</li>
+<li><a href="#s10">発振器:周波数とリセット</a>(図8)</li>
+<li><a href="#s11">昇圧コンバーター</a>(図9)</li>
+<li><a href="#s12">式と用語のまとめ</a></li>
+</ol></nav>
+
+<!-- 1 -->
+<h2 id="s1">1. 降圧コンバーターとは</h2>
+<p>降圧コンバーター(英語では<b>バック(Buck)コンバーター</b>)は、直流の電圧を低い直流の電圧に変換する回路です。12Vを5Vに、5Vを3.3Vや1.2Vに下げる、といった用途で、スマホ、パソコン、USB充電器など、ほぼすべての電子機器に入っています。</p>
+<p>抵抗やリニアレギュレーターで電圧を下げると、余分な電圧分はすべて熱として捨てられます(12V→3.3Vなら7割以上が熱)。降圧コンバーターはスイッチのON/OFFで「必要な分だけ送る」方式なので、理想的には損失がなく、実際でも効率90%以上が普通です。電力はほぼ保存されるので、電圧を下げた分だけ出力電流は入力電流より大きくできます。</p>
+
+<!-- 2 -->
+<h2 id="s2">2. 回路記号の読み方とMOSFET</h2>
+<p>このメモの回路図で使う記号の一覧です。日本では JIS C 0617(国際規格IECと共通)で決められた描き方で、抵抗を四角で描くのもこの規格の書き方です。記号に日本語が書かれていないのは、世界共通で読めるようにするためです。</p>
+<div class="fig">
+<div class="fig-cap">図1 回路記号の凡例</div>
+<div class="fig-where">このメモの図3〜図9で使う記号の意味。下段はMOSFETの端子の読み方。</div>
+<svg id="lg" viewBox="0 0 680 610"></svg>
+</div>
+<h3>MOSFET(モスフェット)とは</h3>
+<p>MOSFETは <b>M</b>etal(金属)・<b>O</b>xide(酸化膜)・<b>S</b>emiconductor(半導体)・<b>F</b>ield <b>E</b>ffect <b>T</b>ransistor(電界効果トランジスタ)の略で、日本語では「MOS型電界効果トランジスタ」です。シリコンの上にごく薄い絶縁膜を敷き、その上に金属のゲート電極を載せた三層構造をしています。</p>
+<p>ゲートに電圧をかけると、絶縁膜越しの電界でシリコンに電子が引き寄せられ、ドレインとソースをつなぐ「通り道(チャネル)」ができます。電流ではなく電界(電圧)で操作するので「電界効果」。<b>電圧で開け閉めする蛇口</b>と考えると読みやすく、ゲートがハンドル、ドレイン→ソースが水の流れです。記号でゲートが板1枚離れて描かれているのは、この絶縁膜を表しています。</p>
+<ul>
+<li><b>NMOS</b>:ゲートの電圧が高いほど流れる</li>
+<li><b>PMOS</b>:ゲートの電圧が低いほど流れる(記号のゲートに丸印)</li>
+</ul>
+<p>トランジスタにはもう一種類、ベースに流す電流で操作する<b>バイポーラトランジスタ</b>があります。基準電圧回路(図7)ではこちらを使います。今の集積回路の大部分は、ゲートにほぼ電流が流れず小さく作りやすいMOSFETでできています。降圧コンバーターの「スイッチ」も、実物はMOSFETを全開か全閉だけで使っているものです。</p>
+
+<!-- 3 -->
+<h2 id="s3">3. 全体の地図</h2>
+<p>降圧コンバーターは、電力が実際に流れる<b>パワー部</b>と、スイッチのON/OFFを決める<b>制御IC</b>に分かれます。このメモの図がそれぞれどこを描いているかの地図です。</p>
+<div class="fig">
+<div class="fig-cap">図2 降圧コンバーター全体と各図の対応</div>
+<div class="fig-where">箱の下の番号が、その部分を詳しく描いた図。</div>
+<svg viewBox="0 0 680 300">
+<rect x="40" y="30" width="220" height="250" rx="16" fill="none" stroke="var(--faint)" stroke-width=".8" stroke-dasharray="5 4"/>
+<text class="th" x="150" y="54" text-anchor="middle" dominant-baseline="central">パワー部(IC の外)</text>
+<g class="bx-g"><rect x="60" y="76" width="180" height="52" rx="8"/><text class="th" x="150" y="93" text-anchor="middle" dominant-baseline="central">スイッチ・ダイオード</text><text class="ts" x="150" y="112" text-anchor="middle" dominant-baseline="central">図3</text></g>
+<g class="bx-g"><rect x="60" y="140" width="180" height="52" rx="8"/><text class="th" x="150" y="157" text-anchor="middle" dominant-baseline="central">コイル・コンデンサ</text><text class="ts" x="150" y="176" text-anchor="middle" dominant-baseline="central">図3</text></g>
+<g class="bx-g"><rect x="60" y="204" width="180" height="52" rx="8"/><text class="th" x="150" y="221" text-anchor="middle" dominant-baseline="central">分圧抵抗 R1・R2</text><text class="ts" x="150" y="240" text-anchor="middle" dominant-baseline="central">図4</text></g>
+<rect x="280" y="30" width="360" height="250" rx="16" fill="none" stroke="var(--faint)" stroke-width=".8" stroke-dasharray="5 4"/>
+<text class="th" x="460" y="54" text-anchor="middle" dominant-baseline="central">制御 IC の中(図5)</text>
+<g class="bx-p"><rect x="296" y="76" width="152" height="52" rx="8"/><text class="th" x="372" y="93" text-anchor="middle" dominant-baseline="central">基準電圧</text><text class="ts" x="372" y="112" text-anchor="middle" dominant-baseline="central">バンドギャップ 図7</text></g>
+<g class="bx-p"><rect x="296" y="140" width="152" height="52" rx="8"/><text class="th" x="372" y="157" text-anchor="middle" dominant-baseline="central">誤差アンプ</text><text class="ts" x="372" y="176" text-anchor="middle" dominant-baseline="central">差動アンプ 図6</text></g>
+<g class="bx-p"><rect x="296" y="204" width="152" height="52" rx="8"/><text class="th" x="372" y="221" text-anchor="middle" dominant-baseline="central">PWM比較器</text><text class="ts" x="372" y="240" text-anchor="middle" dominant-baseline="central">差動アンプ 図6</text></g>
+<g class="bx-t"><rect x="468" y="76" width="152" height="52" rx="8"/><text class="th" x="544" y="93" text-anchor="middle" dominant-baseline="central">発振器</text><text class="ts" x="544" y="112" text-anchor="middle" dominant-baseline="central">図8</text></g>
+<g class="bx-t"><rect x="468" y="140" width="152" height="52" rx="8"/><text class="th" x="544" y="157" text-anchor="middle" dominant-baseline="central">ドライバ</text><text class="ts" x="544" y="176" text-anchor="middle" dominant-baseline="central">7章の本文</text></g>
+</svg>
+</div>
+
+<!-- 4 -->
+<h2 id="s4">4. パワー部の動作</h2>
+<p>パワー部は4つの部品でできています。</p>
+<ul>
+<li><b>スイッチ(MOSFET)</b>:数百kHz〜数MHzで高速にON/OFFする</li>
+<li><b>コイル</b>:電流の変化を嫌い、エネルギーを磁気として一時的にためる</li>
+<li><b>ダイオード</b>:スイッチOFF時の電流の通り道(一方向にだけ流す)</li>
+<li><b>コンデンサ</b>:出力の電圧を保ち、ギザギザをならす</li>
+</ul>
+<div class="fig">
+<div class="fig-cap">図3 降圧コンバーターのパワー部(動く図)</div>
+<div class="fig-where">図2の左側「パワー部」。12Vを入力し、スイッチのON/OFFで電流の通り道がどう変わるか。オレンジ=ONのときの経路、緑=OFFのときの経路。</div>
+<svg id="bk-ckt" class="st-on" viewBox="0 0 680 260">
+<circle cx="80" cy="150" r="22" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+<text class="th" x="80" y="141" text-anchor="middle" dominant-baseline="central">+</text>
+<text class="ts" x="80" y="161" text-anchor="middle" dominant-baseline="central">−</text>
+<text class="ts" x="112" y="150" dominant-baseline="central">入力 12V</text>
+<path class="w a" d="M80 128 V70 H170"/>
+<circle cx="170" cy="70" r="3" fill="var(--muted)"/><circle cx="250" cy="70" r="3" fill="var(--muted)"/>
+<line id="bk-lvOn" class="w a" x1="170" y1="70" x2="250" y2="70"/>
+<line id="bk-lvOff" x1="170" y1="70" x2="242" y2="44" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" opacity="0"/>
+<text class="ts" x="210" y="100" text-anchor="middle">スイッチ</text>
+<path class="w a" d="M250 70 H290"/>
+<path class="w a b" d="M290 70 H330"/>
+<path class="w a b" d="M330 70 q10 -20 20 0 q10 -20 20 0 q10 -20 20 0 q10 -20 20 0"/>
+<text class="ts" x="370" y="100" text-anchor="middle">コイル</text>
+<path class="w a b" d="M410 70 H590 V120"/>
+<path class="w b" d="M290 230 V162"/><path class="w b" d="M290 140 V70"/>
+<polygon points="278,162 302,162 290,140" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+<line x1="278" y1="140" x2="302" y2="140" stroke="var(--muted)" stroke-width="1.5"/>
+<text class="ts" x="308" y="152" dominant-baseline="central">ダイオード</text>
+<circle cx="290" cy="70" r="3.5" fill="var(--muted)"/>
+<path class="w" d="M480 70 V140"/>
+<line x1="462" y1="140" x2="498" y2="140" stroke="var(--muted)" stroke-width="2"/>
+<line x1="462" y1="152" x2="498" y2="152" stroke="var(--muted)" stroke-width="2"/>
+<path class="w" d="M480 152 V230"/>
+<circle cx="480" cy="70" r="3.5" fill="var(--muted)"/>
+<text class="ts" x="504" y="146" dominant-baseline="central">コンデンサ</text>
+<rect x="578" y="120" width="24" height="60" rx="3" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+<text class="ts" x="610" y="150" dominant-baseline="central">負荷</text>
+<path class="w a b" d="M590 180 V230"/><path class="w a b" d="M590 230 H290"/><path class="w a" d="M290 230 H80 V172"/>
+</svg>
+<p id="bk-cap" class="msg"></p>
+<div class="ctrl"><button id="bk-bAuto">自動で切り替え</button><button id="bk-bOn">スイッチON</button><button id="bk-bOff">スイッチOFF</button></div>
+<div class="ctrl"><span>ONの割合(デューティ比)</span><input type="range" id="bk-duty" min="10" max="90" step="5" value="40"><b id="bk-dOut">40%</b></div>
+<div class="ctrl"><span>出力電圧 = 12V × <span id="bk-dTxt">0.40</span> ≈</span><span id="bk-vOut" class="big">4.8 V</span></div>
+<svg viewBox="0 0 680 200">
+<text class="ts" x="60" y="18">スイッチ点(コイル入口)の電圧と、その平均(点線)</text>
+<text class="ts" x="52" y="35" text-anchor="end" dominant-baseline="central">12V</text>
+<text class="ts" x="52" y="85" text-anchor="end" dominant-baseline="central">0V</text>
+<line x1="60" y1="85" x2="640" y2="85" stroke="var(--line)"/>
+<path id="bk-sw" fill="none" stroke="var(--amber)" stroke-width="2"/>
+<line id="bk-avg" x1="60" x2="640" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text class="ts" x="60" y="118">コイル電流(オレンジ=ONで増える、緑=OFFで減る)</text>
+<path id="bk-iUp" fill="none" stroke="var(--amber)" stroke-width="2"/>
+<path id="bk-iDn" fill="none" stroke="var(--teal)" stroke-width="2"/>
+<line x1="60" y1="182" x2="640" y2="182" stroke="var(--line)"/>
+</svg>
+</div>
+<h3>ONとOFFで何が起きているか</h3>
+<p><b>スイッチON</b>:入力 → スイッチ → コイル → 負荷 と電流が流れ、コイルにエネルギーがたまります。ダイオードは逆向きなので流れません。</p>
+<p><b>スイッチOFF</b>:入力から切り離されても、コイルは電流を流し続けようとします。ダイオードを通る小さな輪(コイル → 負荷 → ダイオード)で、ためたエネルギーを放出します。</p>
+<p>コイルと負荷はどちらの輪にも入っているので、負荷には途切れずに電流が流れ続けます。スイッチ点の電圧は12Vと0Vを行き来する四角い波ですが、コイルとコンデンサがならすので、負荷には点線の平均値だけが届きます。</p>
+<h3>出力電圧の式はどこから出るか</h3>
+<p>コイルには <b>V = L × di/dt</b> という性質があります。電圧がかかっても電流は瞬時には変わらず、「傾き」としてしか変化できません。</p>
+<ul>
+<li>ONのとき:コイルに (Vin − Vout) がかかり、電流がじわじわ増える</li>
+<li>OFFのとき:コイルに −Vout がかかり、電流がじわじわ減る</li>
+</ul>
+<p>安定しているときは、1周期で増えた分と減った分が釣り合うので、</p>
+<div class="formula">(Vin − Vout) × D = Vout × (1 − D) → Vout = Vin × D</div>
+<p>D はスイッチがONの時間の割合(デューティ比)です。D = 0.25 なら12Vが3Vに、D = 0.5 なら6Vになります。</p>
+<div class="box"><b>補足:同期整流</b>ダイオードの代わりに2つ目のMOSFETを使う「同期整流型」が現在の主流です。ダイオードでの電圧降下による損失を減らして、さらに効率を上げています。</div>
+
+<!-- 5 -->
+<h2 id="s5">5. 「パルスを平均する」という考え方</h2>
+<p>降圧コンバーターの本質は、<b>0とVinの2値のパルス列を作って、その平均値を取り出す</b>ことです。これは信号処理のPWM(パルス幅変調)やPDM(パルス密度変調)と同じ発想です。</p>
+<ul>
+<li>普段は周波数固定でパルス幅を変える<b>PWM</b>が基本</li>
+<li>負荷が軽いときは、パルスを間引く<b>PFM</b>やパルススキップに切り替えるICが多く、こちらはPDMにかなり近い</li>
+<li>D級アンプや、ΔΣ型DACの出力(1ビットのパルス列をフィルタで音声に戻す)も同じ仲間</li>
+</ul>
+<h3>RCフィルタでも平均になる理由</h3>
+<p>信号用なら抵抗とコンデンサ(RCローパスフィルタ)でも平均は取れます。平均を作っているのは実はコンデンサで、抵抗は「出入りの速さを決める役」です。</p>
+<p>パルス側の電圧を Vp(12Vか0V)、コンデンサの電圧を Vc とすると、抵抗に流れる電流は (Vp − Vc) ÷ R。流れる量が「差」に比例するので、Vcが低すぎればHigh時にたくさん入って上がり、高すぎれば出ていく量が勝って下がります。1周期で入る電荷と出る電荷が釣り合うところで落ち着くので、</p>
+<div class="formula">(12 − Vc) × D = Vc × (1 − D) → Vc = 12 × D</div>
+<p>コイルのときとまったく同じ形の式です。コイルは「電流が1周期で元に戻る」、コンデンサは「電荷が1周期で元に戻る」という釣り合いです。RCの時定数(R×C)がパルスの周期より十分長いほど、ギザギザの少ない平均値になります。</p>
+<h3>RCではなくLCを使う理由</h3>
+<p>RC方式では、常に (Vp − Vc) の差が抵抗にかかって電流が流れているので、その分が全部熱になります。コイルとコンデンサはエネルギーを一時的に蓄えて返すだけで消費しないので、理想的には損失ゼロで電圧を下げられます。「パルスで平均を作る」という同じ発想を電力変換に使えるのはこのためです。</p>
+<h3>コンデンサがなかったら</h3>
+<p>コンデンサがないと、コイルの電流がそのまま負荷に流れるので、負荷の電圧は「コイル電流 × R」、つまり図3下のグラフのような<b>三角のギザギザ</b>になります(スイッチ点の四角い波にはならない。コイルとRだけでもLRのローパスフィルタとして働くため)。コンデンサを入れる理由は2つです。</p>
+<ul>
+<li><b>ギザギザを吸収する</b>:三角波の上下する成分はコンデンサに逃げ込み、負荷には平均の直流分だけが流れる</li>
+<li><b>負荷の急な変化に耐える</b>:CPUのように消費電流が一瞬で変わる負荷では、コイルは電流をすぐには増やせない。その間をコンデンサが貯めた電荷で支える</li>
+</ul>
+
+<!-- 6 -->
+<h2 id="s6">6. フィードバックと出力電圧の決め方</h2>
+<p>カタログを見ると「出力可変タイプ」や「3.3V固定タイプ」などがありますが、違うのは<b>周波数ではなく、デューティ比の決め方</b>です。多くの降圧ICは、スイッチング周波数をほぼ固定にしたまま、ONの割合だけを変えて出力電圧を決めています。</p>
+<div class="fig">
+<div class="fig-cap">図4 フィードバックの全体像(ブロック図)</div>
+<div class="fig-where">図2の「分圧抵抗」と「制御IC」の関係。出力を戻して見張り、ずれたらONの割合を直す輪(紫の線)。箱の中身は図5で開く。</div>
+<svg viewBox="0 0 680 280">
+<g class="bx-g"><rect x="40" y="40" width="120" height="56" rx="8"/><text class="th" x="100" y="58" text-anchor="middle" dominant-baseline="central">入力電源</text><text class="ts" x="100" y="78" text-anchor="middle" dominant-baseline="central">12V</text></g>
+<g class="bx-g"><rect x="220" y="40" width="180" height="56" rx="8"/><text class="th" x="310" y="58" text-anchor="middle" dominant-baseline="central">パワー部</text><text class="ts" x="310" y="78" text-anchor="middle" dominant-baseline="central">図3の回路</text></g>
+<g class="bx-g"><rect x="460" y="40" width="150" height="56" rx="8"/><text class="th" x="535" y="58" text-anchor="middle" dominant-baseline="central">出力</text><text class="ts" x="535" y="78" text-anchor="middle" dominant-baseline="central">5V</text></g>
+<line x1="160" y1="68" x2="216" y2="68" class="arr" marker-end="url(#ah)"/>
+<line x1="400" y1="68" x2="456" y2="68" class="arr" marker-end="url(#ah)"/>
+<path d="M535 96 V120 M535 160 V200 M535 240 V254" fill="none" stroke="var(--purple)" stroke-width="1.5"/>
+<rect x="523" y="120" width="24" height="40" rx="3" fill="none" stroke="var(--purple)" stroke-width="1.5"/>
+<rect x="523" y="200" width="24" height="40" rx="3" fill="none" stroke="var(--purple)" stroke-width="1.5"/>
+<text class="ts" x="557" y="140" dominant-baseline="central">R1</text>
+<text class="ts" x="557" y="220" dominant-baseline="central">R2</text>
+<text class="ts" x="557" y="180" dominant-baseline="central">FB端子</text>
+<circle cx="535" cy="180" r="3.5" fill="var(--purple)"/>
+<path d="M521 254 H549 M526 259 H544 M531 264 H539" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+<line x1="531" y1="180" x2="484" y2="180" stroke="var(--purple)" stroke-width="1.5" marker-end="url(#ah)"/>
+<g class="bx-p"><rect x="300" y="152" width="180" height="56" rx="8"/><text class="th" x="390" y="170" text-anchor="middle" dominant-baseline="central">比較する部分</text><text class="ts" x="390" y="190" text-anchor="middle" dominant-baseline="central">FB と 基準0.8V</text></g>
+<line x1="300" y1="180" x2="244" y2="180" stroke="var(--purple)" stroke-width="1.5" marker-end="url(#ah)"/>
+<g class="bx-p"><rect x="60" y="152" width="180" height="56" rx="8"/><text class="th" x="150" y="170" text-anchor="middle" dominant-baseline="central">ONの割合を決める</text><text class="ts" x="150" y="190" text-anchor="middle" dominant-baseline="central">制御回路</text></g>
+<path d="M150 152 V124 H310 V100" fill="none" stroke="var(--purple)" stroke-width="1.5" marker-end="url(#ah)"/>
+</svg>
+</div>
+<p>ICにはFB(フィードバック)端子があり、出力電圧を抵抗R1・R2で分圧した電圧をそこに戻します。IC内部には基準電圧(例:0.8V)があり、<b>FB端子の電圧が基準と等しくなるように、ICが自動でデューティ比を調整し続けます</b>。そのため出力電圧は抵抗の比で決まります。</p>
+<div class="formula">出力電圧 = 基準電圧 × (1 + R1 ÷ R2)</div>
+<p>例:基準0.8V、R2 = 10kΩ のとき、R1 = 52.5kΩ で5V、31.25kΩ で3.3V、12.5kΩ で1.8V。</p>
+<table>
+<tr><th>タイプ</th><th>中身</th></tr>
+<tr><td>可変出力</td><td>R1・R2を外付けにしていて、抵抗値(半固定抵抗ならつまみ)で出力を選べる</td></tr>
+<tr><td>固定出力</td><td>R1・R2をIC内部に作り込んであり、型番ごとに出力が決まっている</td></tr>
+</table>
+<p>デューティ比を決め打ちにしないのは、入力電圧や負荷電流が変わると出力がずれてしまうからです。常に見張って補正することで、入力が9Vでも15Vでも出力5Vを保てます。周波数のほうは出力電圧ではなく<b>部品の大きさと効率</b>に効き、高いほどコイルとコンデンサを小さくできる代わりにスイッチの損失が増えます。</p>
+
+<!-- 7 -->
+<h2 id="s7">7. 制御ICの中のブロック</h2>
+<p>図4の「比較する部分」と「制御回路」を開けると、役割の違う部品に分かれています。</p>
+<div class="fig">
+<div class="fig-cap">図5 制御ICの内部ブロック(動く図)</div>
+<div class="fig-where">図2の右側「制御ICの中」。入力電圧や出力の設定を変えると、一瞬出力がずれ、誤差アンプ→PWM比較器の順にONの割合が直される。</div>
+<svg viewBox="0 0 680 320">
+<g class="bx-g"><rect x="40" y="30" width="120" height="56" rx="8"/><text class="th" x="100" y="48" text-anchor="middle" dominant-baseline="central">入力電源</text><text id="ic-tVin" class="ts" x="100" y="68" text-anchor="middle" dominant-baseline="central">12.0V</text></g>
+<g class="bx-g"><rect x="220" y="30" width="180" height="56" rx="8"/><text class="th" x="310" y="48" text-anchor="middle" dominant-baseline="central">パワー部</text><text class="ts" x="310" y="68" text-anchor="middle" dominant-baseline="central">図3の回路</text></g>
+<g class="bx-g"><rect x="460" y="30" width="150" height="56" rx="8"/><text class="th" x="535" y="48" text-anchor="middle" dominant-baseline="central">出力</text><text id="ic-tVout" class="ts" x="535" y="68" text-anchor="middle" dominant-baseline="central">5.00V</text></g>
+<line x1="160" y1="58" x2="216" y2="58" class="arr" marker-end="url(#ah)"/>
+<line x1="400" y1="58" x2="456" y2="58" class="arr" marker-end="url(#ah)"/>
+<rect x="44" y="118" width="444" height="186" rx="12" fill="none" stroke="var(--faint)" stroke-width=".8" stroke-dasharray="5 4"/>
+<text class="ts" x="476" y="292" text-anchor="end">制御IC の中</text>
+<path d="M535 86 V110 M535 150 V190 M535 230 V244" fill="none" stroke="var(--purple)" stroke-width="1.5"/>
+<rect x="523" y="110" width="24" height="40" rx="3" fill="none" stroke="var(--purple)" stroke-width="1.5"/>
+<rect x="523" y="190" width="24" height="40" rx="3" fill="none" stroke="var(--purple)" stroke-width="1.5"/>
+<text class="ts" x="557" y="130" dominant-baseline="central">R1</text>
+<text class="ts" x="557" y="174" dominant-baseline="central">FB端子</text>
+<text class="ts" x="557" y="210" dominant-baseline="central">R2</text>
+<circle cx="535" cy="174" r="3.5" fill="var(--purple)"/>
+<path d="M521 244 H549 M526 249 H544 M531 254 H539" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+<line x1="531" y1="174" x2="474" y2="174" stroke="var(--purple)" stroke-width="1.5" marker-end="url(#ah)"/>
+<g class="bx-p"><rect x="300" y="146" width="170" height="56" rx="8"/><text class="th" x="385" y="164" text-anchor="middle" dominant-baseline="central">誤差アンプ</text><text class="ts" x="385" y="184" text-anchor="middle" dominant-baseline="central">基準との差を増幅</text></g>
+<g class="bx-g"><rect x="320" y="240" width="130" height="40" rx="8"/><text class="th" x="385" y="260" text-anchor="middle" dominant-baseline="central">基準 0.8V</text></g>
+<line x1="385" y1="240" x2="385" y2="206" class="arr" marker-end="url(#ah)"/>
+<line x1="300" y1="174" x2="244" y2="174" stroke="var(--purple)" stroke-width="1.5" marker-end="url(#ah)"/>
+<g class="bx-p"><rect x="60" y="146" width="180" height="56" rx="8"/><text class="th" x="150" y="164" text-anchor="middle" dominant-baseline="central">PWM比較器</text><text class="ts" x="150" y="184" text-anchor="middle" dominant-baseline="central">誤差電圧 vs のこぎり波</text></g>
+<g class="bx-t"><rect x="60" y="240" width="180" height="40" rx="8"/><text class="th" x="150" y="260" text-anchor="middle" dominant-baseline="central">発振器</text></g>
+<line x1="150" y1="240" x2="150" y2="206" class="arr" marker-end="url(#ah)"/>
+<path d="M150 146 V104 H310 V90" fill="none" stroke="var(--amber)" stroke-width="1.5" marker-end="url(#ah)"/>
+<text class="ts" x="160" y="128" dominant-baseline="central">ON/OFF信号</text>
+</svg>
+<svg viewBox="0 0 680 190">
+<text class="ts" x="60" y="16">のこぎり波(発振器、緑)と誤差電圧(紫の点線)</text>
+<line x1="60" y1="110" x2="640" y2="110" stroke="var(--line)"/>
+<path id="ic-saw" fill="none" stroke="var(--teal)" stroke-width="1.5"/>
+<line id="ic-vc" x1="60" x2="640" stroke="var(--purple)" stroke-width="2" stroke-dasharray="6 4"/>
+<text class="ts" x="60" y="134">ON/OFF信号(のこぎり波が点線より下の間だけON)</text>
+<line x1="60" y1="176" x2="640" y2="176" stroke="var(--line)"/>
+<path id="ic-pwm" fill="none" stroke="var(--amber)" stroke-width="2"/>
+</svg>
+<div class="rd">
+<div><span>FB端子</span><b id="ic-rFb">0.80V</b></div>
+<div><span>誤差電圧</span><b id="ic-rVc">—</b></div>
+<div><span>ONの割合</span><b id="ic-rD">42%</b></div>
+<div><span>出力</span><b id="ic-rOut">5.00V</b></div>
+</div>
+<div class="ctrl"><span>入力電圧</span><input type="range" id="ic-vin" min="7" max="24" step="0.5" value="12"><b id="ic-vinOut">12.0V</b></div>
+<div class="ctrl" id="ic-opt"><span>出力の設定(R1を変える)</span><button data-v="1.8">1.8V</button><button data-v="3.3">3.3V</button><button data-v="5" class="sel">5V</button></div>
+<p id="ic-msg" class="msg"></p>
+</div>
+<ul>
+<li><b>誤差アンプ</b>:FB端子の電圧と基準0.8Vの差を大きく増幅した電圧(誤差電圧)を出す。ずれがある間はじわじわ動き、ずれがゼロになった位置で止まる。「どれだけずれているか」をアナログ電圧に変える係</li>
+<li><b>発振器</b>:一定の周波数で、上がってストンと落ちる「のこぎり波」を作り続ける。スイッチング周波数はここで決まり、出力電圧が何Vでも変わらない(10章)</li>
+<li><b>PWM比較器</b>:のこぎり波と誤差電圧を比べ、のこぎり波が誤差電圧より下にある間だけONを出す。誤差電圧が高いほどONが長くなる</li>
+<li><b>ドライバ</b>:インバーター(8章)を大きさを変えて何段か並べたもの。パワーMOSFETの大きなゲートを素早く充放電する</li>
+</ul>
+<p>つまり<b>周波数は発振器が一定に保ち、ONの長さは誤差電圧の高さで決まる</b>という分業です。</p>
+
+<!-- 8 -->
+<h2 id="s8">8. 差動アンプ:比較の心臓部</h2>
+<p>誤差アンプもPWM比較器も、トランジスタレベルまで分解すると同じ「差動アンプ」という回路でできています。図6は誤差アンプとして使う場合(入力が基準0.8VとFB)を描いたものです。</p>
+<div class="fig">
+<div class="fig-cap">図6 差動アンプ(MOSFET 5個の回路、動く図)</div>
+<div class="fig-where">図5の「誤差アンプ」と「PWM比較器」の中身。ここでは誤差アンプとして、左に基準0.8V、右にFBを入れている。オレンジの線の太さ=流れる電流の大きさ。</div>
+<svg id="da-sch" viewBox="0 0 680 330"></svg>
+<div class="rd">
+<div><span>左の電流</span><b id="da-rL">50%</b></div>
+<div><span>右の電流</span><b id="da-rR">50%</b></div>
+<div><span>出力の動き</span><b id="da-rO">止まる</b></div>
+</div>
+<div class="ctrl"><span>FBの電圧</span><input type="range" id="da-fb" min="0.70" max="0.90" step="0.01" value="0.80"><b id="da-fbOut">0.80V</b></div>
+<p id="da-msg" class="msg"></p>
+</div>
+<ul>
+<li><b>差動ペア</b>(真ん中の2個のNMOS):左右で電流を取り合う。ゲート電圧が高いほうがたくさん流す</li>
+<li><b>定電流源</b>(一番下のNMOS):ゲートに一定の電圧をかけて、左右の合計電流を一定に保つ。だから「取り合い」になる</li>
+<li><b>カレントミラー</b>(上の2個のPMOS):左のPMOSはゲートとドレインがつながっていて、自分に流れた電流に応じたゲート電圧になる。右のPMOSは同じゲート電圧を受けるので同じ電流を流す。つまり<b>左の電流を右にコピーする</b></li>
+</ul>
+<p>左右の電流が同じなら、ミラーが右上から押し込む量と右下が引き抜く量が釣り合って出力は動きません。差があると、余った電流が出力へあふれる(出力が上がる)か、足りない分を出力から吸い込む(下がる)ことになります。2つの入力のわずかな差が、出力への電流の出入りに変わるわけです。</p>
+<h3>同じ回路が使われている場所</h3>
+<p>差動ペアは「どっちの電圧が高いか、どれだけ差があるか」を判定する万能部品で、IC内の「2つの電圧を比べる」ところすべてに使われています。</p>
+<div class="tw"><table>
+<tr><th>使われている場所</th><th>左の入力</th><th>右の入力</th><th>出力の後ろにつけるもの</th></tr>
+<tr><td>誤差アンプ(図6)</td><td>基準0.8V</td><td>FB</td><td>抵抗+コンデンサ(ゆっくり動かす)</td></tr>
+<tr><td>PWM比較器</td><td>誤差電圧</td><td>のこぎり波</td><td>インバーター(0か1に整える)</td></tr>
+<tr><td>発振器の中の比較器(図8)</td><td>しきい値電圧</td><td>コンデンサの電圧</td><td>インバーター</td></tr>
+<tr><td>バンドギャップ(図7)</td><td>A点</td><td>B点</td><td>電流源のゲートへ(A=Bに保つ)</td></tr>
+</table></div>
+<p><b>誤差アンプ</b>は、出力に抵抗とコンデンサを直列にしてGNDへつないだもの。あふれた電流がコンデンサに溜まるので、誤差電圧は「ずれがある間じわじわ動き、ずれがゼロになったら止まる」動き(積分)になります。</p>
+<p><b>PWM比較器</b>は、出力に何もつけないもの。差がほんの少しでもあると電流の行き場がないので、出力は電源かGNDに一気に張り付きます。その後ろに<b>インバーター</b>(PMOSとNMOSを1個ずつ縦に積んだ回路。入力が高いと下のNMOSだけON、低いと上のPMOSだけONになり、出力が反転する)を置いて、きれいな0/1の信号に整えます。</p>
+
+<!-- 9 -->
+<h2 id="s9">9. 基準電圧0.8Vの作り方</h2>
+<p>基準の0.8Vは、<b>バンドギャップ基準</b>という回路で作った約1.2Vを元にしています。トランジスタの温度特性を打ち消し合わせて、温度が変わってもほぼ一定の電圧を作る回路です。</p>
+<div class="fig">
+<div class="fig-cap">図7 バンドギャップ基準電圧回路と温度特性</div>
+<div class="fig-where">図5の「基準0.8V」の箱の中身。上は回路(縦に3本の枝)、下は温度による各電圧の変化。三角はダイオードとして使っているバイポーラトランジスタ。</div>
+<svg viewBox="0 0 680 490">
+<text class="ts" x="340" y="24" text-anchor="middle">3本の枝すべてに同じ電流 I(カレントミラーで複製)</text>
+<path d="M140 48 H540" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+<text class="ts" x="548" y="48" dominant-baseline="central">電源</text>
+<g fill="none" stroke="var(--muted)" stroke-width="1.5">
+<path d="M170 48 V72 M340 48 V72 M510 48 V72"/>
+<circle cx="170" cy="86" r="14"/><circle cx="340" cy="86" r="14"/><circle cx="510" cy="86" r="14"/>
+<path d="M170 100 V180 M170 204 V290"/>
+<path d="M340 100 V150 M340 190 V210 M340 234 V290"/>
+<path d="M510 100 V150 M510 200 V210 M510 234 V290"/>
+<polygon points="158,180 182,180 170,204"/><path d="M158 204 H182"/>
+<polygon points="328,210 352,210 340,234"/><path d="M328 234 H352"/>
+<polygon points="498,210 522,210 510,234"/><path d="M498 234 H522"/>
+<rect x="330" y="150" width="20" height="40" rx="2"/>
+<rect x="500" y="150" width="20" height="50" rx="2"/>
+<path d="M140 290 H540"/>
+</g>
+<line x1="170" y1="79" x2="170" y2="92" class="arr" marker-end="url(#ah)"/>
+<line x1="340" y1="79" x2="340" y2="92" class="arr" marker-end="url(#ah)"/>
+<line x1="510" y1="79" x2="510" y2="92" class="arr" marker-end="url(#ah)"/>
+<circle cx="170" cy="140" r="3.5" fill="var(--muted)"/>
+<circle cx="340" cy="140" r="3.5" fill="var(--muted)"/>
+<text class="ts" x="160" y="140" text-anchor="end" dominant-baseline="central">A</text>
+<text class="ts" x="350" y="128" dominant-baseline="central">B</text>
+<line x1="178" y1="140" x2="332" y2="140" stroke="var(--purple)" stroke-width="1" stroke-dasharray="4 3"/>
+<text class="ts" x="255" y="126" text-anchor="middle" dominant-baseline="central">A=Bに保つ</text>
+<text class="ts" x="190" y="192" dominant-baseline="central">Tr ×1</text>
+<text class="ts" x="358" y="170" dominant-baseline="central">R</text>
+<text class="ts" x="360" y="222" dominant-baseline="central">Tr ×8</text>
+<text class="ts" x="528" y="175" dominant-baseline="central">R×k</text>
+<text class="ts" x="530" y="222" dominant-baseline="central">Tr ×1</text>
+<circle cx="510" cy="130" r="3.5" fill="var(--purple)"/>
+<path d="M510 130 H560" fill="none" stroke="var(--purple)" stroke-width="1.5"/>
+<text class="th" x="566" y="130" dominant-baseline="central">約1.2V</text>
+<text class="ts" x="548" y="290" dominant-baseline="central">GND</text>
+<text class="ts" x="340" y="314" text-anchor="middle">Rにかかる電圧 = Tr×1 と Tr×8 の電圧差(ΔVbe)</text>
+<text class="ts" x="80" y="346">温度による変化(横軸:温度、縦軸:電圧)</text>
+<path d="M80 360 H520" fill="none" stroke="var(--purple)" stroke-width="2.5"/>
+<path d="M80 410 L520 430" fill="none" stroke="var(--coral)" stroke-width="2"/>
+<path d="M80 430 L520 410" fill="none" stroke="var(--teal)" stroke-width="2" stroke-dasharray="6 4"/>
+<text class="ts" x="528" y="360" dominant-baseline="central">合計 1.2V</text>
+<text class="ts" x="528" y="408" dominant-baseline="central">k×ΔVbe ↑</text>
+<text class="ts" x="528" y="432" dominant-baseline="central">Vbe ↓</text>
+<path d="M80 452 H520" fill="none" stroke="var(--line)"/>
+<text class="ts" x="520" y="470" text-anchor="end">温度 →</text>
+</svg>
+</div>
+<p>図の「3本」は縦に走る3本の枝(左・真ん中・右)で、それぞれ電源 → 定電流源(矢印入りの丸)→ … → GND の通り道です。上の3つの定電流源は、ゲート同士をつないだPMOS(図6のカレントミラーと同じ仕組み)なので、3本には同じ電流 I が流れます。</p>
+<ol>
+<li>トランジスタに電流を流すと約0.6〜0.7Vの電圧(Vbe)が出るが、これは<b>温度が上がると下がる</b>(1℃あたり約−2mV)。このままでは基準に使えない</li>
+<li>同じ電流を「1個のトランジスタ」(左)と「8個並列のトランジスタ」(真ん中)に流す。8個並列は1個あたりの電流が薄いのでVbeが少し低くなる。この差 ΔVbe は (kT/q)×ln8 と物理法則で決まっていて、<b>温度に比例して上がる</b></li>
+<li>A点とB点を同じ電圧に保つと(ここにも差動アンプを使う)、抵抗Rには ΔVbe だけがかかり、流れる電流も温度に比例する</li>
+<li>その電流を右の枝にコピーし、大きめの抵抗 R×k で ΔVbe を k 倍にしてトランジスタのVbeに足す。下がる成分と上がる成分が打ち消し合う k を選ぶと、合計は温度によらず約1.2Vになる</li>
+</ol>
+<p>この値はシリコンのバンドギャップ(約1.2eV)に由来していて、それが名前の理由です。0.8Vは、この1.2Vを抵抗2本で分圧したり、回路を変形した低電圧版を使ったりして作ります。抵抗の比は温度で変わりにくいので、分圧しても安定したままです。</p>
+
+<!-- 10 -->
+<h2 id="s10">10. 発振器:周波数とリセット</h2>
+<p>降圧コンバーターのICでは、普通は水晶は使わず、IC内部に作り込んだ<b>コンデンサの充電と放電を繰り返す発振器(緩和発振器)</b>を使います。</p>
+<div class="fig">
+<div class="fig-cap">図8 のこぎり波を作る発振器(緩和発振器)</div>
+<div class="fig-where">図5の「発振器」の箱の中身。定電流源でコンデンサを充電し、比較器とラッチで放電用NMOSを操作してリセットする。</div>
+<svg viewBox="0 0 680 320">
+<path d="M60 40 H230" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+<text class="ts" x="238" y="40" dominant-baseline="central">電源</text>
+<g fill="none" stroke="var(--muted)" stroke-width="1.5">
+<path d="M120 40 V72 M120 100 V170 M120 182 V250"/>
+<circle cx="120" cy="86" r="14"/>
+<path d="M120 140 H270"/>
+<path d="M200 140 V183 H214 M200 250 V207 H214"/>
+<path d="M88 250 H220 M140 250 V262 M128 262 H152 M133 267 H147 M138 272 H142"/>
+</g>
+<line x1="120" y1="79" x2="120" y2="92" class="arr" marker-end="url(#ah)"/>
+<line x1="102" y1="170" x2="138" y2="170" stroke="var(--muted)" stroke-width="2"/>
+<line x1="102" y1="182" x2="138" y2="182" stroke="var(--muted)" stroke-width="2"/>
+<line x1="214" y1="179" x2="214" y2="211" stroke="var(--muted)" stroke-width="2.5"/>
+<line x1="222" y1="183" x2="222" y2="207" stroke="var(--muted)" stroke-width="2"/>
+<line x1="222" y1="195" x2="244" y2="195" stroke="var(--amber)" stroke-width="1.5"/>
+<circle cx="120" cy="140" r="3.5" fill="var(--muted)"/>
+<circle cx="200" cy="140" r="3.5" fill="var(--muted)"/>
+<text class="ts" x="100" y="86" text-anchor="end" dominant-baseline="central">定電流源</text>
+<text class="ts" x="96" y="176" text-anchor="end" dominant-baseline="central">コンデンサ</text>
+<text class="ts" x="160" y="128" text-anchor="middle" dominant-baseline="central">Vc</text>
+<text class="ts" x="232" y="222" dominant-baseline="central">放電用NMOS</text>
+<path d="M270 140 V115 H296 M270 140 V195 H296" fill="none" stroke="var(--teal)" stroke-width="1.5" marker-end="url(#ah)"/>
+<g class="bx-p"><rect x="300" y="88" width="170" height="54" rx="8"/><text class="th" x="385" y="106" text-anchor="middle" dominant-baseline="central">上の比較器</text><text class="ts" x="385" y="125" text-anchor="middle" dominant-baseline="central">1Vで放電開始</text></g>
+<g class="bx-p"><rect x="300" y="168" width="170" height="54" rx="8"/><text class="th" x="385" y="186" text-anchor="middle" dominant-baseline="central">下の比較器</text><text class="ts" x="385" y="205" text-anchor="middle" dominant-baseline="central">0.1Vで充電再開</text></g>
+<path d="M470 115 H495 V140 H516 M470 195 H495 V170 H516" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ah)"/>
+<g class="bx-t"><rect x="520" y="120" width="120" height="70" rx="8"/><text class="th" x="580" y="145" text-anchor="middle" dominant-baseline="central">ラッチ</text><text class="ts" x="580" y="165" text-anchor="middle" dominant-baseline="central">状態を覚える</text></g>
+<path d="M580 190 V284 H260 V195 H248" fill="none" stroke="var(--amber)" stroke-width="1.5" marker-end="url(#ah)"/>
+<text class="ts" x="420" y="302" text-anchor="middle">ラッチの出力で放電用NMOSをON/OFF(この信号がクロックにもなる)</text>
+</svg>
+</div>
+<h3>周波数の決まり方</h3>
+<p>周波数を決めるのは、<b>充電電流 I</b>、<b>コンデンサの容量 C</b>、<b>しきい値電圧 Vth</b> の3つです。コンデンサは「電圧 = 電荷 ÷ 容量」なので、一定電流で充電するとしきい値に届くまでの時間は</p>
+<div class="formula">周期 T = C × Vth ÷ I  →  周波数 f = I ÷ (C × Vth)</div>
+<p>例:C = 10pF、Vth = 1V、I = 5µA なら T = 2µs で、f = 500kHz。電流を2倍にすれば周波数も2倍、コンデンサを2倍にすれば半分になります。</p>
+<p>実際のICでは、CとVthはIC内部で固定されていて、<b>RT端子につける抵抗で充電電流を決める</b>のが一般的です。IC内部の基準電圧をRT抵抗にかけ、その電流 I = 基準電圧 ÷ RT をカレントミラーでコピーして充電に使います。抵抗を大きくすると周波数が下がり、小さくすると上がります。</p>
+<div class="box"><b>コイルの巻き数で決まる発振器との違い</b>コイルとコンデンサの共振を使う<b>LC発振器</b>では、f = 1 ÷ (2π√(LC)) で周波数が決まり、巻き数を増やす(Lを大きくする)と周波数が下がります。ラジオや無線で使われますが、正弦波しか作れないので、PWM用ののこぎり波には向きません。</div>
+<h3>リセットの仕組み</h3>
+<ol>
+<li>定電流源がコンデンサを充電し、電圧 Vc が直線的に上がる(のこぎりの斜面)</li>
+<li>上の比較器が「1Vに達した」と判定し、ラッチを「放電モード」にセット</li>
+<li>ラッチの出力で放電用NMOSがONになり、コンデンサの両端を直結。電荷が一気にGNDへ流れ、Vcがストンと落ちる</li>
+<li>下の比較器が「0.1Vまで下がった」と判定し、ラッチを「充電モード」に戻す。NMOSがOFFになり、また1から繰り返す</li>
+</ol>
+<p>充電はµA程度でゆっくり、放電はmA以上で一瞬なので、のこぎり波になります。<b>ラッチ</b>(NOR回路やNAND回路を2つたすき掛けにつないだ、状態を覚える回路)を挟むのは、比較器1つだけだと、放電が始まってしきい値を少し下回った瞬間にNMOSがOFFに戻ってしまい、しきい値付近で震えるだけになるからです。上下2つのしきい値で、確実に空にしてから充電に戻します。</p>
+<p>この「比較器2つ+ラッチ+放電用トランジスタ」は、電子工作でおなじみの<b>555タイマーIC</b>とほぼ同じ構成です。また、降圧ICではこのリセットの瞬間の信号がクロックとして使われ、PWMの「ここからONを始める」合図にもなります。</p>
+<div class="box"><b>たとえ:ししおどし</b>竹筒に一定の勢いで流れ込む水=定電流源、竹筒の太さ=容量C、倒れる水の量=上のしきい値、倒れて一気に水が出る=放電、カコーン=クロック。竹筒は少しこぼれた程度では戻らず、ほぼ空になってから起き上がる。この「倒れる量と起き上がる量が違う」ところが、ラッチによる2段のしきい値にあたります。</div>
+<h3>水晶を使わない理由</h3>
+<ul>
+<li><b>精度がいらない</b>:周波数が±10%ずれても、フィードバックがONの割合を直すので出力電圧には影響しない</li>
+<li><b>小さく安い</b>:水晶は外付け部品になるが、RC型はIC内部に全部入る</li>
+<li><b>欲しい波形がそのまま出る</b>:水晶は正弦波が得意だが、PWMに必要なのはのこぎり波</li>
+</ul>
+<p>複数の電源の周波数をそろえたい場合のために、SYNC端子で外部クロック(元はマイコンの水晶だったりする)に同期できるICもあります。また、発振器を持たず「ONの時間を一定にして、出力が下がったらまたONする」<b>固定オン時間制御</b>という方式もあり、負荷の急変に強いのでCPU電源などで使われています。</p>
+
+<!-- 11 -->
+<h2 id="s11">11. 昇圧コンバーター</h2>
+<p>電圧を上げる昇圧コンバーター(<b>ブースト(Boost)コンバーター</b>)は、降圧とほぼ同じ部品を<b>並べ替えただけ</b>でできます。降圧ではスイッチが入力とコイルの間にありましたが、昇圧ではコイルが入力に直結し、スイッチはコイルの出口とGNDの間にあります。</p>
+<div class="fig">
+<div class="fig-cap">図9 昇圧コンバーターのパワー部(動く図)</div>
+<div class="fig-where">図3(降圧)と同じ部品の並べ替え。5Vを入力し、ONの割合に応じて高い電圧を出す。オレンジ=ONのときの経路、緑=OFFのときの経路。</div>
+<svg id="bs-ckt" class="st-on" viewBox="0 0 680 260">
+<circle cx="80" cy="150" r="22" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+<text class="th" x="80" y="141" text-anchor="middle" dominant-baseline="central">+</text>
+<text class="ts" x="80" y="161" text-anchor="middle" dominant-baseline="central">−</text>
+<text class="ts" x="112" y="150" dominant-baseline="central">入力 5V</text>
+<path class="w a b" d="M80 128 V70 H170"/>
+<path class="w a b" d="M170 70 q5 -20 10 0 q5 -20 10 0 q5 -20 10 0 q5 -20 10 0 q5 -20 10 0 q5 -20 10 0 q5 -20 10 0 q5 -20 10 0"/>
+<text class="ts" x="210" y="100" text-anchor="middle">コイル</text>
+<path class="w a b" d="M250 70 H290"/>
+<circle cx="290" cy="70" r="3.5" fill="var(--muted)"/>
+<path class="w a" d="M290 70 V130"/>
+<circle cx="290" cy="130" r="3" fill="var(--muted)"/><circle cx="290" cy="190" r="3" fill="var(--muted)"/>
+<line id="bs-lvOn" class="w a" x1="290" y1="130" x2="290" y2="190"/>
+<line id="bs-lvOff" x1="290" y1="130" x2="314" y2="184" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" opacity="0"/>
+<text class="ts" x="276" y="160" text-anchor="end" dominant-baseline="central">スイッチ</text>
+<path class="w a" d="M290 190 V230"/>
+<path class="w b" d="M290 70 H330"/>
+<polygon points="330,60 330,80 348,70" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+<line x1="348" y1="60" x2="348" y2="80" stroke="var(--muted)" stroke-width="1.5"/>
+<text class="ts" x="340" y="100" text-anchor="middle">ダイオード</text>
+<path class="w b" d="M348 70 H590 V120"/>
+<path class="w" d="M480 70 V140"/>
+<line x1="462" y1="140" x2="498" y2="140" stroke="var(--muted)" stroke-width="2"/>
+<line x1="462" y1="152" x2="498" y2="152" stroke="var(--muted)" stroke-width="2"/>
+<path class="w" d="M480 152 V230"/>
+<circle cx="480" cy="70" r="3.5" fill="var(--muted)"/>
+<text class="ts" x="504" y="146" dominant-baseline="central">コンデンサ</text>
+<rect x="578" y="120" width="24" height="60" rx="3" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+<text class="ts" x="610" y="150" dominant-baseline="central">負荷</text>
+<path class="w b" d="M590 180 V230"/><path class="w b" d="M590 230 H290"/><path class="w a b" d="M290 230 H80 V172"/>
+</svg>
+<p id="bs-cap" class="msg"></p>
+<div class="ctrl"><button id="bs-bAuto">自動で切り替え</button><button id="bs-bOn">スイッチON</button><button id="bs-bOff">スイッチOFF</button></div>
+<div class="ctrl"><span>ONの割合(デューティ比)</span><input type="range" id="bs-duty" min="10" max="80" step="5" value="50"><b id="bs-dOut">50%</b></div>
+<div class="ctrl"><span>出力電圧 = 5V ÷ (1 − <span id="bs-dTxt">0.50</span>) ≈</span><span id="bs-vOut" class="big">10.0 V</span></div>
+<svg viewBox="0 0 680 200">
+<text class="ts" x="60" y="18">スイッチ点(コイル出口)の電圧と出力電圧(点線)</text>
+<text class="ts" x="52" y="35" text-anchor="end" dominant-baseline="central">25V</text>
+<text class="ts" x="52" y="85" text-anchor="end" dominant-baseline="central">0V</text>
+<line x1="60" y1="85" x2="640" y2="85" stroke="var(--line)"/>
+<path id="bs-sw" fill="none" stroke="var(--teal)" stroke-width="2"/>
+<line id="bs-avg" x1="60" x2="640" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="5 4"/>
+<text class="ts" x="60" y="118">コイル電流(オレンジ=ONでためる、緑=OFFで送り出す)</text>
+<path id="bs-iUp" fill="none" stroke="var(--amber)" stroke-width="2"/>
+<path id="bs-iDn" fill="none" stroke="var(--teal)" stroke-width="2"/>
+<line x1="60" y1="182" x2="640" y2="182" stroke="var(--line)"/>
+</svg>
+</div>
+<p><b>スイッチON</b>:コイルの出口がGNDに直結され、コイルには入力の5Vがまるごとかかって電流がぐんぐん増え、エネルギーがたまります。このとき出力はダイオードで切り離されていて、コンデンサが一人で負荷を支えています。</p>
+<p><b>スイッチOFF</b>:GNDへの逃げ道がなくなりますが、コイルは流れていた電流を止めたくない。そこで自分の両端に電圧を発生させ、入力の5Vに上乗せします。その合計の高い電圧でダイオードを押し開け、出力に流れ込みます。</p>
+<p>降圧と同じく「1周期で増えた電流と減った電流が釣り合う」条件から、</p>
+<div class="formula">Vin × D = (Vout − Vin) × (1 − D) → Vout = Vin ÷ (1 − D)</div>
+<p>ONの割合50%で2倍、75%で4倍です。制御ICの中身(分圧してFBに戻し、誤差アンプ、のこぎり波との比較でONの割合を決める)は降圧とまったく同じです。実用的には数倍程度までで、数kV以上が必要な場合はトランス方式(フライバックなど)やコッククロフト・ウォルトン回路(ダイオードとコンデンサの多段積み)を組み合わせます。</p>
+<div class="box"><b>たとえ:水撃ポンプ</b>水路を流れる水を急に弁で止めると、水の勢い(慣性)で一瞬だけ高い圧力が生まれ、その力で水を高いところへ押し上げられる。コイルの「電流を止めたくない」性質が、この水の慣性にあたります。</div>
+
+<!-- 12 -->
+<h2 id="s12">12. 式と用語のまとめ</h2>
+<h3>式</h3>
+<div class="tw"><table>
+<tr><th>内容</th><th>式</th></tr>
+<tr><td>コイルの性質</td><td>V = L × di/dt(電流は傾きとしてしか変われない)</td></tr>
+<tr><td>降圧の出力</td><td>Vout = Vin × D</td></tr>
+<tr><td>昇圧の出力</td><td>Vout = Vin ÷ (1 − D)</td></tr>
+<tr><td>RCフィルタの平均</td><td>Vc = Vp(High) × D</td></tr>
+<tr><td>フィードバックで決まる出力</td><td>Vout = 基準電圧 × (1 + R1 ÷ R2)</td></tr>
+<tr><td>緩和発振器の周波数</td><td>f = I ÷ (C × Vth)</td></tr>
+<tr><td>LC発振器の周波数</td><td>f = 1 ÷ (2π√(LC))</td></tr>
+<tr><td>8個並列とのVbe差</td><td>ΔVbe = (kT/q) × ln8(温度に比例)</td></tr>
+</table></div>
+<h3>用語</h3>
+<div class="tw"><table>
+<tr><th>用語</th><th>意味</th></tr>
+<tr><td>降圧(バック)コンバーター</td><td>直流の電圧を下げるスイッチング電源</td></tr>
+<tr><td>昇圧(ブースト)コンバーター</td><td>直流の電圧を上げるスイッチング電源</td></tr>
+<tr><td>デューティ比(D)</td><td>1周期のうちスイッチがONの時間の割合</td></tr>
+<tr><td>PWM / PFM / PDM</td><td>パルス幅変調 / パルス周波数変調 / パルス密度変調</td></tr>
+<tr><td>同期整流</td><td>ダイオードの代わりにMOSFETを使って損失を減らす方式</td></tr>
+<tr><td>FB端子</td><td>出力を分圧して戻す、ICのフィードバック入力</td></tr>
+<tr><td>誤差アンプ</td><td>FBと基準の差を増幅し、ゆっくり動く誤差電圧を作る</td></tr>
+<tr><td>PWM比較器</td><td>誤差電圧とのこぎり波を比べ、ON/OFF信号を作る</td></tr>
+<tr><td>ドライバ</td><td>パワーMOSFETのゲートを駆動するインバーターの列</td></tr>
+<tr><td>MOSFET(NMOS/PMOS)</td><td>ゲート電圧で電流を制御するトランジスタ</td></tr>
+<tr><td>バイポーラトランジスタ</td><td>ベース電流で制御するトランジスタ。Vbeの温度特性が基準電圧に使われる</td></tr>
+<tr><td>差動ペア</td><td>2つのトランジスタで一定の電流を取り合い、入力の差を検出する回路</td></tr>
+<tr><td>カレントミラー</td><td>ゲート同士をつないだトランジスタで電流をコピーする回路</td></tr>
+<tr><td>定電流源</td><td>電圧に関係なく一定の電流を流す回路</td></tr>
+<tr><td>インバーター</td><td>PMOSとNMOSを縦に積んだ、入力を反転する論理回路</td></tr>
+<tr><td>ラッチ</td><td>状態を覚えておく論理回路(NOR/NANDのたすき掛け)</td></tr>
+<tr><td>バンドギャップ基準</td><td>温度特性の逆な2つの電圧を足して約1.2Vの一定電圧を作る回路</td></tr>
+<tr><td>緩和発振器</td><td>コンデンサの充放電を繰り返して発振する回路</td></tr>
+<tr><td>RT端子 / SYNC端子</td><td>周波数を抵抗で設定する端子 / 外部クロックに同期させる端子</td></tr>
+<tr><td>固定オン時間制御</td><td>発振器を使わず、ON時間を一定にして出力低下時に再ONする方式</td></tr>
+</table></div>
+<p class="small">このメモの数値(基準0.8V、500kHzなど)は説明用の代表例です。実際の値はICごとのデータシートで確認してください。</p>
+</main>
+
+<script>
+(function(){
+const NS='http://www.w3.org/2000/svg',G='var(--muted)';
+function kit(svg){
+ function el(t,a,txt){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);if(txt)e.textContent=txt;svg.appendChild(e);return e;}
+ function ln(d,c,w,id){const a={d:d,fill:'none',stroke:c||G,'stroke-width':w||1.5,'stroke-linecap':'round'};if(id)a.id=id;return el('path',a);}
+ function tx(x,y,t,anc,cls){return el('text',{x:x,y:y,class:cls||'ts','text-anchor':anc||'start','dominant-baseline':'central'},t);}
+ function mos(X,cy,s,p,leads){const ch=X+s*14,pl=X+s*22,g=X+s*44;
+  ln(leads?`M${X} ${cy-30} V${cy-12} H${ch} M${X} ${cy+30} V${cy+12} H${ch}`:`M${X} ${cy-12} H${ch} M${X} ${cy+12} H${ch}`);
+  ln(`M${ch} ${cy-16} V${cy+16}`,G,2.5);ln(`M${pl} ${cy-12} V${cy+12}`,G,2);
+  if(p){el('circle',{cx:pl+s*4,cy:cy,r:3,fill:'none',stroke:G,'stroke-width':1.5});ln(`M${pl+s*7} ${cy} H${g}`);}else ln(`M${pl} ${cy} H${g}`);}
+ function arrow(x1,y1,x2,y2){return el('line',{x1:x1,y1:y1,x2:x2,y2:y2,class:'arr','marker-end':'url(#ah)'});}
+ return {el,ln,tx,mos,arrow};
+}
+
+/* 図1 凡例 */
+(function(){const K=kit(document.getElementById('lg')),{el,ln,tx,mos,arrow}=K;
+const sym={
+vdd:(c,y)=>{ln(`M${c-30} ${y} H${c+30} M${c} ${y} V${y+18}`);},
+gnd:(c,y)=>{ln(`M${c} ${y-16} V${y} M${c-14} ${y} H${c+14} M${c-9} ${y+5} H${c+9} M${c-4} ${y+10} H${c+4}`);},
+dot:(c,y)=>{ln(`M${c-30} ${y} H${c+30} M${c} ${y-18} V${y}`);el('circle',{cx:c,cy:y,r:3.5,fill:G});},
+res:(c,y)=>{ln(`M${c-30} ${y} H${c-14} M${c+14} ${y} H${c+30}`);el('rect',{x:c-14,y:y-6,width:28,height:12,rx:2,fill:'none',stroke:G,'stroke-width':1.5});},
+cap:(c,y)=>{ln(`M${c-30} ${y} H${c-4} M${c+4} ${y} H${c+30}`);ln(`M${c-4} ${y-12} V${y+12} M${c+4} ${y-12} V${y+12}`,G,2);},
+ind:(c,y)=>{ln(`M${c-30} ${y} H${c-20} q5 -12 10 0 q5 -12 10 0 q5 -12 10 0 q5 -12 10 0 H${c+30}`);},
+dio:(c,y)=>{ln(`M${c-30} ${y} H${c-10} M${c+8} ${y} H${c+30} M${c+8} ${y-10} V${y+10}`);el('polygon',{points:`${c-10},${y-10} ${c-10},${y+10} ${c+8},${y}`,fill:'none',stroke:G,'stroke-width':1.5});},
+sw:(c,y)=>{ln(`M${c-30} ${y} H${c-14} M${c-14} ${y} L${c+10} ${y-14} M${c+14} ${y} H${c+30}`);el('circle',{cx:c-14,cy:y,r:2.5,fill:G});el('circle',{cx:c+14,cy:y,r:2.5,fill:G});},
+vs:(c,y)=>{ln(`M${c} ${y-28} V${y-14} M${c} ${y+14} V${y+28}`);el('circle',{cx:c,cy:y,r:14,fill:'none',stroke:G,'stroke-width':1.5});tx(c,y-6,'+','middle');tx(c,y+6,'−','middle');},
+cs:(c,y)=>{ln(`M${c} ${y-28} V${y-14} M${c} ${y+14} V${y+28}`);el('circle',{cx:c,cy:y,r:14,fill:'none',stroke:G,'stroke-width':1.5});arrow(c,y-8,c,y+7);},
+nmos:(c,y)=>mos(c+14,y,-1,false,true),
+pmos:(c,y)=>mos(c+14,y,-1,true,true),
+cross:(c,y)=>{ln(`M${c-30} ${y} H${c+30} M${c} ${y-18} V${y+18}`);},
+arr:(c,y)=>{arrow(c-28,y,c+26,y);}
+};
+const items=[['vdd','電源ライン','プラス側。上の横線'],['gnd','GND(グランド)','0Vの基準。マイナス側'],
+['dot','接続点','黒丸の所で線がつながる'],['res','抵抗','電流を流しにくくする'],
+['cap','コンデンサ','電荷を貯めて電圧を保つ'],['ind','コイル','電流の変化を嫌う'],
+['dio','ダイオード','三角の向きにだけ流す'],['sw','スイッチ','ON/OFFで回路を開閉'],
+['vs','電圧源','一定の電圧を出す(電池)'],['cs','定電流源','一定の電流を流し続ける'],
+['nmos','NMOS','ゲートが高いとON'],['pmos','PMOS','ゲートが低いとON(丸印)'],
+['cross','線の交差','黒丸なしはつながらない'],['arr','矢印','電流の向き']];
+items.forEach((it,i)=>{const col=i%2,row=Math.floor(i/2),c=col?390:70,t=col?436:116,y=50+row*64;sym[it[0]](c,y);tx(t,y-9,it[1],'start','th');tx(t,y+11,it[2]);});
+ln('M40 480 H640','var(--line)',1);
+mos(170,545,-1,false,true);
+tx(180,511,'D(ドレイン)');tx(180,579,'S(ソース)');tx(120,545,'G(ゲート)','end');
+arrow(196,528,196,562);
+tx(300,512,'MOSFETの読み方','start','th');
+tx(300,538,'ゲートの電圧で D→S の電流量を調整する');
+tx(300,560,'NMOS:ゲートが高いほど流れる');
+tx(300,582,'PMOS:ゲートが低いほど流れる(丸印)');
+})();
+
+/* 図3・図9 コンバーター */
+function converter(p,mode){
+ const $=id=>document.getElementById(p+'-'+id);let st='on',auto=true,tm=null;
+ const caps=mode==='buck'?{on:'スイッチON:入力 → スイッチ → コイル → 負荷 と電流が流れ、コイルにエネルギーがたまる。ダイオードは逆向きなので流れない。',off:'スイッチOFF:入力から切り離されても、コイルが電流を流し続けようとする。ダイオードを通る輪(コイル → 負荷 → ダイオード)で、ためたエネルギーを放出。'}
+ :{on:'スイッチON:入力 → コイル → スイッチ → GND と電流が流れ、コイルにエネルギーがたまる。出力側はダイオードで切り離され、その間はコンデンサが負荷に電気を送る。',off:'スイッチOFF:コイルが電流を流し続けようとして、入力の5Vの上に自分の電圧を積み増す。合計の高い電圧でダイオードを通り、コンデンサと負荷へ流れ込む。'};
+ function mark(){$('bAuto').classList.toggle('sel',auto);$('bOn').classList.toggle('sel',!auto&&st==='on');$('bOff').classList.toggle('sel',!auto&&st==='off');}
+ function setState(s,manual){st=s;const c=$('ckt');c.classList.toggle('st-on',s==='on');c.classList.toggle('st-off',s==='off');$('lvOn').style.opacity=s==='on'?1:0;$('lvOff').style.opacity=s==='on'?0:1;$('cap').textContent=caps[s];if(manual){auto=false;clearTimeout(tm);}mark();}
+ function loop(){if(!auto)return;const D=+$('duty').value/100,T=2400;setState(st==='on'?'off':'on',false);tm=setTimeout(loop,st==='on'?T*D:T*(1-D));}
+ function startAuto(){auto=true;clearTimeout(tm);st='off';loop();}
+ function draw(){const D=+$('duty').value/100;$('dOut').textContent=Math.round(D*100)+'%';$('dTxt').textContent=D.toFixed(2);
+  const x0=60,P=580/3,lo=85,mid=150,amp=4*D*(1-D)*22+2;let s='M'+x0+' '+lo,u='',d='',ya;
+  if(mode==='buck'){const hi=35;$('vOut').textContent=(12*D).toFixed(1)+' V';
+   for(let k=0;k<3;k++){const xs=x0+k*P,xe=xs+D*P,xn=xs+P;s+=' L'+xs+' '+hi+' L'+xe+' '+hi+' L'+xe+' '+lo+' L'+xn+' '+lo;}ya=lo-50*D;}
+  else{const vo=5/(1-D),hi=lo-50*(vo/25);$('vOut').textContent=vo.toFixed(1)+' V';
+   for(let k=0;k<3;k++){const xs=x0+k*P,xe=xs+D*P,xn=xs+P;s+=' L'+xe+' '+lo+' L'+xe+' '+hi+' L'+xn+' '+hi+(k<2?' L'+xn+' '+lo:'');}ya=hi;}
+  for(let k=0;k<3;k++){const xs=x0+k*P,xe=xs+D*P,xn=xs+P;u+='M'+xs+' '+(mid+amp)+' L'+xe+' '+(mid-amp)+' ';d+='M'+xe+' '+(mid-amp)+' L'+xn+' '+(mid+amp)+' ';}
+  $('sw').setAttribute('d',s);$('avg').setAttribute('y1',ya);$('avg').setAttribute('y2',ya);$('iUp').setAttribute('d',u);$('iDn').setAttribute('d',d);}
+ $('bAuto').addEventListener('click',startAuto);$('bOn').addEventListener('click',()=>setState('on',true));$('bOff').addEventListener('click',()=>setState('off',true));$('duty').addEventListener('input',draw);
+ draw();setState('on',false);tm=setTimeout(loop,1000);
+}
+converter('bk','buck');converter('bs','boost');
+
+/* 図5 制御IC */
+(function(){const REF=0.8;let vin=12,vset=5,d=5/12,timer=null,wait=null;const $=id=>document.getElementById('ic-'+id);
+function wave(){const x0=60,P=145,lo=110,hi=30,pl=176,ph=148;let s='',p='M'+x0+' '+ph;
+for(let k=0;k<4;k++){const xs=x0+k*P,xe=xs+d*P,xn=xs+P;s+='M'+xs+' '+lo+' L'+xn+' '+hi+' L'+xn+' '+lo+' ';p+=' L'+xe+' '+ph+' L'+xe+' '+pl+' L'+xn+' '+pl+(k<3?' L'+xn+' '+ph:'');}
+$('saw').setAttribute('d',s);$('pwm').setAttribute('d',p);const y=lo-(lo-hi)*d;$('vc').setAttribute('y1',y);$('vc').setAttribute('y2',y);}
+function render(){const vout=vin*d,fb=vout*REF/vset,diff=fb-REF;
+$('tVin').textContent=vin.toFixed(1)+'V';$('vinOut').textContent=vin.toFixed(1)+'V';$('tVout').textContent=vout.toFixed(2)+'V';
+$('rFb').textContent=fb.toFixed(2)+'V';$('rVc').textContent=(d*2).toFixed(2)+'V';$('rD').textContent=Math.round(d*100)+'%';$('rOut').textContent=vout.toFixed(2)+'V';
+let m;if(diff>0.01)m='FBが基準より高い → 誤差アンプの出力(紫の点線)が下がる → のこぎり波が点線を超えるのが早くなる → ONの時間が短くなる。';
+else if(diff<-0.01)m='FBが基準より低い → 誤差アンプの出力(紫の点線)が上がる → のこぎり波が点線を超えるのが遅くなる → ONの時間が長くなる。';
+else m='FBと基準が一致し、誤差電圧はその位置で止まる。のこぎり波の周期(周波数)は一定のまま、点線の高さでONの長さが決まっている。';
+$('msg').textContent=m;wave();}
+function correct(){clearInterval(timer);timer=setInterval(()=>{const t=vset/vin;d+=(t-d)*0.1;if(Math.abs(t-d)<0.0008){d=t;clearInterval(timer);}render();},40);}
+function kick(){clearInterval(timer);clearTimeout(wait);render();wait=setTimeout(correct,700);}
+$('vin').addEventListener('input',()=>{vin=+$('vin').value;kick();});
+document.querySelectorAll('#ic-opt button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#ic-opt button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');vset=+b.dataset.v;kick();}));
+render();})();
+
+/* 図6 差動アンプ */
+(function(){const S=document.getElementById('da-sch'),{el,ln,tx,mos}=kit(S),A='var(--amber)',P='var(--purple)';
+ln('M230 40 H450');tx(458,40,'電源');
+ln('M250 40 V78 M250 102 V178 M250 202 V240',A,3,'da-cL');
+ln('M430 40 V78 M430 102 V178 M430 202 V240',A,3,'da-cR');
+mos(250,90,1,true);mos(430,90,-1,true);mos(250,190,-1,false);mos(430,190,1,false);
+ln('M294 90 H386');ln('M310 90 V140 H250');el('circle',{cx:250,cy:140,r:3.5,fill:G});el('circle',{cx:310,cy:90,r:3,fill:G});
+tx(340,70,'カレントミラー','middle');tx(340,190,'差動ペア','middle');
+ln('M250 240 H430',A,3);ln('M340 240 V258',A,3);mos(340,270,-1,false);ln('M340 282 V310');
+ln('M326 310 H354 M331 315 H349 M336 320 H344');
+ln('M296 270 H272');tx(266,270,'バイアス電圧','end');tx(354,272,'定電流源');
+ln('M206 190 H124',P);tx(44,190,'+ 基準 0.8V');
+ln('M474 190 H550',P);tx(556,190,'− FB');
+ln('M430 140 H556',A);el('circle',{cx:430,cy:140,r:3.5,fill:G});tx(562,140,'出力');
+tx(196,90,'PMOS','end');tx(196,206,'NMOS','end');
+const $=id=>document.getElementById('da-'+id);
+function upd(){const fb=+$('fb').value;$('fbOut').textContent=fb.toFixed(2)+'V';
+const iL=0.5*(1+Math.tanh((0.8-fb)/0.035)),iR=1-iL;
+$('cL').setAttribute('stroke-width',(1+6*iL).toFixed(2));$('cR').setAttribute('stroke-width',(1+6*iR).toFixed(2));
+$('rL').textContent=Math.round(iL*100)+'%';$('rR').textContent=Math.round(iR*100)+'%';
+const dl=iL-iR;let o,m;
+if(dl>0.04){o='上がる';m='FBが基準より低いので、右下のNMOSは流しにくくなり、電流が左に寄る。カレントミラーは左と同じ量を右にも上から押し込むが、右下は少ししか引き抜かない。余った電流が出力へあふれて、出力が上がっていく。';}
+else if(dl<-0.04){o='下がる';m='FBが基準より高いので、右下のNMOSが多く流し、電流が右に寄る。ミラーが上から押し込むのは左と同じ少ない量なのに、右下はたくさん引き抜く。足りない分を出力から吸い込むので、出力が下がっていく。';}
+else{o='止まる';m='左右が同じ電流なら、ミラーが右上から押し込む量と右下が引き抜く量が釣り合う。出力には何も出入りせず、その電圧で止まる。下の定電流源が合計を一定にしているので、変わるのは左右の配分だけ。';}
+$('rO').textContent=o;$('msg').textContent=m;}
+$('fb').addEventListener('input',upd);upd();})();
+})();
+</script>
+</body>
+</html>

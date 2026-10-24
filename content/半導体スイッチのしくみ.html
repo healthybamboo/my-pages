@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>半導体スイッチのしくみ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Kaku+Gothic+Antique:wght@500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one reading column (~40em) with full-width figures that scroll sideways on phones */
+:root{
+  --bg:#F4F6F7; --surface:#FFFFFF; --fg:#1B232B; --muted:#5A6570; --line:#C9D1D7;
+  --n:#0F6E56; --n-bg:#DDF2EA; --n-ink:#085041;
+  --p:#B4502A; --p-bg:#FAE6DD; --p-ink:#8A3517;
+  --sig:#5A4FC4; --sig-bg:#E9E7FB;
+  --wall:#8A8F94; --wall-bg:#ECEDEE;
+  --lamp:#B07408; --lamp-bg:#FBEFD6;
+  --f-display:"Zen Kaku Gothic Antique","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12171C; --surface:#1A2128; --fg:#E3E8EC; --muted:#9AA6B0; --line:#334049;
+  --n:#5DCAA5; --n-bg:#0E3A30; --n-ink:#9FE1CB;
+  --p:#F0997B; --p-bg:#45200F; --p-ink:#F5C4B3;
+  --sig:#AFA9EC; --sig-bg:#2A2558;
+  --wall:#9AA0A6; --wall-bg:#262C31;
+  --lamp:#EF9F27; --lamp-bg:#3D2A08; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171C; --surface:#1A2128; --fg:#E3E8EC; --muted:#9AA6B0; --line:#334049;
+  --n:#5DCAA5; --n-bg:#0E3A30; --n-ink:#9FE1CB;
+  --p:#F0997B; --p-bg:#45200F; --p-ink:#F5C4B3;
+  --sig:#AFA9EC; --sig-bg:#2A2558;
+  --wall:#9AA0A6; --wall-bg:#262C31;
+  --lamp:#EF9F27; --lamp-bg:#3D2A08; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.85;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 80px}
+main{max-width:44rem;margin:0 auto;display:flex;flex-direction:column;gap:56px}
+header{display:flex;flex-direction:column;gap:12px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,6vw,40px);line-height:1.3;margin:0;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:700;font-size:22px;line-height:1.4;margin:0;text-wrap:balance;display:flex;gap:12px;align-items:baseline}
+h2 .no{font-family:var(--f-mono);font-size:14px;color:var(--muted);font-weight:500}
+h3{font-family:var(--f-display);font-weight:500;font-size:17px;margin:8px 0 0}
+section{display:flex;flex-direction:column;gap:16px}
+p{margin:0}
+.lead{color:var(--muted)}
+ul,ol{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:6px}
+.fig{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow-x:auto;padding:12px}
+.fig svg{display:block;width:100%;min-width:560px;height:auto}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:15px;line-height:1.6}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-weight:700;font-size:14px;color:var(--muted)}
+.key{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:14px;color:var(--muted)}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;border:1px solid}
+.note{border-left:3px solid var(--lamp);padding:4px 0 4px 14px;border-radius:0}
+code,.m{font-family:var(--f-mono);font-size:.92em}
+.sum{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px}
+/* svg classes */
+.fn{fill:var(--n-bg);stroke:var(--n);stroke-width:.8}
+.fp{fill:var(--p-bg);stroke:var(--p);stroke-width:.8}
+.fw{fill:var(--wall-bg);stroke:var(--wall);stroke-width:.8;stroke-dasharray:4 3}
+.fs{fill:var(--sig-bg);stroke:var(--sig);stroke-width:.8}
+.fb{fill:var(--surface);stroke:var(--muted);stroke-width:.8}
+.fl{fill:var(--lamp-bg);stroke:var(--lamp);stroke-width:.8}
+.fch{fill:var(--n);opacity:.35}
+.e{fill:var(--n-ink)}
+.h{fill:none;stroke:var(--p-ink);stroke-width:1.5}
+.w{stroke:var(--fg);stroke-width:1.5;fill:none}
+.wd{stroke:var(--muted);stroke-width:1;fill:none;stroke-dasharray:3 3}
+.ws{stroke:var(--sig);stroke-width:2;fill:none}
+.wp{stroke:var(--p);fill:none}
+.wn{stroke:var(--n);fill:none}
+.tx{fill:var(--fg);font-family:var(--f-body);font-size:14px}
+.tb{fill:var(--fg);font-family:var(--f-display);font-weight:700;font-size:14px}
+.tl{fill:var(--muted);font-family:var(--f-body);font-size:12px}
+.tm{fill:var(--fg);font-family:var(--f-mono);font-size:12px}
+@media (max-width:480px){body{font-size:15px}main{gap:44px}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs></svg>
+
+<main>
+<header>
+  <div class="eyebrow">iot-lab-notes ・ knowledge</div>
+  <h1>半導体スイッチのしくみ</h1>
+  <p class="lead">Picoの3.3Vのピンで、12Vのポンプや電磁弁を動かすための部品(ダイオード、トランジスタ、MOSFET)が、中で何をしているかのまとめ。自動水やりの設計中に調べたこと。</p>
+</header>
+
+<section>
+  <h2><span class="no">00</span>役割で見ると、リレーもMOSFETも同じ形</h2>
+  <p>どちらも「合図を受ける部分」と「電流を開け閉めする部分」の2つでできている。違うのは、その間をつなぐ力だけ。リレーは磁石、MOSFETは電圧。</p>
+  <div class="fig">
+  <svg viewBox="0 0 680 360" role="img"><title>リレーとMOSFETの役割の対応</title><desc>左右に並べると、Picoの合図を受ける部分と、ポンプの電流を開け閉めする部分が対応している</desc>
+  <rect class="fs" x="50" y="20" width="130" height="44" rx="6"/><text class="tb" x="115" y="42" text-anchor="middle" dominant-baseline="central">Picoのピン</text>
+  <rect class="fs" x="370" y="20" width="130" height="44" rx="6"/><text class="tb" x="435" y="42" text-anchor="middle" dominant-baseline="central">Picoのピン</text>
+  <line class="w" x1="115" y1="64" x2="115" y2="136" marker-end="url(#arr)"/>
+  <line class="w" x1="435" y1="64" x2="435" y2="136" marker-end="url(#arr)"/>
+  <rect x="40" y="100" width="280" height="140" rx="12" fill="none" stroke="var(--line)" stroke-dasharray="4 3"/><text class="tb" x="300" y="120" text-anchor="end">リレー</text>
+  <rect x="360" y="100" width="280" height="140" rx="12" fill="none" stroke="var(--line)" stroke-dasharray="4 3"/><text class="tb" x="620" y="120" text-anchor="end">MOSFET</text>
+  <rect class="fs" x="60" y="140" width="110" height="56" rx="6"/><text class="tb" x="115" y="158" text-anchor="middle" dominant-baseline="central">コイル</text><text class="tl" x="115" y="178" text-anchor="middle" dominant-baseline="central">合図を受ける</text>
+  <rect class="fp" x="190" y="140" width="110" height="56" rx="6"/><text class="tb" x="245" y="158" text-anchor="middle" dominant-baseline="central">接点</text><text class="tl" x="245" y="178" text-anchor="middle" dominant-baseline="central">開け閉めする</text>
+  <rect class="fs" x="380" y="140" width="110" height="56" rx="6"/><text class="tb" x="435" y="158" text-anchor="middle" dominant-baseline="central">ゲート G</text><text class="tl" x="435" y="178" text-anchor="middle" dominant-baseline="central">合図を受ける</text>
+  <rect class="fp" x="510" y="140" width="110" height="56" rx="6"/><text class="tb" x="565" y="158" text-anchor="middle" dominant-baseline="central">D–S の間</text><text class="tl" x="565" y="178" text-anchor="middle" dominant-baseline="central">開け閉めする</text>
+  <text class="tl" x="180" y="222" text-anchor="middle">磁石の力で接点が動く</text>
+  <text class="tl" x="500" y="222" text-anchor="middle">電圧で電子の橋ができる</text>
+  <line class="w" x1="245" y1="196" x2="245" y2="268" marker-end="url(#arr)"/>
+  <line class="w" x1="565" y1="196" x2="565" y2="268" marker-end="url(#arr)"/>
+  <rect class="fp" x="150" y="270" width="170" height="44" rx="6"/><text class="tb" x="235" y="292" text-anchor="middle" dominant-baseline="central">ポンプの電流 12V</text>
+  <rect class="fp" x="470" y="270" width="170" height="44" rx="6"/><text class="tb" x="555" y="292" text-anchor="middle" dominant-baseline="central">ポンプの電流 12V</text>
+  <rect class="fs" x="150" y="334" width="14" height="14" rx="3"/><text class="tl" x="172" y="345">合図の側(電流ほぼゼロ)</text>
+  <rect class="fp" x="370" y="334" width="14" height="14" rx="3"/><text class="tl" x="392" y="345">電流が通る側(大きい)</text>
+  </svg></div>
+  <div class="tbl"><table>
+    <tr><th>部品</th><th>合図を受ける部分</th><th>開け閉めされる部分</th><th>間をつなぐ力</th></tr>
+    <tr><td>リレー</td><td>コイル</td><td>接点(COM–NO)</td><td>磁石</td></tr>
+    <tr><td>トランジスタ</td><td>ベース</td><td>コレクタ–エミッタの間</td><td>小さな電流</td></tr>
+    <tr><td>MOSFET</td><td>ゲート(G)</td><td>ドレイン(D)–ソース(S)の間</td><td>電圧</td></tr>
+    <tr><td>MOSFETモジュール</td><td>信号端子(TRIG/PWMなど)</td><td>出力端子(OUT+/OUT−)</td><td>中のMOSFET</td></tr>
+  </table></div>
+  <p>ダイオードだけはスイッチの仲間ではなく、電流を一方向にしか通さない弁。ここから先は「なぜそうなるのか」を、材料の性質から追う。</p>
+</section>
+
+<section>
+  <h2><span class="no">01</span>土台:n型とp型</h2>
+  <p>電流とは電子が動くこと。銅は動ける電子が大量にあるのでよく流れる。純粋なシリコンは、電子がすべて隣の原子と手をつなぐのに使われていて、動ける電子がほとんどない。だから電気をほぼ通さない。ここに少しだけ混ぜ物をする。</p>
+  <div class="tbl"><table>
+    <tr><th></th><th>混ぜるもの</th><th>何が起きるか</th><th>図での表し方</th></tr>
+    <tr><td><b>n型</b></td><td>リン(手が5本)</td><td>シリコン(手が4本)と手をつなぐと1本余り、その電子が自由に動ける</td><td>● 電子</td></tr>
+    <tr><td><b>p型</b></td><td>ホウ素(手が3本)</td><td>手が1本足りず、電子1個分の空席ができる。これが「穴(ホール)」。電子が入ると埋まり、隣に移っていくので、プラスの粒が動くように振る舞う</td><td>○ 穴</td></tr>
+  </table></div>
+  <p class="note">どちらも全体ではプラスマイナスゼロ。ただし、電子を手放したリンの原子は少しプラス、電子を受け取ったホウ素の原子は少しマイナスになる。原子は結晶に固定されていて動けない。これが次の「壁」の材料になる。</p>
+</section>
+
+<section>
+  <h2><span class="no">02</span>pとnの境目に「壁」ができる理由</h2>
+  <p>ダイオードもトランジスタもMOSFETも、すべてこの壁(空乏層)で説明できる。</p>
+  <div class="fig">
+  <svg viewBox="0 0 680 400" role="img"><title>pn接合に壁ができるまで</title><desc>貼り合わせた直後、境目の電子が穴に落ちて消え、残った原子の電荷が壁になる3段階</desc>
+  <text class="tb" x="140" y="34">① 貼り合わせた直後</text>
+  <rect class="fp" x="140" y="46" width="200" height="60"/><rect class="fn" x="340" y="46" width="200" height="60"/>
+  <circle class="h" cx="165" cy="76" r="6"/><circle class="h" cx="205" cy="76" r="6"/><circle class="h" cx="245" cy="76" r="6"/><circle class="h" cx="285" cy="76" r="6"/><circle class="h" cx="322" cy="76" r="6"/>
+  <circle class="e" cx="358" cy="76" r="5"/><circle class="e" cx="395" cy="76" r="5"/><circle class="e" cx="435" cy="76" r="5"/><circle class="e" cx="475" cy="76" r="5"/><circle class="e" cx="515" cy="76" r="5"/>
+  <text class="tl" x="552" y="72">○ 穴(p型)</text><text class="tl" x="552" y="90">● 電子(n型)</text>
+  <text class="tb" x="140" y="152">② 境目の電子が、すぐ隣の穴に落ちる</text>
+  <rect class="fp" x="140" y="164" width="200" height="60"/><rect class="fn" x="340" y="164" width="200" height="60"/><rect class="fw" x="270" y="164" width="140" height="60"/>
+  <circle class="h" cx="165" cy="194" r="6"/><circle class="h" cx="205" cy="194" r="6"/><circle class="h" cx="245" cy="194" r="6"/>
+  <circle class="e" cx="435" cy="194" r="5"/><circle class="e" cx="475" cy="194" r="5"/><circle class="e" cx="515" cy="194" r="5"/>
+  <text class="tl" x="340" y="198" text-anchor="middle">電子も穴も消えた</text>
+  <text class="tb" x="140" y="270">③ 残った原子の電荷が、次の電子を押し返す</text>
+  <rect class="fp" x="140" y="282" width="200" height="60"/><rect class="fn" x="340" y="282" width="200" height="60"/><rect class="fw" x="270" y="282" width="140" height="60"/>
+  <circle class="h" cx="165" cy="312" r="6"/><circle class="h" cx="205" cy="312" r="6"/><circle class="h" cx="245" cy="312" r="6"/>
+  <circle class="e" cx="435" cy="312" r="5"/><circle class="e" cx="475" cy="312" r="5"/><circle class="e" cx="515" cy="312" r="5"/>
+  <text class="tb" x="290" y="312" text-anchor="middle" dominant-baseline="central">−</text><text class="tb" x="318" y="312" text-anchor="middle" dominant-baseline="central">−</text>
+  <text class="tb" x="362" y="312" text-anchor="middle" dominant-baseline="central">＋</text><text class="tb" x="390" y="312" text-anchor="middle" dominant-baseline="central">＋</text>
+  <text class="tl" x="340" y="370" text-anchor="middle">n側の端は電子を失ってプラス、p側の端は電子をもらってマイナス(原子ごと固定)</text>
+  <text class="tl" x="340" y="390" text-anchor="middle">→ 電子はマイナスに反発されて、これ以上入れない。約0.7Vぶんの壁</text>
+  </svg></div>
+  <ol>
+    <li>②が起きるのは、インクが水に広がるのと同じで、混んでいる所から空いている所へ自然に散らばるから。境目のすぐ向こうに空席(穴)があるので、電子はそこに落ちて収まる。収まった電子は手をつなぐのに使われるので、もう動けない。</li>
+    <li>落ちるたびに③の電荷が増え、ある程度たまると反発で次の電子が来られなくなる。そこで釣り合って止まる。これが壁の正体。</li>
+  </ol>
+</section>
+
+<section>
+  <h2><span class="no">03</span>ダイオード:壁をそのまま使う</h2>
+  <p>pとnを1回貼り合わせただけの部品。外からかける電圧の向きで、壁を越えられるか、壁が厚くなるかが決まる。</p>
+  <div class="fig">
+  <svg viewBox="0 0 680 330" role="img"><title>ダイオードの順方向と逆方向</title><desc>順方向では電子が境目を越えて流れ続け、逆方向では空乏層が広がって止まる</desc>
+  <text class="tb" x="140" y="40">順方向(p側に＋をつなぐ):流れる</text>
+  <rect class="fp" x="140" y="56" width="180" height="70"/><text class="tl" x="230" y="72" text-anchor="middle" dominant-baseline="central">p型(穴)</text>
+  <rect class="fn" x="320" y="56" width="180" height="70"/><text class="tl" x="410" y="72" text-anchor="middle" dominant-baseline="central">n型(電子)</text>
+  <circle class="h" cx="170" cy="100" r="6"/><circle class="h" cx="210" cy="108" r="6"/><circle class="h" cx="250" cy="96" r="6"/><circle class="h" cx="296" cy="106" r="6"/>
+  <circle class="e" cx="344" cy="104" r="5"/><circle class="e" cx="390" cy="108" r="5"/><circle class="e" cx="430" cy="96" r="5"/><circle class="e" cx="470" cy="106" r="5"/>
+  <text class="tb" x="124" y="91" text-anchor="middle" dominant-baseline="central">＋</text><text class="tb" x="516" y="91" text-anchor="middle" dominant-baseline="central">−</text>
+  <line class="wn" x1="480" y1="142" x2="164" y2="142" stroke-width="2" marker-end="url(#arr)"/>
+  <text class="tl" x="320" y="162" text-anchor="middle">電子は右から押されて境目を越え、穴に飛び込む → 流れ続ける</text>
+  <text class="tb" x="140" y="200">逆方向(p側に−をつなぐ):止まる</text>
+  <rect class="fp" x="140" y="216" width="150" height="70"/><text class="tl" x="215" y="232" text-anchor="middle" dominant-baseline="central">p型</text>
+  <rect class="fw" x="290" y="216" width="60" height="70"/><text class="tl" x="320" y="251" text-anchor="middle" dominant-baseline="central">壁</text>
+  <rect class="fn" x="350" y="216" width="150" height="70"/><text class="tl" x="425" y="232" text-anchor="middle" dominant-baseline="central">n型</text>
+  <circle class="h" cx="162" cy="262" r="6"/><circle class="h" cx="196" cy="268" r="6"/><circle class="h" cx="230" cy="258" r="6"/><circle class="h" cx="262" cy="266" r="6"/>
+  <circle class="e" cx="380" cy="262" r="5"/><circle class="e" cx="414" cy="268" r="5"/><circle class="e" cx="448" cy="258" r="5"/><circle class="e" cx="480" cy="266" r="5"/>
+  <text class="tb" x="124" y="251" text-anchor="middle" dominant-baseline="central">−</text><text class="tb" x="516" y="251" text-anchor="middle" dominant-baseline="central">＋</text>
+  <text class="tl" x="320" y="312" text-anchor="middle">電子も穴も外側へ引っぱられ、壁がさらに厚くなる → 通れない</text>
+  </svg></div>
+  <ul>
+    <li>順方向では、外から約0.7V以上で押すと壁を乗り越え、電子が穴に落ち続ける。電源が両側から電子と穴を補給し続けるので、電流が流れ続ける。</li>
+    <li>逆方向では、外からの電圧が③の電荷と同じ向きなので、壁が厚くなるだけ。</li>
+    <li>使いどころ:交流を片方向にそろえる整流回路(ACアダプタの中)。水やりでは、ポンプや電磁弁のコイルを切った瞬間に出る電流の逃げ道として、負荷のすぐ横に逆向きに付ける(1N4007)。</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="no">04</span>MOSFET:電圧で壁そのものを消す</h2>
+  <p>n・p・nの並びなので、壁が2枚ある。ゲートは薄い絶縁膜で隔てられていて、中とは電気的につながっていない。</p>
+  <div class="fig">
+  <svg viewBox="0 0 680 400" role="img"><title>MOSFETが止まる理由と流れる理由</title><desc>ゲート0Vでは壁が2枚あって止まる。ゲートに＋をかけると電子が集まってn型の橋になり、壁が消えて流れる</desc>
+  <text class="tb" x="120" y="28">ゲート 0V:壁が2枚あるので止まる</text>
+  <rect class="fb" x="250" y="40" width="180" height="22" rx="2"/><text class="tl" x="340" y="51" text-anchor="middle" dominant-baseline="central">ゲート(電荷なし)</text>
+  <rect class="fw" x="250" y="62" width="180" height="5" style="stroke-dasharray:none"/>
+  <rect class="fp" x="230" y="67" width="220" height="70"/><text class="tl" x="340" y="110" text-anchor="middle" dominant-baseline="central">p</text>
+  <rect class="fn" x="120" y="67" width="110" height="70"/><text class="tl" x="160" y="102" text-anchor="middle" dominant-baseline="central">n(S)</text>
+  <rect class="fn" x="450" y="67" width="110" height="70"/><text class="tl" x="520" y="102" text-anchor="middle" dominant-baseline="central">n(D)</text>
+  <rect class="fw" x="214" y="67" width="32" height="70"/><rect class="fw" x="434" y="67" width="32" height="70"/>
+  <text class="tb" x="230" y="160" text-anchor="middle">壁</text><text class="tb" x="450" y="160" text-anchor="middle">壁</text>
+  <text class="tl" x="340" y="182" text-anchor="middle">どちら向きに電圧をかけても、2枚のうち片方が必ず逆方向になる</text>
+  <text class="tb" x="120" y="226">ゲート ＋3.3V:電子の橋ができて流れる</text>
+  <rect class="fb" x="250" y="238" width="180" height="22" rx="2"/><text class="tb" x="340" y="249" text-anchor="middle" dominant-baseline="central">＋ ＋ ＋ ＋ ＋</text>
+  <rect class="fw" x="250" y="260" width="180" height="5" style="stroke-dasharray:none"/>
+  <rect class="fp" x="230" y="265" width="220" height="70"/><text class="tl" x="340" y="315" text-anchor="middle" dominant-baseline="central">p</text>
+  <rect class="fn" x="120" y="265" width="110" height="70"/><text class="tl" x="160" y="300" text-anchor="middle" dominant-baseline="central">n(S)</text>
+  <rect class="fn" x="450" y="265" width="110" height="70"/><text class="tl" x="520" y="300" text-anchor="middle" dominant-baseline="central">n(D)</text>
+  <rect class="fch" x="230" y="265" width="220" height="18"/>
+  <circle class="e" cx="250" cy="274" r="4"/><circle class="e" cx="280" cy="274" r="4"/><circle class="e" cx="310" cy="274" r="4"/><circle class="e" cx="340" cy="274" r="4"/><circle class="e" cx="370" cy="274" r="4"/><circle class="e" cx="400" cy="274" r="4"/><circle class="e" cx="430" cy="274" r="4"/>
+  <line class="wd" x1="430" y1="263" x2="580" y2="232"/><text class="tl" x="586" y="236">絶縁膜</text>
+  <text class="tl" x="340" y="360" text-anchor="middle">＋に引かれて電子が膜のすぐ下に集まる → その薄い層は電子が余った状態 = n型と同じ</text>
+  <text class="tl" x="340" y="380" text-anchor="middle">→ n・n・n とつながるので、p と n の境目(壁)が消える</text>
+  </svg></div>
+  <h3>なぜ電子が集まるのか</h3>
+  <ul>
+    <li>p型にも、熱で手がほどけた電子がわずかにいる。これがゲートの＋に引き寄せられる。</li>
+    <li>同時に、穴(プラスのように振る舞う)はゲートの＋に押しのけられて下へ逃げる。</li>
+    <li>電子はゲートへ向かうが、絶縁膜があるので届かず、膜のすぐ下にたまる。十分な量(D4184ではおよそ2V前後から)になると、その薄い層がn型と同じになり、壁が消える。</li>
+    <li>ゲートを0Vに戻すと引き寄せる力がなくなり、電子が散らばって橋が消え、壁が2枚に戻る。</li>
+  </ul>
+  <h3>電荷か、電圧か</h3>
+  <ol>
+    <li>ゲートに＋3.3Vの電圧をかける</li>
+    <li>その結果、ゲートの金属に＋の電荷がたまる(絶縁膜があるので、たまるだけで流れ込まない)</li>
+    <li>その＋の電荷が、膜の向こうの電子を引き寄せる</li>
+  </ol>
+  <p>かけるのは電圧、電子を引き寄せているのはたまった電荷。電流が流れるのは、ゲートのすぐ下にできた薄い層(チャネル)だけで、p型の部分全体には流れない。この層の厚さは髪の毛の1万分の1くらい。</p>
+</section>
+
+<section>
+  <h2><span class="no">05</span>トランジスタ:電子を押し込んで突き抜けさせる</h2>
+  <p>トランジスタ(正式にはバイポーラトランジスタ)もn・p・nで壁が2枚ある。ただし橋は作らず、真ん中のp型をとても薄くして、電子を突き抜けさせる。</p>
+  <div class="tbl"><table>
+    <tr><th>端子</th><th>英語の意味</th><th>役割</th><th>MOSFETで同じ役</th></tr>
+    <tr><td>エミッタ(E)</td><td>emit = 送り出す</td><td>電子を送り出す側</td><td>ソース(S)</td></tr>
+    <tr><td>コレクタ(C)</td><td>collect = 集める</td><td>電子を受け取る側</td><td>ドレイン(D)</td></tr>
+    <tr><td>ベース(B)</td><td>base = 土台</td><td>合図を入れる所</td><td>ゲート(G)</td></tr>
+  </table></div>
+  <p class="lead">ベースだけ名前と役割が合っていないのは、初期のトランジスタでは真ん中の部分が本当に土台の板だった名残。</p>
+  <div class="fig">
+  <svg viewBox="0 0 680 420" role="img"><title>トランジスタが止まる理由と流れる理由</title><desc>ベースに電流がないと壁が2枚で止まる。ベースに小さな電流を入れると手前の壁が開き、電子が薄いp型を突き抜けてコレクタへ流れる</desc>
+  <text class="tb" x="110" y="24">ベースに電流なし:壁が2枚あるので止まる</text>
+  <text class="tb" x="205" y="52" text-anchor="middle">エミッタ(E)</text><text class="tb" x="340" y="52" text-anchor="middle">ベース(B)</text><text class="tb" x="475" y="52" text-anchor="middle">コレクタ(C)</text>
+  <line class="w" x1="205" y1="60" x2="205" y2="80"/><line class="w" x1="340" y1="60" x2="340" y2="80"/><line class="w" x1="475" y1="60" x2="475" y2="80"/>
+  <rect class="fn" x="110" y="80" width="190" height="70"/><rect class="fp" x="300" y="80" width="80" height="70"/><rect class="fn" x="380" y="80" width="190" height="70"/>
+  <rect class="fw" x="288" y="80" width="24" height="70"/><rect class="fw" x="368" y="80" width="24" height="70"/>
+  <circle class="e" cx="140" cy="115" r="5"/><circle class="e" cx="180" cy="115" r="5"/><circle class="e" cx="220" cy="115" r="5"/><circle class="e" cx="260" cy="115" r="5"/>
+  <circle class="e" cx="420" cy="115" r="5"/><circle class="e" cx="460" cy="115" r="5"/><circle class="e" cx="500" cy="115" r="5"/><circle class="e" cx="540" cy="115" r="5"/>
+  <text class="tl" x="160" y="172" text-anchor="middle">n型</text><text class="tl" x="340" y="172" text-anchor="middle">薄いp型</text><text class="tl" x="520" y="172" text-anchor="middle">n型</text>
+  <text class="tb" x="110" y="222">ベースに小さな電流:電子が突き抜ける</text>
+  <text class="tb" x="205" y="250" text-anchor="middle">エミッタ(E)</text><text class="tb" x="340" y="250" text-anchor="middle">ベース(B)</text><text class="tb" x="475" y="250" text-anchor="middle">コレクタ(C)</text>
+  <line class="w" x1="205" y1="258" x2="205" y2="278"/><line class="w" x1="340" y1="258" x2="340" y2="278"/><line class="w" x1="475" y1="258" x2="475" y2="278"/>
+  <rect class="fn" x="110" y="278" width="190" height="70"/><rect class="fp" x="300" y="278" width="80" height="70"/><rect class="fn" x="380" y="278" width="190" height="70"/>
+  <rect class="fw" x="368" y="278" width="24" height="70"/>
+  <circle class="e" cx="140" cy="300" r="5"/><circle class="e" cx="190" cy="300" r="5"/><circle class="e" cx="240" cy="300" r="5"/><circle class="e" cx="286" cy="300" r="5"/><circle class="e" cx="325" cy="300" r="5"/><circle class="e" cx="356" cy="300" r="5"/><circle class="e" cx="410" cy="300" r="5"/><circle class="e" cx="460" cy="300" r="5"/><circle class="e" cx="510" cy="300" r="5"/>
+  <line class="wp" x1="130" y1="330" x2="556" y2="330" stroke-width="3" marker-end="url(#arr)"/><text class="tl" x="580" y="334">99%</text>
+  <line class="wp" x1="318" y1="316" x2="318" y2="282" stroke-width="1" marker-end="url(#arr)"/><text class="tl" x="270" y="270" text-anchor="end">1%はベースから出る</text>
+  <text class="tl" x="340" y="374" text-anchor="middle">手前の壁:ベースの電流で順方向になり、消える → 電子がp型に入る</text>
+  <text class="tl" x="340" y="396" text-anchor="middle">奥の壁:p型が薄いので、電子は穴に落ちる前に届き、コレクタ側の＋に引かれて落ちていく</text>
+  </svg></div>
+  <ol>
+    <li>ベースとエミッタの間に小さな電流を流すと、手前の壁がダイオードの順方向と同じ状態になり、エミッタの電子がベースに入る。</li>
+    <li>ベースのp型はとても薄く、穴も少なくしてあるので、ほとんどの電子は穴に落ちる前に奥の壁にたどり着く。</li>
+    <li>奥の壁は、02の③の固定電荷がコレクタ側でプラスになっている。たどり着いた電子はこのプラスに引っぱられ、コレクタへ落ちていく。</li>
+  </ol>
+  <p>穴に落ちてベースから出ていく電子は1%ほど。これがベース電流で、残り99%がコレクタに流れる。「小さな電流で大きな電流を操る」の正体はこの比率(およそ100倍)。</p>
+  <p class="lead">図の矢印は電子が動く向き。回路図の「電流の向き」は歴史的な決まりで電子と逆向きなので、回路図ではコレクタからエミッタへ流れるように描かれる。</p>
+</section>
+
+<section>
+  <h2><span class="no">06</span>MOSFETとトランジスタの違い</h2>
+  <p>違いは1点だけ。MOSFETは電圧で電子を「引き寄せて」橋を作る。トランジスタは電流で電子を「押し込んで」突き抜けさせる。時間の流れで並べると、こうなる。</p>
+  <div class="fig">
+  <svg viewBox="0 0 680 350" role="img"><title>ONからOFFまでの電流の比較</title><desc>MOSFETのゲートには入れる瞬間と抜く瞬間だけ電流が流れ、トランジスタのベースにはONの間ずっと電流が流れる</desc>
+  <line class="wd" x1="280" y1="36" x2="280" y2="330"/><line class="wd" x1="500" y1="36" x2="500" y2="330"/>
+  <text class="tb" x="280" y="28" text-anchor="middle">ONにする</text><text class="tb" x="500" y="28" text-anchor="middle">OFFにする</text>
+  <text class="tb" x="40" y="80">ピンの電圧</text>
+  <path class="ws" d="M180 95 L280 95 L280 50 L500 50 L500 95 L620 95"/>
+  <text class="tl" x="390" y="44" text-anchor="middle">3.3V</text><text class="tl" x="600" y="88" text-anchor="middle">0V</text>
+  <text class="tb" x="40" y="174">MOSFETの</text><text class="tb" x="40" y="192">ゲート電流</text>
+  <line x1="180" y1="182" x2="620" y2="182" stroke="var(--line)"/>
+  <path class="wp" stroke-width="2" d="M180 182 L278 182 L280 146 L288 182 L498 182 L500 218 L508 182 L620 182"/>
+  <text class="tl" x="294" y="154">一瞬入れる</text><text class="tl" x="514" y="214">一瞬抜く</text><text class="tl" x="390" y="172" text-anchor="middle">ゼロ</text>
+  <text class="tb" x="40" y="290">トランジスタの</text><text class="tb" x="40" y="308">ベース電流</text>
+  <line x1="180" y1="312" x2="620" y2="312" stroke="var(--line)"/>
+  <path class="wp" stroke-width="2" d="M180 312 L280 312 L280 272 L500 272 L500 312 L620 312"/>
+  <text class="tl" x="390" y="296" text-anchor="middle">流し続ける</text>
+  </svg></div>
+  <div class="tbl"><table>
+    <tr><th></th><th>MOSFET</th><th>トランジスタ</th></tr>
+    <tr><td>たとえ</td><td>小さなバケツ。一度満たせばそのまま</td><td>手で押さえているドア。押し続ける間だけ開く</td></tr>
+    <tr><td>ONにする</td><td>ピンを3.3Vに。電荷が一瞬で注がれる</td><td>ベースに電流を流し始める</td></tr>
+    <tr><td>ONの間</td><td>電流ゼロ</td><td>流し続ける</td></tr>
+    <tr><td>OFFにする</td><td>ピンを0Vに。電荷がピンへ一瞬で抜ける</td><td>流すのをやめる</td></tr>
+  </table></div>
+  <p>Picoのピンは電流を少ししか出せないので、水やりでは電流のいらないMOSFET(D4184モジュール)を選んでいる。</p>
+</section>
+
+<section>
+  <h2><span class="no">07</span>電源が切れたとき、固まったとき</h2>
+  <p>電荷は抜く道がないとゲートに残る。電源が切れたPicoのピンは、0Vを出しているのではなく「どこにもつながっていない」のに近い状態になる。0Vを出すのも、Picoが動いていて初めてできる仕事だから。</p>
+  <div class="tbl"><table>
+    <tr><th>状況</th><th>ピンの状態</th><th>ゲートの電荷</th><th>守るもの</th></tr>
+    <tr><td>正常にOFFを出している</td><td>0Vを出している</td><td>ピンから抜ける</td><td>何もしなくてよい</td></tr>
+    <tr><td>電源が切れた、起動中、リセット中</td><td>どこにもつながっていない</td><td>抜け道がなく残る、または中途半端な電圧になる</td><td>ゲートとGNDの間の10kΩ抵抗</td></tr>
+    <tr><td>プログラムが固まり、ONのまま</td><td>3.3Vを出し続けている</td><td>満杯のまま</td><td>プログラム側の安全装置</td></tr>
+  </table></div>
+  <ul>
+    <li>10kΩの抵抗がGNDへの抜け道になるので、Picoが何も出していないときは自然にOFFに落ちる。ゲートが1〜2Vで止まって橋が半分だけでき、MOSFETが熱くなるのも防げる。</li>
+    <li>プログラムが固まった場合は抵抗では防げない。ポンプには必ず最長運転時間を決める。ウォッチドッグで、応答しなくなったPicoを自動でリセットする。タンクのフロートスイッチで、水がなくなったらポンプを止める。</li>
+    <li>水やりの配線ではPicoも12Vから作っているので、コンセントが抜ければポンプも止まる。気にするのは、12Vは来ているのにPicoだけ止まっている、または固まっている状態。</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="no">08</span>確かめる実験</h2>
+  <p>ゲートに電荷が残る現象は、MOSFET単体(抵抗なし)で見られる。D4184モジュールは抵抗が載っているので、抜いた瞬間にOFFになる。負荷はポンプではなくLEDにする。プログラムは不要で、Picoの3V3ピンを「3.3Vを出し続けるピン」の代わりに使う。</p>
+  <div class="fig">
+  <svg viewBox="0 0 680 300" role="img"><title>ゲートの電荷を確かめる配線</title><desc>VBUSから抵抗とLEDを通ってMOSFETのドレインへ、ソースはGND、ゲートは抜き差しできる線で3V3へつなぐ。10kΩはあとで追加する</desc>
+  <rect class="fs" x="40" y="60" width="130" height="180" rx="8"/><text class="tb" x="40" y="44">Pico 2 W</text>
+  <text class="tm" x="158" y="90" text-anchor="end" dominant-baseline="central">VBUS 5V</text><text class="tm" x="158" y="145" text-anchor="end" dominant-baseline="central">3V3</text><text class="tm" x="158" y="200" text-anchor="end" dominant-baseline="central">GND</text>
+  <line class="w" x1="170" y1="90" x2="320" y2="90"/>
+  <rect class="fb" x="320" y="78" width="60" height="24" rx="3"/><text class="tl" x="350" y="90" text-anchor="middle" dominant-baseline="central">330Ω</text>
+  <path class="w" d="M380 90 L520 90 L520 110"/>
+  <rect class="fl" x="480" y="110" width="80" height="36" rx="6"/><text class="tb" x="520" y="128" text-anchor="middle" dominant-baseline="central">LED</text>
+  <line class="w" x1="520" y1="146" x2="520" y2="170"/>
+  <rect class="fp" x="460" y="170" width="120" height="70" rx="6"/><text class="tb" x="520" y="205" text-anchor="middle" dominant-baseline="central">MOSFET</text>
+  <text class="tm" x="532" y="182" dominant-baseline="central">D</text><text class="tm" x="532" y="228" dominant-baseline="central">S</text><text class="tm" x="470" y="193" dominant-baseline="central">G</text>
+  <line class="w" x1="170" y1="145" x2="300" y2="145"/>
+  <path class="ws" d="M300 145 L410 145 L410 205 L460 205" stroke-dasharray="6 4"/>
+  <text class="tl" x="355" y="133" text-anchor="middle">ここを抜き差し</text>
+  <path class="w" d="M170 200 L250 200 L250 262 L520 262 L520 240"/>
+  <line class="wd" x1="430" y1="205" x2="430" y2="222"/><rect x="418" y="222" width="24" height="26" rx="2" class="wd"/><line class="wd" x1="430" y1="248" x2="430" y2="262"/>
+  <text class="tl" x="408" y="239" text-anchor="end">10kΩ(手順4で追加)</text>
+  </svg></div>
+  <ol>
+    <li>ゲートの線を3V3につなぐ。LEDが点く。</li>
+    <li>ゲートの線を3V3側から抜く(ゲート側はつないだまま)。LEDは点いたまま。電荷が残っているから。</li>
+    <li>抜いた線の先をGNDに触れる。LEDが消える。電荷がGNDへ抜けたから。</li>
+    <li>10kΩをゲートとGNDの間に足して、1と2をもう一度。今度は抜いた瞬間に消える。</li>
+  </ol>
+  <ul>
+    <li>手順2のあと、しばらく置くとLEDが暗くなったり消えたりすることがある。湿気などで電荷がゆっくり漏れるため。</li>
+    <li>浮いた線の先を指で触るとLEDがついたり消えたりする。体の静電気でも動くほど、ゲートは敏感。</li>
+    <li>その敏感さの裏返しで、MOSFETは静電気で壊れることがある。触る前に金属のドアノブなどに触れて、体の静電気を逃がす。</li>
+    <li>D4184モジュールが届いたら、同じ抜き差しで、抜いてすぐ消えるか(抵抗が載っているか)を確かめられる。</li>
+  </ul>
+</section>
+
+<section class="sum">
+  <h2>まとめ</h2>
+  <div class="tbl"><table>
+    <tr><th>部品</th><th>中身</th><th>何で操作するか</th><th>たとえ</th></tr>
+    <tr><td>ダイオード</td><td>p・n(境目1つ)</td><td>操作しない</td><td>一方通行の弁</td></tr>
+    <tr><td>トランジスタ</td><td>n・p・n(真ん中が薄い)</td><td>小さな電流を流し続ける</td><td>押さえている間だけ開くドア</td></tr>
+    <tr><td>MOSFET</td><td>n・p・n + 絶縁されたゲート</td><td>電圧(出入りの瞬間だけ電流)</td><td>電圧で架ける電子の橋</td></tr>
+  </table></div>
+  <p>3つとも「pとnの境目に壁ができる」という1つの現象の使い方の違い。ダイオードはそのまま使い、トランジスタは電子を押し込んで突き抜けさせ、MOSFETは電圧で境目そのものを消している。</p>
+</section>
+</main>
+</body>
+</html>
