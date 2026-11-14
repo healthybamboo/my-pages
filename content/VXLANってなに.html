@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VXLAN入門：VLANとの違いと仕組み</title>
+<style>
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --text: #1f1e1c;
+  --muted: #6b6963;
+  --border: #dedbd2;
+  --edge: #8a877f;
+  --accent: #2f6fd0;
+  --accent-bg: rgba(47, 111, 208, 0.12);
+  --tint: #ecebe6;
+  --code-bg: #f3f1ec;
+  --link: #2a5fb3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1b19;
+    --surface: #242320;
+    --text: #ecebe6;
+    --muted: #a6a39b;
+    --border: #3a3935;
+    --edge: #8f8c84;
+    --accent: #6ea2f0;
+    --accent-bg: rgba(110, 162, 240, 0.16);
+    --tint: #33322e;
+    --code-bg: #2b2a27;
+    --link: #8ab4f5;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+}
+a { color: var(--link); }
+header.site {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+header.site .inner, main, footer.site .inner {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+header.site .inner { display: flex; gap: 16px; align-items: center; height: 52px; font-size: 14px; }
+header.site a.home { font-weight: 600; text-decoration: none; color: var(--text); }
+nav.pages { display: flex; gap: 14px; flex-wrap: wrap; }
+nav.pages a { color: var(--muted); text-decoration: none; }
+nav.pages a[aria-current="page"] { color: var(--text); font-weight: 600; }
+main { padding-top: 32px; padding-bottom: 64px; }
+h1 { font-size: 28px; line-height: 1.4; margin: 0 0 4px; }
+.meta { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+h2 { font-size: 21px; margin: 44px 0 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+h3 { font-size: 17px; margin: 28px 0 8px; }
+p, ul, ol { margin: 0 0 14px; }
+li { margin-bottom: 4px; }
+code { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.9em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; overflow-x: auto; line-height: 1.55; margin: 0 0 16px; }
+pre code { background: none; padding: 0; font-size: 13.5px; }
+.table-wrap { overflow-x: auto; margin: 0 0 16px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.6; }
+th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); font-weight: 600; white-space: nowrap; }
+figure { margin: 8px 0 18px; }
+figure svg { width: 100%; height: auto; display: block; }
+figcaption { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.lead { font-size: 17px; }
+.cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 20px; }
+.card { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; text-decoration: none; color: var(--text); }
+.card:hover { border-color: var(--accent); }
+.card .t { font-weight: 600; display: block; margin-bottom: 6px; }
+.card .d { color: var(--muted); font-size: 14px; line-height: 1.6; }
+footer.site { border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 20px 0 32px; }
+
+/* SVG diagram styles */
+.dg text { font-family: inherit; }
+.dg .title { font-size: 15px; font-weight: 600; fill: var(--text); }
+.dg .name { font-size: 13px; font-weight: 600; fill: var(--text); }
+.dg .sub { font-size: 11.5px; fill: var(--muted); }
+.dg .sub-ink { font-size: 11.5px; fill: var(--text); }
+.dg .label { font-size: 13px; font-weight: 600; fill: var(--text); }
+.dg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+.dg .acc { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 2; }
+.dg .tint { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.dg .line { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+.dg .head { fill: var(--edge); }
+</style>
+</head>
+<body>
+<header class="site"><div class="inner"><a class="home" href="index.html">ネットワーク学習ノート</a><nav class="pages"><a href="openflow-p4.html">OpenFlowとP4</a><a href="vxlan.html" aria-current="page">VXLAN</a><a href="sdn-best-practices.html">SDNの現在地</a><a href="vps-design.html">VPS基盤設計</a></nav></div></header>
+<main>
+<h1>VXLAN入門：VLANとの違いと仕組み</h1>
+<p class="meta">2026年11月14日</p>
+
+<h2>一言で：VLANはタグ、VXLANはトンネル</h2>
+<p>VXLAN（Virtual eXtensible LAN）は、Ethernetフレームを丸ごとUDPパケットに包んで、IPネットワークの上を運ぶ技術です。「L2をL3の上にトンネルで通す」ものと考えると分かりやすいです。「VLANの拡張版」という理解は半分合っていますが、仕組みは別物です。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>観点</th><th>VLAN（IEEE 802.1Q）</th><th>VXLAN（RFC 7348）</th></tr></thead>
+<tbody>
+<tr><td>仕組み</td><td>フレームに4バイトのタグを挟む</td><td>フレーム全体をUDP（宛先ポート4789）で包む</td></tr>
+<tr><td>識別子</td><td>VLAN ID（12ビット、最大4094個）</td><td>VNI（24ビット、約1600万個）</td></tr>
+<tr><td>届く範囲</td><td>同じL2ネットワークの中</td><td>IPが届くところならどこでも</td></tr>
+<tr><td>物理網に求めること</td><td>全スイッチにそのVLANを通す</td><td>ホスト間でIPが届き、MTUが大きいこと</td></tr>
+<tr><td>ループ対策</td><td>スパニングツリー</td><td>不要（物理はL3ルーティング）</td></tr>
+<tr><td>主な用途</td><td>社内LANのセグメント分割</td><td>クラウドやデータセンターのテナント分離</td></tr>
+</tbody></table></div>
+
+<h2>パケット構造</h2>
+<figure>
+<svg class="dg" viewBox="0 0 760 344" role="img" aria-label="VLANはタグを挟むだけ、VXLANはフレームごと包む">
+<text class="title" x="28" y="30">VLANはタグを挟むだけ、VXLANはフレームごと包む</text>
+<text class="label" x="28" y="72">VLAN（802.1Q）</text>
+<rect class="box" x="28" y="84" width="176" height="56" rx="6"/><text class="name" x="116" y="108" text-anchor="middle">MACアドレス</text><text class="sub" x="116" y="126" text-anchor="middle">宛先・送信元 12バイト</text>
+<rect class="acc" x="208" y="84" width="120" height="56" rx="6"/><text class="name" x="268" y="108" text-anchor="middle">VLANタグ</text><text class="sub-ink" x="268" y="126" text-anchor="middle">ID 12ビット</text>
+<rect class="box" x="332" y="84" width="400" height="56" rx="6"/><text class="name" x="532" y="108" text-anchor="middle">EtherType＋IPパケット</text><text class="sub" x="532" y="126" text-anchor="middle">中身はそのまま</text>
+<text class="label" x="28" y="188">VXLAN（RFC 7348）</text>
+<rect class="tint" x="28" y="200" width="112" height="56" rx="6"/><text class="name" x="84" y="224" text-anchor="middle">外側Eth</text><text class="sub" x="84" y="242" text-anchor="middle">14バイト</text>
+<rect class="tint" x="144" y="200" width="112" height="56" rx="6"/><text class="name" x="200" y="224" text-anchor="middle">外側IP</text><text class="sub" x="200" y="242" text-anchor="middle">VTEP→VTEP</text>
+<rect class="tint" x="260" y="200" width="112" height="56" rx="6"/><text class="name" x="316" y="224" text-anchor="middle">UDP</text><text class="sub" x="316" y="242" text-anchor="middle">宛先ポート4789</text>
+<rect class="acc" x="376" y="200" width="112" height="56" rx="6"/><text class="name" x="432" y="224" text-anchor="middle">VXLAN</text><text class="sub-ink" x="432" y="242" text-anchor="middle">VNI 24ビット</text>
+<rect class="box" x="492" y="200" width="240" height="56" rx="6"/><text class="name" x="612" y="224" text-anchor="middle">元のフレーム</text><text class="sub" x="612" y="242" text-anchor="middle">VMが送ったEthernetフレーム丸ごと</text>
+<path class="line" d="M28 266V274H488V266"/>
+<text class="sub" x="258" y="294" text-anchor="middle">追加ヘッダは計約50バイト。物理網はここだけ見て転送する</text>
+<rect class="acc" x="28" y="316" width="16" height="12" rx="3"/><text class="sub-ink" x="52" y="326">ネットワークを区別する番号</text>
+<rect class="tint" x="248" y="316" width="16" height="12" rx="3"/><text class="sub-ink" x="272" y="326">運ぶためにかぶせる外側のヘッダ</text>
+</svg>
+<figcaption>VLANとVXLANのパケット構造</figcaption>
+</figure>
+<p>VLANは元のフレームに番号を書き足すだけです。VXLANは元のフレームを中身として扱い、その外側に「どのVTEPからどのVTEPへ」という宛先をつけて運びます。</p>
+
+<h2>なぜ必要か：VLANの2つの限界</h2>
+<p>VXLANは、クラウドやVPSのように「お客さんごとにネットワークを分ける」世界でVLANが行き詰まったために生まれました。</p>
+<ol>
+<li><strong>数が足りない</strong>：VLAN IDは最大4094個です。テナントごとにネットワークを切ると、すぐに使い切ります。VNIなら約1600万個使えます。</li>
+<li><strong>L2を広げると壊れやすい</strong>：VLANを複数のラックや拠点にまたがって伸ばすと、巨大なL2ネットワークになります。スパニングツリーでリンクが遊休になって帯域が無駄になる、ブロードキャストが全体に飛ぶ、ループ事故の影響範囲が大きい、といった問題を抱えます。</li>
+</ol>
+<p>VXLANなら、物理ネットワークはただのIPネットワーク（L3）のままで、その上にいくつでも仮想のL2ネットワークを作れます。物理側はルーティングなので、ECMP（複数経路への負荷分散）が効き、スパニングツリーも要りません。テナントを増やしても物理スイッチの設定は変わらない、というのが運用上の最大の利点です。</p>
+
+<h2>用語</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>用語</th><th>意味</th><th>具体例</th></tr></thead>
+<tbody>
+<tr><td>VTEP（VXLAN Tunnel End Point）</td><td>フレームを包む・ほどく出入口</td><td>物理スイッチ（リーフ）、サーバー内のOpen vSwitchやLinuxのvxlanインターフェース</td></tr>
+<tr><td>VNI（VXLAN Network Identifier）</td><td>VLAN IDに当たる仮想ネットワークの番号（24ビット）</td><td>テナントAは10001、テナントBは10002</td></tr>
+<tr><td>アンダーレイ</td><td>実際にパケットを運ぶ物理のIPネットワーク</td><td>リーフ・スパインのL3ファブリック</td></tr>
+<tr><td>オーバーレイ</td><td>アンダーレイの上に作られる仮想のL2ネットワーク</td><td>テナントごとのプライベートネットワーク</td></tr>
+</tbody></table></div>
+<p>アンダーレイから見えるのは「VTEPのIPからVTEPのIPへのUDPパケット」だけです。中にVM同士のどんな通信が入っているかは気にしません。</p>
+
+<h2>宛先の学習：「そのMACはどのVTEPの向こうにいるか」</h2>
+<p>VTEPはフレームを包むとき、外側IPの宛先を決める必要があります。そのために「宛先MAC（とIP）はどのVTEPの向こうにいるか」を知らなければなりません。この対応表の作り方が3通りあり、そのままSDNの「分散制御か、集中制御か」という議論につながります。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>方式</th><th>仕組み</th><th>制御の型</th><th>今の位置づけ</th></tr></thead>
+<tbody>
+<tr><td>フラッド＆ラーン</td><td>分からない宛先はマルチキャストで全VTEPに配り、返事の送信元から学習する</td><td>自律分散（学習はデータプレーンで）</td><td>初期のVXLAN。大規模ではブロードキャストが重くなる</td></tr>
+<tr><td>BGP EVPN</td><td>各VTEPが「このMAC/IPは自分の配下」とBGPで広告し、全体に配る</td><td>分散制御（コントロールプレーンで）</td><td>物理ファブリックの主流。「EVPN/VXLAN」はこの組み合わせ</td></tr>
+<tr><td>コントローラー配布（OVNなど）</td><td>中央のデータベースが全VMの場所を知っていて、各ホストのOVSにOpenFlowでフローを書き込む</td><td>集中制御</td><td>OpenStackなどホスト側オーバーレイの主流</td></tr>
+</tbody></table></div>
+<p>物理スイッチ同士の世界ではEVPNのような分散制御が勝ち、ホスト内の仮想スイッチの世界ではOVNのような集中制御（中身はOpenFlow）が使われています。なお、OVNはトンネルにVXLANより拡張性の高いGeneveを使うのが標準ですが、考え方は同じです。</p>
+
+<h2>実務の注意：MTUとセキュリティ</h2>
+<p><strong>MTU</strong>。包む分だけパケットが約50バイト大きくなります。アンダーレイのMTUを1550以上（普通は9000のジャンボフレーム）にしておかないと、「pingは通るのに大きなファイル転送だけ止まる」という典型的なトラブルになります。アンダーレイを大きくできないときは、VM側のMTUを1450などに下げて帳尻を合わせます。</p>
+<p><strong>セキュリティ</strong>。VXLANには暗号化も認証もありません。アンダーレイに入れる人は、VNIを偽ったパケットを作って他人のテナントに送り込めます。論理分離が安全と言えるのは、次の前提が守られている場合だけです。</p>
+<ul>
+<li>アンダーレイは専用ネットワークにし、VMや外部からは届かないようにする</li>
+<li>UDP 4789はVTEP同士からしか受け付けないACLをかける</li>
+<li>ホスト（ハイパーバイザー）を乗っ取られたら分離は破られる。ホストの堅牢化が最後の砦</li>
+<li>データセンター間など信頼できない区間を通るなら、IPsecやMACsecを別途かける</li>
+</ul>
+<p><strong>ネスペで押さえること</strong>。VLANとの違い（タグかカプセル化か、IDのビット数）、VTEPとVNIの役割、MTUの問題、EVPNで宛先情報を配るという構造。この4つを説明できれば十分です。</p>
+</main>
+<footer class="site"><div class="inner">ネットワーク学習ノート</div></footer>
+</body>
+</html>

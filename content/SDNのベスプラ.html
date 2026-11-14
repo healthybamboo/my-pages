@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SDNとネットワーク仮想化の現在地：方式比較とベストプラクティス</title>
+<style>
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --text: #1f1e1c;
+  --muted: #6b6963;
+  --border: #dedbd2;
+  --edge: #8a877f;
+  --accent: #2f6fd0;
+  --accent-bg: rgba(47, 111, 208, 0.12);
+  --tint: #ecebe6;
+  --code-bg: #f3f1ec;
+  --link: #2a5fb3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1b19;
+    --surface: #242320;
+    --text: #ecebe6;
+    --muted: #a6a39b;
+    --border: #3a3935;
+    --edge: #8f8c84;
+    --accent: #6ea2f0;
+    --accent-bg: rgba(110, 162, 240, 0.16);
+    --tint: #33322e;
+    --code-bg: #2b2a27;
+    --link: #8ab4f5;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+}
+a { color: var(--link); }
+header.site {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+header.site .inner, main, footer.site .inner {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+header.site .inner { display: flex; gap: 16px; align-items: center; height: 52px; font-size: 14px; }
+header.site a.home { font-weight: 600; text-decoration: none; color: var(--text); }
+nav.pages { display: flex; gap: 14px; flex-wrap: wrap; }
+nav.pages a { color: var(--muted); text-decoration: none; }
+nav.pages a[aria-current="page"] { color: var(--text); font-weight: 600; }
+main { padding-top: 32px; padding-bottom: 64px; }
+h1 { font-size: 28px; line-height: 1.4; margin: 0 0 4px; }
+.meta { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+h2 { font-size: 21px; margin: 44px 0 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+h3 { font-size: 17px; margin: 28px 0 8px; }
+p, ul, ol { margin: 0 0 14px; }
+li { margin-bottom: 4px; }
+code { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.9em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; overflow-x: auto; line-height: 1.55; margin: 0 0 16px; }
+pre code { background: none; padding: 0; font-size: 13.5px; }
+.table-wrap { overflow-x: auto; margin: 0 0 16px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.6; }
+th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); font-weight: 600; white-space: nowrap; }
+figure { margin: 8px 0 18px; }
+figure svg { width: 100%; height: auto; display: block; }
+figcaption { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.lead { font-size: 17px; }
+.cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 20px; }
+.card { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; text-decoration: none; color: var(--text); }
+.card:hover { border-color: var(--accent); }
+.card .t { font-weight: 600; display: block; margin-bottom: 6px; }
+.card .d { color: var(--muted); font-size: 14px; line-height: 1.6; }
+footer.site { border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 20px 0 32px; }
+
+/* SVG diagram styles */
+.dg text { font-family: inherit; }
+.dg .title { font-size: 15px; font-weight: 600; fill: var(--text); }
+.dg .name { font-size: 13px; font-weight: 600; fill: var(--text); }
+.dg .sub { font-size: 11.5px; fill: var(--muted); }
+.dg .sub-ink { font-size: 11.5px; fill: var(--text); }
+.dg .label { font-size: 13px; font-weight: 600; fill: var(--text); }
+.dg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+.dg .acc { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 2; }
+.dg .tint { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.dg .line { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+.dg .head { fill: var(--edge); }
+</style>
+</head>
+<body>
+<header class="site"><div class="inner"><a class="home" href="index.html">ネットワーク学習ノート</a><nav class="pages"><a href="openflow-p4.html">OpenFlowとP4</a><a href="vxlan.html">VXLAN</a><a href="sdn-best-practices.html" aria-current="page">SDNの現在地</a><a href="vps-design.html">VPS基盤設計</a></nav></div></header>
+<main>
+<h1>SDNとネットワーク仮想化の現在地：方式比較とベストプラクティス</h1>
+<p class="meta">2026年11月14日</p>
+
+<h2>結論：物理は標準の静的な土台、変化はホスト側へ</h2>
+<p>2026年時点のベストプラクティスは、「物理スイッチを中央から細かく制御する」（初期のOpenFlowが目指した姿）ではありません。次の3つの組み合わせです。</p>
+<ol>
+<li><strong>物理ネットワーク</strong>：標準プロトコル（BGP EVPN/VXLAN、または単純なL3のリーフ・スパイン）で組む。一度作ったら、ほぼ変えない土台にする。</li>
+<li><strong>変化する部分</strong>：テナントの追加や分離、ファイアウォールは、ホスト内の仮想スイッチ（OVNなど）やベンダーの管理ツールでソフトウェア的に扱う。</li>
+<li><strong>運用</strong>：「あるべき姿」をデータベースとコードで管理し、自動化で投入する。中央管理というSDNの理想は、ここで実現する。</li>
+</ol>
+<p>P4のようなプログラマブルなデータプレーンは、大手クラウドや通信事業者が「特定の場所」に使うものです。一般的な構成の前提にはなりません。</p>
+
+<h2>方式比較</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>方式</th><th>制御のやり方</th><th>代表例</th><th>主な利用者</th><th>強み</th><th>弱み</th><th>今の位置づけ</th></tr></thead>
+<tbody>
+<tr><td>OpenFlowによる物理スイッチの集中制御</td><td>コントローラーが各スイッチにフローを書き込む</td><td>NEC ProgrammableFlow、Ryu、ONOS</td><td>2010年代前半の先行導入、研究</td><td>経路を自由に制御できる</td><td>マッチ項目が固定、テーブル容量、コントローラーが単一障害点</td><td>物理ではほぼ退場。試験では頻出題</td></tr>
+<tr><td>BGP EVPN/VXLANファブリック</td><td>各スイッチがBGPで自律分散的に情報を交換</td><td>各社スイッチ、SONiC</td><td>データセンター全般</td><td>標準でマルチベンダー可、大規模でも安定</td><td>設計と設定の知識が要る</td><td>物理ファブリックの主流</td></tr>
+<tr><td>ホスト側オーバーレイ</td><td>コントローラーが各ホストの仮想スイッチを制御（中身はOpenFlow）</td><td>OpenStack＋OVN、VMware NSX</td><td>クラウド、VPS、仮想化基盤</td><td>物理を触らずにテナントを増やせる</td><td>ホストのCPUを使う。物理との責任分界の設計が要る</td><td>仮想化基盤の主流</td></tr>
+<tr><td>ベンダーのSDNファブリック</td><td>ベンダーのコントローラーが意図を設定に変換して配る</td><td>Cisco ACI、Juniper Apstra、Arista CloudVision</td><td>企業、通信事業者</td><td>導入しやすくサポートがある</td><td>ベンダーロックイン、ライセンス費用</td><td>企業で広く使われる</td></tr>
+<tr><td>P4プログラマブルデータプレーン</td><td>処理自体をP4で書き、P4Runtimeでエントリを入れる</td><td>SD-Fabric、アリババのSailfish</td><td>大手クラウド、通信事業者、研究</td><td>独自プロトコル、INT、Tbps級の専用処理</td><td>開発力が要る。Tofino終了でハードが細った</td><td>ゲートウェイなど特定用途。DPUへ移行中</td></tr>
+<tr><td>SD-WAN</td><td>拠点ルーターをクラウドのコントローラーから一括管理</td><td>各社SD-WAN製品</td><td>多拠点企業</td><td>拠点追加が楽、回線を賢く使い分ける</td><td>製品ごとに仕様がバラバラ</td><td>WANのSDNとして普及</td></tr>
+</tbody></table></div>
+<p>制御が「集中か分散か」は、場所によって答えが分かれました。物理スイッチ同士は分散（EVPN）、ホストの中は集中（OVN）、管理は集中（コントローラーや自動化）です。</p>
+
+<h2>OpenFlowが主役を降りた理由</h2>
+<p>2011〜2015年ごろのSDNブームでは、OpenFlow対応スイッチをコントローラーで制御する構成が盛んに紹介されました。物理スイッチの世界で広がらなかった理由は、主に4つです。</p>
+<ul>
+<li><strong>ハードウェアの制約</strong>：ASICのフローテーブルを思うように大きくできず、機種ごとに対応する項目もバラバラだった。</li>
+<li><strong>固定のマッチ項目</strong>：新しいプロトコルに対応するには、仕様改訂を待つしかなかった（1.0の12項目から1.3の約40項目へと増え続けた）。</li>
+<li><strong>コントローラー依存</strong>：コントローラーの負荷、遅延、冗長化が常に課題になった。</li>
+<li><strong>分散制御が賢くなった</strong>：EVPNの登場で、「分散制御のままでもテナント分離や大規模化ができる」ようになった。</li>
+</ul>
+<p>ただし、OpenFlowが消えたわけではありません。その後は2つの方向に引き継がれています。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>引き継がれた先</th><th>中身</th></tr></thead>
+<tbody>
+<tr><td>ホスト内の仮想スイッチ</td><td>Open vSwitchは内部でOpenFlowのフローテーブルを使う。OVNやOpenStackの裏で今も大量に動いている</td></tr>
+<tr><td>P4とP4Runtime</td><td>「マッチしてアクション」のモデルはそのまま、マッチ項目や処理自体をプログラムできるようにした</td></tr>
+</tbody></table></div>
+<p>「制御と転送を分け、中央から意図を配る」という考え方自体は、SD-WANやクラウドの仮想ネットワークに広く定着しました。</p>
+
+<h2>ベンダーロックインを避ける階層設計</h2>
+<p>コントローラー製品を1つ買うのではなく、階層ごとに標準技術を選んで組み合わせます。自前で組むSDNと言えます。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>階層</th><th>選択肢</th><th>ポイント</th></tr></thead>
+<tbody>
+<tr><td>制御プレーン</td><td>BGP EVPN＋VXLAN</td><td>標準プロトコルなので、各社の機器やSONiCを混在させてもつながる</td></tr>
+<tr><td>機器のOS</td><td>商用OS、またはSONiC＋ホワイトボックス</td><td>ハードとOSを分けて選べる。必須ではない</td></tr>
+<tr><td>機器を操作する口</td><td>OpenConfig（YANG）＋gNMI、NETCONF</td><td>ベンダー共通のデータモデルで設定と状態取得ができる</td></tr>
+<tr><td>あるべき姿の管理</td><td>NetBoxなど（Source of Truth）</td><td>正解をベンダーの外のデータベースに持つ</td></tr>
+<tr><td>自動化</td><td>Ansible、Nornir、Terraform、CI/CD</td><td>NetBoxのデータから設定を生成して投入する</td></tr>
+<tr><td>検証</td><td>Batfish、Containerlab</td><td>本番に入れる前に影響を確認する</td></tr>
+</tbody></table></div>
+<p>流れは、「NetBoxにあるべき姿を書く → テンプレートで設定を生成 → BatfishやContainerlabで検証 → gNMI/NETCONFで投入 → ストリーミングテレメトリで監視」です。</p>
+<p>ロックインをゼロにするより、「どこを交換可能にしておくか」を決めるのが現実的です。特に大事なのは次の2つです。</p>
+<ul>
+<li>データプレーンと制御プレーンを標準（EVPN/VXLAN）にしておく</li>
+<li>あるべき姿を自分たちのデータベースに持つ（ベンダーのコントローラーの中にしか正解がない状態が、一番抜けにくいロックイン）</li>
+</ul>
+<p>自由度の代わりに、自動化の仕組みを作って保守する人手が要ります。中規模なら、マルチベンダー対応をうたう管理製品を挟み、データプレーンだけ標準にしておく折衷案もよくあります。</p>
+
+<h2>P4が実際に使われている場所</h2>
+<p>P4は「ファブリック全体」よりも「専用処理が要る一点」で使われるのが実情です。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>事例</th><th>使い方</th><th>特徴</th></tr></thead>
+<tbody>
+<tr><td><a href="https://opennetworking.org/wp-content/uploads/2021/06/SD-Fabric-White-Paper-FINAL.pdf">SD-Fabric（旧Trellis）</a></td><td>リーフ・スパイン全体をP4スイッチとONOSで制御</td><td>BGPなどを使わず、ONOSがP4で定義したパイプラインを直接書き込む。5GのUPFやINTをファブリックに組み込んでいる。通信事業者やNFV向け</td></tr>
+<tr><td><a href="https://unpaywall.org/10.1145%2F3452296.3472889">アリババクラウド Sailfish</a></td><td>マルチテナントのクラウドゲートウェイ</td><td>業界初のP4ベースのクラウドゲートウェイ。1クラスタで数十Tbpsを流し、大規模セールのピークを処理</td></tr>
+<tr><td><a href="https://arxiv.org/pdf/2510.11043v2">アリババクラウド Zephyrus</a></td><td>第3世代のゲートウェイ</td><td>TofinoとP4対応のDPU（Pensando）を同じP4のパイプラインで統合</td></tr>
+</tbody></table></div>
+<p>VPSやクラウドでいえば、P4が効くのは<strong>仮想ネットワークとインターネットの境目</strong>（NAT、フローティングIP、VPC間接続）です。テナントの数だけ変換ルールが要る一方で、全トラフィックが集中する場所なので、柔軟性と速度の両方が求められます。</p>
+<p>一般化しない理由は3つあります。</p>
+<ul>
+<li>ファブリック側のSDNと仮想化基盤側のOVNで制御が二重になり、統合が難しい</li>
+<li>主力だったIntel Tofinoの開発が終わり、ハードウェアの選択肢が細った</li>
+<li>多くの事業者にとっては、EVPN/VXLAN＋OVNで要件を満たせる</li>
+</ul>
+
+<h2>データセンターに行かずに運用するための仕組み</h2>
+<p>遠隔で構成を変えるための定番は、SDNコントローラーではありません。「変化する部分をソフトウェアに寄せる」ことと、「物理を触るときの逃げ道を用意する」ことの組み合わせです。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>仕組み</th><th>役割</th></tr></thead>
+<tbody>
+<tr><td>オーバーレイ（VXLAN、OVNなど）</td><td>テナントの追加や構成変更をホスト内で完結させ、物理スイッチを触らない</td></tr>
+<tr><td>管理用の別ネットワーク（アウトオブバンド）</td><td>サービス網が止まっても、スイッチやサーバーのBMC（iDRAC、iLOなど）に入れる</td></tr>
+<tr><td>コンソールサーバー</td><td>設定ミスで管理IPごと飛んでも、シリアルコンソールから復旧できる</td></tr>
+<tr><td>ZTP（ゼロタッチプロビジョニング）</td><td>新しいスイッチは電源とケーブルをつなぐだけで設定が入る</td></tr>
+<tr><td>設定のコード管理と自動化</td><td>NetBox＋Ansibleなどで、変更をレビューしてからリモートで投入する</td></tr>
+<tr><td>リモートハンズ</td><td>ケーブルの差し替えや部品交換を、データセンターの現地作業サービスに頼む</td></tr>
+</tbody></table></div>
+<p>物理配線は最初に「将来どう使っても困らない形」（全ノードを2台のリーフに冗長接続、など）で作り込んでおきます。そうすれば、その後の変更はほぼすべてリモートで済みます。</p>
+
+<h2>参考</h2>
+<ul>
+<li><a href="https://opennetworking.org/wp-content/uploads/2021/06/SD-Fabric-White-Paper-FINAL.pdf">SD-Fabric White Paper（ONF、2021年）</a></li>
+<li><a href="https://gerrit.lfbroadband.org/plugins/gitiles/sdfabric-docs/+/refs/heads/master/architecture.rst">SD-Fabric Architecture（ドキュメント）</a></li>
+<li><a href="https://unpaywall.org/10.1145%2F3452296.3472889">Sailfish: accelerating cloud-scale multi-tenant multi-service gateways with programmable switches（SIGCOMM 2021）</a></li>
+<li><a href="https://networkbuilders.intel.com/solutionslibrary/alibaba-manages-peak-traffic-with-cloud-gateway">Alibaba Manages Peak Traffic with Cloud Gateway（Intel）</a></li>
+<li><a href="https://arxiv.org/pdf/2510.11043v2">Zephyrus：TofinoとDPUを統合したP4ゲートウェイ（arXiv）</a></li>
+<li><a href="https://manual.mikrotik.com/docs/7.25/network-management/openflow">MikroTik RouterOS：Openflow</a></li>
+</ul>
+</main>
+<footer class="site"><div class="inner">ネットワーク学習ノート</div></footer>
+</body>
+</html>

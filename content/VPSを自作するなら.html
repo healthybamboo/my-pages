@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VPS的な仮想インフラ基盤の設計メモ</title>
+<style>
+:root {
+  --bg: #fbfaf7;
+  --surface: #ffffff;
+  --text: #1f1e1c;
+  --muted: #6b6963;
+  --border: #dedbd2;
+  --edge: #8a877f;
+  --accent: #2f6fd0;
+  --accent-bg: rgba(47, 111, 208, 0.12);
+  --tint: #ecebe6;
+  --code-bg: #f3f1ec;
+  --link: #2a5fb3;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1b19;
+    --surface: #242320;
+    --text: #ecebe6;
+    --muted: #a6a39b;
+    --border: #3a3935;
+    --edge: #8f8c84;
+    --accent: #6ea2f0;
+    --accent-bg: rgba(110, 162, 240, 0.16);
+    --tint: #33322e;
+    --code-bg: #2b2a27;
+    --link: #8ab4f5;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.8;
+}
+a { color: var(--link); }
+header.site {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+header.site .inner, main, footer.site .inner {
+  max-width: 820px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+header.site .inner { display: flex; gap: 16px; align-items: center; height: 52px; font-size: 14px; }
+header.site a.home { font-weight: 600; text-decoration: none; color: var(--text); }
+nav.pages { display: flex; gap: 14px; flex-wrap: wrap; }
+nav.pages a { color: var(--muted); text-decoration: none; }
+nav.pages a[aria-current="page"] { color: var(--text); font-weight: 600; }
+main { padding-top: 32px; padding-bottom: 64px; }
+h1 { font-size: 28px; line-height: 1.4; margin: 0 0 4px; }
+.meta { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+h2 { font-size: 21px; margin: 44px 0 12px; padding-top: 8px; border-top: 1px solid var(--border); }
+h3 { font-size: 17px; margin: 28px 0 8px; }
+p, ul, ol { margin: 0 0 14px; }
+li { margin-bottom: 4px; }
+code { font-family: "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.9em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; overflow-x: auto; line-height: 1.55; margin: 0 0 16px; }
+pre code { background: none; padding: 0; font-size: 13.5px; }
+.table-wrap { overflow-x: auto; margin: 0 0 16px; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.6; }
+th, td { border: 1px solid var(--border); padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: var(--tint); font-weight: 600; white-space: nowrap; }
+figure { margin: 8px 0 18px; }
+figure svg { width: 100%; height: auto; display: block; }
+figcaption { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.lead { font-size: 17px; }
+.cards { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); margin-top: 20px; }
+.card { display: block; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; text-decoration: none; color: var(--text); }
+.card:hover { border-color: var(--accent); }
+.card .t { font-weight: 600; display: block; margin-bottom: 6px; }
+.card .d { color: var(--muted); font-size: 14px; line-height: 1.6; }
+footer.site { border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; padding: 20px 0 32px; }
+
+/* SVG diagram styles */
+.dg text { font-family: inherit; }
+.dg .title { font-size: 15px; font-weight: 600; fill: var(--text); }
+.dg .name { font-size: 13px; font-weight: 600; fill: var(--text); }
+.dg .sub { font-size: 11.5px; fill: var(--muted); }
+.dg .sub-ink { font-size: 11.5px; fill: var(--text); }
+.dg .label { font-size: 13px; font-weight: 600; fill: var(--text); }
+.dg .box { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+.dg .acc { fill: var(--accent-bg); stroke: var(--accent); stroke-width: 2; }
+.dg .tint { fill: var(--tint); stroke: var(--edge); stroke-width: 1.25; }
+.dg .line { fill: none; stroke: var(--edge); stroke-width: 1.25; }
+.dg .head { fill: var(--edge); }
+</style>
+</head>
+<body>
+<header class="site"><div class="inner"><a class="home" href="index.html">ネットワーク学習ノート</a><nav class="pages"><a href="openflow-p4.html">OpenFlowとP4</a><a href="vxlan.html">VXLAN</a><a href="sdn-best-practices.html">SDNの現在地</a><a href="vps-design.html" aria-current="page">VPS基盤設計</a></nav></div></header>
+<main>
+<h1>VPS的な仮想インフラ基盤の設計メモ</h1>
+<p class="meta">2026年11月14日</p>
+
+<h2>結論：物理スイッチにSDNで複雑なフローを書く必要は薄い</h2>
+<p>議論で確認した認識は次のとおりです。現代のクラウドやVPS基盤の設計思想そのものです。</p>
+<ul>
+<li>物理配線は最初に一度だけ、リーフ・スパインで全ノードがつながる形に組む</li>
+<li>物理スイッチは「ホスト間でIPが届く土台」として、静的な設定のまま基本触らない</li>
+<li>テナントの追加、分離、構成変更は、ホスト側の仮想スイッチ（OVNなど）でVXLANのVNIの割り当てを変えて済ませる</li>
+<li>よって、物理スイッチにOpenFlowやP4で複雑なフローを書く必要性は薄い</li>
+</ul>
+<p>ただし、「論理分離されていれば安全」には前提があります（最後の節）。また、物理スイッチを触る場面もゼロにはならないので、遠隔運用の仕組みは別途用意します。</p>
+
+<h2>全体構成</h2>
+<figure>
+<svg class="dg" viewBox="0 0 760 408" role="img" aria-label="変化するのは上の3層、物理ネットワークは固定の土台">
+<defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path class="head" d="M0 0L10 5L0 10z"/></marker></defs>
+<text class="title" x="28" y="30">変化するのは上の3層、物理ネットワークは固定の土台</text>
+<path class="line" d="M380 116V138" marker-end="url(#a3)"/>
+<path class="line" d="M140 204V226" marker-end="url(#a3)"/><path class="line" d="M380 204V226" marker-end="url(#a3)"/><path class="line" d="M620 204V226" marker-end="url(#a3)"/>
+<path class="line" d="M140 292V314" marker-end="url(#a3)"/><path class="line" d="M380 292V314" marker-end="url(#a3)"/><path class="line" d="M620 292V314" marker-end="url(#a3)"/>
+<rect class="box" x="28" y="52" width="704" height="64" rx="8"/><text class="name" x="380" y="78" text-anchor="middle">ポータル・API</text><text class="sub" x="380" y="98" text-anchor="middle">契約、課金、コンソール</text>
+<rect class="acc" x="28" y="140" width="704" height="64" rx="8"/><text class="name" x="380" y="166" text-anchor="middle">クラウド基盤ソフト</text><text class="sub-ink" x="380" y="186" text-anchor="middle">OpenStack / CloudStack / Proxmox VE：VMの配置と設定を管理</text>
+<rect class="acc" x="28" y="228" width="224" height="64" rx="8"/><text class="name" x="140" y="254" text-anchor="middle">コンピュート</text><text class="sub-ink" x="140" y="274" text-anchor="middle">KVMでVMを動かす</text>
+<rect class="acc" x="268" y="228" width="224" height="64" rx="8"/><text class="name" x="380" y="254" text-anchor="middle">仮想ネットワーク</text><text class="sub-ink" x="380" y="274" text-anchor="middle">OVN/OVSでテナント分離</text>
+<rect class="acc" x="508" y="228" width="224" height="64" rx="8"/><text class="name" x="620" y="254" text-anchor="middle">ストレージ</text><text class="sub-ink" x="620" y="274" text-anchor="middle">Cephでディスクを分散保存</text>
+<rect class="tint" x="28" y="316" width="704" height="64" rx="8"/><text class="name" x="380" y="342" text-anchor="middle">物理ネットワーク（アンダーレイ）</text><text class="sub" x="380" y="362" text-anchor="middle">EVPN/VXLANまたはL3のリーフ・スパイン。一度作ったらほぼ変えない</text>
+</svg>
+<figcaption>VPS的な仮想基盤の4層構成</figcaption>
+</figure>
+<p>テナントの追加や変更は、基盤ソフトとその下の3つの部品の中で完結します。物理ネットワークは、ホスト間でIPが届く土台として固定します。</p>
+
+<h2>基盤ソフトの選び方</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>規模・目的</th><th>おすすめ</th><th>特徴</th><th>弱いところ</th></tr></thead>
+<tbody>
+<tr><td>自宅ラボ、身内向けの小さなVPS</td><td>Proxmox VE（3ノード）＋Ceph</td><td>一番手軽。GUIでVMを管理でき、SDN機能でVXLANやEVPNのゾーンも作れる</td><td>課金やセルフサービスのポータルが弱い</td></tr>
+<tr><td>小〜中規模の事業</td><td>Apache CloudStack</td><td>アカウント、ネットワークの自動作成、利用量の記録など、IaaSを売るための機能がそろっている</td><td>OpenStackほど拡張の自由度はない</td></tr>
+<tr><td>本格的なIaaS</td><td>OpenStack（Nova、Neutron＋OVN、Cinder＋Ceph、Keystone）</td><td>何でもできる。OVNでテナントネットワークを柔軟に扱える</td><td>部品が多く運用が重い。専任チーム前提</td></tr>
+</tbody></table></div>
+<p>勉強目的ならProxmox、「売る」前提ならCloudStackから始めるのが現実的です。</p>
+
+<h2>物理スイッチの扱い：VLAN方式とVXLAN方式</h2>
+<p>物理スイッチは、ProxmoxやCloudStackの管理対象外です。管理者が「基盤が必要とする状態」をあらかじめ作っておき、その上に乗せます。何を作っておくかは、テナントの分離方式で決まります。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>観点</th><th>VLAN方式</th><th>VXLAN方式（オーバーレイ）</th></tr></thead>
+<tbody>
+<tr><td>仮想スイッチがすること</td><td>VMのパケットにテナントごとのVLANタグを付ける</td><td>VTEPとしてVMのフレームをVXLANで包む</td></tr>
+<tr><td>物理スイッチに事前設定すること</td><td>ホスト向けポートをトランクにし、使うVLAN範囲を全部通す</td><td>ホスト間でIPが届くこと、MTUを大きくすること</td></tr>
+<tr><td>テナントが増えたとき</td><td>新しいVLAN範囲が必要なら物理スイッチも触る</td><td>物理は触らない</td></tr>
+<tr><td>上限</td><td>4094個</td><td>約1600万個</td></tr>
+<tr><td>基盤側の設定例</td><td>CloudStack：ゾーンに使用VLAN範囲を登録。Proxmox：VLAN awareなLinux bridge</td><td>Proxmox SDNのVXLAN/EVPNゾーン、CloudStackのVXLAN分離、OpenStack＋OVN</td></tr>
+<tr><td>向いている規模</td><td>小規模、構成が変わらない環境</td><td>テナントが増え続ける環境</td></tr>
+</tbody></table></div>
+<p>例外として、OpenStackにはベンダーのドライバ経由でVM作成時に物理スイッチのVLAN設定まで自動で変える仕組みもあります。ただしベンダー依存が強く障害点も増えるため、今は「物理は静的、動的な部分はオーバーレイでホスト内に閉じる」のが主流です。</p>
+
+<h2>物理ネットワークの用途別設計と冗長化</h2>
+<p>仮想化基盤の外側として、管理者は物理ネットワークを用途別に設計しておきます。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>用途</th><th>中身</th><th>よくある分け方</th></tr></thead>
+<tbody>
+<tr><td>管理</td><td>基盤のWeb UIやAPI、ノード間のクラスタ通信</td><td>専用VLAN。1GbEでも可</td></tr>
+<tr><td>ストレージ</td><td>Cephのレプリケーション</td><td>専用VLANか専用NIC。10/25GbE以上</td></tr>
+<tr><td>VMトラフィック</td><td>テナントの通信（VLANトランク、またはVXLANのアンダーレイ）</td><td>10/25GbE。MTU 9000</td></tr>
+<tr><td>外部接続</td><td>インターネットへの上流回線</td><td>ゲートウェイやルーター経由</td></tr>
+<tr><td>帯域外管理（アウトオブバンド）</td><td>サーバーのBMC、スイッチの管理ポートとコンソール</td><td>サービス網とは物理的に別の系統</td></tr>
+</tbody></table></div>
+<p>冗長化の定番は、各ホストを2台のリーフスイッチにNICを1本ずつつなぐ形です。ホスト側はボンディング（LACP）、スイッチ側は2台を1台に見せるMLAG（またはEVPNのマルチホーミング）を組みます。この配線を最初に作っておけば、後からケーブルを差し替える必要はほぼありません。</p>
+
+<h2>VPSならではのネットワーク要件</h2>
+<p>VPSのネットワークで難しいのは、「他のお客さんと絶対に混ざらないこと」と「お客さんに悪さをさせないこと」です。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>要件</th><th>中身</th><th>実現方法の例</th></tr></thead>
+<tbody>
+<tr><td>テナント分離</td><td>お客さんごとのプライベートネットワーク</td><td>VXLANのVNI（小規模ならVLAN）</td></tr>
+<tr><td>グローバルIPの渡し方</td><td>VMに直接振るか、プライベートIP＋NAT/フローティングIPにするか</td><td>直振りがVPS的、NAT型がクラウド的</td></tr>
+<tr><td>なりすまし防止</td><td>VMが他人のIPやMACを名乗れないようにする。忘れるとARPスプーフィングで通信を奪われる</td><td>OpenStackのポートセキュリティ、ProxmoxのIPフィルタ</td></tr>
+<tr><td>セキュリティグループ</td><td>VMごとのファイアウォール</td><td>ホストの仮想スイッチ（OVNのACLなど）</td></tr>
+<tr><td>帯域制限、DDoS対策</td><td>1台のVMが回線を食いつぶさないようにする</td><td>仮想NICのQoS、上流での緩和</td></tr>
+<tr><td>DHCPとメタデータ</td><td>SSH鍵やホスト名をVMに流し込む</td><td>cloud-init</td></tr>
+</tbody></table></div>
+<p>OVNを使う場合、テナント分離、なりすまし防止、セキュリティグループは、すべてOVNが各ホストのOpen vSwitchにOpenFlowのフローを書き込むことで実現されています。OpenFlowが現役で動いているのはこの層です。</p>
+
+<h2>P4やSDNを物理に入れるべきか</h2>
+<p>「P4スイッチで物理ファブリックをSDN制御し、その上にOpenStackを乗せる」構成は実在します（ONFのSD-Fabricなど、通信事業者向け）。ただし、VPS規模では勧めません。</p>
+<ul>
+<li>ファブリックのSDNとOVNで制御が二重になり、どちらがVXLANを終端するか、障害時にどちらを信じるかの統合が重い</li>
+<li>Tofinoの開発終了で、P4スイッチの選択肢が細った</li>
+<li>EVPN/VXLAN＋OVNで要件を満たせる</li>
+</ul>
+<p>入れるなら、場所は<strong>仮想ネットワークとインターネットの境目（ゲートウェイ）</strong>です。NAT、フローティングIP、VXLANの終端などが集中し、大手クラウドもここにP4を使っています。それでも、最初はLinuxやDPDKのソフトウェアゲートウェイで十分で、P4は性能が足りなくなってからです。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>層</th><th>採用するもの</th><th>変更頻度</th></tr></thead>
+<tbody>
+<tr><td>物理</td><td>EVPN/VXLAN、または単純なL3のリーフ・スパイン</td><td>ほぼ変えない</td></tr>
+<tr><td>仮想</td><td>OpenStack/CloudStack＋OVN</td><td>テナントごとに頻繁に変わる</td></tr>
+<tr><td>境界</td><td>ソフトウェアゲートウェイ（将来P4も候補）</td><td>ルールは頻繁、機器は固定</td></tr>
+</tbody></table></div>
+
+<h2>守るべき前提：アンダーレイの保護と遠隔運用</h2>
+<p><strong>アンダーレイの保護</strong>。VXLANには暗号化も認証もないので、論理分離が安全と言えるのは次の前提が守られている場合だけです。</p>
+<ul>
+<li>アンダーレイは専用ネットワークにし、VMや外部から届かないようにする</li>
+<li>UDP 4789はVTEP同士からしか受け付けないACLをかける</li>
+<li>ホスト（ハイパーバイザー）の堅牢化が最後の砦</li>
+<li>データセンターの外を通る区間はIPsecやMACsecをかける</li>
+</ul>
+<p><strong>遠隔運用</strong>。物理スイッチを触る場面（ファームウェア更新、ラック増設、障害対応）は残ります。出社せずに対応するために、次のものを用意します。</p>
+<ul>
+<li>管理用の別ネットワーク（BMCやスイッチの管理ポート）</li>
+<li>コンソールサーバー（設定ミスで管理IPが飛んでも復旧できる）</li>
+<li>ZTPと設定のコード管理（NetBox＋Ansibleなど）</li>
+<li>物理作業はデータセンターのリモートハンズに頼む</li>
+</ul>
+<p>関連：<a href="vxlan.html">VXLAN入門</a> ／ <a href="sdn-best-practices.html">SDNとネットワーク仮想化の現在地</a></p>
+</main>
+<footer class="site"><div class="inner">ネットワーク学習ノート</div></footer>
+</body>
+</html>

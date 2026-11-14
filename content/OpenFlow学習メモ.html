@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenFlow 学習メモ</title>
+<style>
+:root{
+  --bg:#f6f8f7; --panel:#ffffff; --fg:#17211e; --muted:#5b6b66; --line:#d5ddda; --soft:#eaf0ee;
+  --accent:#2a6fd6; --accent-soft:#e3edfb; --code:#eef2f1;
+  --sans:"Hiragino Sans","Noto Sans JP","Yu Gothic UI",system-ui,sans-serif;
+  --mono:ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#111816; --panel:#18211e; --fg:#e3ebe8; --muted:#97a6a1; --line:#2d3b37; --soft:#1f2b28;
+  --accent:#6aa3ff; --accent-soft:#1c2b44; --code:#22302c; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.75;padding:32px 16px 64px}
+main{max-width:860px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:32px clamp(16px,4vw,48px)}
+h1{font-size:1.8rem;margin:0 0 4px}
+.meta{color:var(--muted);font-size:.85rem;margin:0 0 24px}
+h2{font-size:1.3rem;margin:40px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+h3{font-size:1.05rem;margin:28px 0 8px}
+p{margin:0 0 12px}
+ul,ol{margin:0 0 12px;padding-left:1.4em}
+li{margin:2px 0}
+li>ul,li>ol{margin:4px 0 4px}
+code{font-family:var(--mono);font-size:.88em;background:var(--code);padding:1px 6px;border-radius:4px}
+.tablewrap{overflow-x:auto;margin:0 0 14px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-weight:600}
+td.dir{white-space:nowrap;font-family:var(--mono);font-size:.88rem}
+tr.key td{background:var(--accent-soft)}
+figure{margin:16px 0 20px}
+figure svg{width:100%;height:auto;display:block}
+figcaption{color:var(--muted);font-size:.82rem;text-align:center;margin-top:6px}
+.svg-ink{fill:var(--fg)} .svg-quiet{fill:var(--muted)}
+a{color:var(--accent)}
+@media print{body{background:#fff;padding:0} main{border:0}}
+</style>
+</head>
+<body>
+<main>
+<h1>OpenFlow 学習メモ</h1>
+<p class="meta">2026-11-14 · ネットワークスペシャリスト試験対策（SDN）</p>
+
+<h2 id="overview">全体像</h2>
+<p>OpenFlow では、経路を決める役（OpenFlow コントローラー、以下 OFC）と、パケットを転送する役（OpenFlow スイッチ、以下 OFS）が分かれています。<br>従来の機器は1台の中で両方を行い、OSPF などで各機器が自律分散的に経路を決めていました。</p>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th>担当</th><th>持っているもの</th></tr></thead>
+<tbody>
+<tr><td>コントロールプレーン</td><td>OFC（OpenFlow コントローラー）</td><td>トポロジ、ポリシー、学習した MAC など判断の材料。判断ロジックは OFC 上のアプリケーション</td></tr>
+<tr><td>データプレーン</td><td>OFS（OpenFlow スイッチ）</td><td><strong>フローテーブル</strong>。表を引いて、そのとおりに転送するだけ</td></tr>
+</tbody></table></div>
+<p>OFC と OFS は OpenFlow チャネル（TCP 6653、TLS 推奨）でつながります。<br>フローエントリの構成要素は、マッチフィールド、優先度、カウンタ、インストラクション（アクション）、タイムアウト（idle / hard）、クッキーです。</p>
+
+<h2 id="flow">テーブルミス時の処理の流れ</h2>
+<p>フローテーブルに一致するエントリがないと、OFS は Packet-In で OFC に問い合わせます。<br>OFC は Flow-Mod でエントリを登録し、Packet-Out で問い合わせのあったパケット自体も送り出させます。</p>
+<figure>
+<svg viewBox="0 0 760 572" role="img" aria-label="テーブルミス時は Packet-In、Flow-Mod、Packet-Out の順で処理される" font-size="13" font-family="Hiragino Sans, Noto Sans JP, system-ui, sans-serif">
+  <defs>
+    <marker id="seq-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#9aa6a2"/></marker>
+    <marker id="seq-arrow-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#2a6fd6"/></marker>
+  </defs>
+  <text class="svg-ink" x="24" y="30" font-size="15" font-weight="600">テーブルミス時は Packet-In → Flow-Mod → Packet-Out の順で処理される</text>
+  <g stroke="#9aa6a2" stroke-opacity=".45" stroke-width="1.25">
+    <line x1="96" x2="96" y1="92" y2="548"/><line x1="300" x2="300" y1="92" y2="548"/><line x1="470" x2="470" y1="92" y2="548"/><line x1="640" x2="640" y1="92" y2="548"/>
+  </g>
+  <g fill="none" stroke="#9aa6a2" stroke-width="1.25">
+    <rect x="14" y="52" width="164" height="40" rx="8"/><rect x="388" y="52" width="164" height="40" rx="8"/><rect x="558" y="52" width="164" height="40" rx="8"/>
+  </g>
+  <rect x="218" y="52" width="164" height="40" rx="8" fill="#2a6fd6" fill-opacity=".12" stroke="#2a6fd6" stroke-width="2"/>
+  <g class="svg-ink" font-weight="600" text-anchor="middle">
+    <text x="96" y="76">送信元ホスト</text><text x="300" y="76">OFS（スイッチ）</text><text x="470" y="76">宛先ホスト</text><text x="640" y="76">OFC（コントローラー）</text>
+  </g>
+  <g fill="none" stroke="#9aa6a2" stroke-width="1.25">
+    <path d="M96 140H300" marker-end="url(#seq-arrow)"/>
+    <path d="M300 232H640" marker-end="url(#seq-arrow)"/>
+    <path d="M640 372H300" marker-end="url(#seq-arrow)"/>
+    <path d="M300 412H470" marker-end="url(#seq-arrow)"/>
+    <path d="M96 488H300" marker-end="url(#seq-arrow)"/>
+    <path d="M300 528H470" marker-end="url(#seq-arrow)"/>
+  </g>
+  <path d="M640 324H300" fill="none" stroke="#2a6fd6" stroke-width="2" marker-end="url(#seq-arrow-hot)"/>
+  <rect x="190" y="160" width="220" height="32" rx="8" fill="#9aa6a2" fill-opacity=".14" stroke="#9aa6a2"/>
+  <rect x="545" y="252" width="190" height="32" rx="8" fill="#9aa6a2" fill-opacity=".14" stroke="#9aa6a2"/>
+  <g class="svg-ink" text-anchor="middle">
+    <text x="198" y="132">パケットを送信</text>
+    <text x="300" y="180" font-size="11.5">フローテーブルを照合 → 一致なし</text>
+    <text x="470" y="224">① Packet-In（テーブルミスを問い合わせ）</text>
+    <text x="640" y="272" font-size="11.5">判断：学習・経路計算・ポリシー</text>
+    <text x="470" y="316" font-weight="600">② Flow-Mod（フローエントリを登録）</text>
+    <text x="470" y="364">③ Packet-Out（このパケットを送出）</text>
+    <text x="385" y="404">④ 宛先へ転送</text>
+    <text x="198" y="480">同じ宛先のパケット</text>
+    <text x="385" y="520">エントリ一致で転送</text>
+  </g>
+  <line x1="24" x2="736" y1="448" y2="448" stroke="#9aa6a2" stroke-dasharray="4 4"/>
+  <text class="svg-quiet" x="736" y="440" text-anchor="end" font-size="11.5">2個目以降の同じ通信</text>
+  <text class="svg-quiet" x="640" y="512" text-anchor="middle" font-size="11.5">OFC は関与しない</text>
+</svg>
+<figcaption>テーブルミス時の処理の流れ</figcaption>
+</figure>
+<p>Packet-Out を送らないと、最初の1個が取り残されます。<br>2個目以降は登録済みのエントリに一致するので、OFS だけで転送されます。</p>
+<p>OF1.3 で Packet-In になるのは、優先度 0・全一致・アクション CONTROLLER の<strong>テーブルミスエントリ</strong>がある場合だけです。<br>このエントリがないと、一致しないパケットは破棄されます。</p>
+
+<h2 id="flowmod-vs-packetout">Flow-Mod と Packet-Out の違い</h2>
+<p>Flow-Mod は<strong>今後のルールを登録する</strong>メッセージ、Packet-Out は<strong>目の前のパケット1個を送らせる</strong>メッセージです。<br>どちらも OFC から OFS へ送ります。</p>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th>Flow-Mod</th><th>Packet-Out</th></tr></thead>
+<tbody>
+<tr><td>対象</td><td>これから来るパケット全般</td><td>今 OFC の手元にあるパケット1個</td></tr>
+<tr><td>フローテーブル</td><td>変わる（追加・変更・削除）</td><td>変わらない</td></tr>
+<tr><td>効果が続く期間</td><td>エントリが消えるまで</td><td>その1回だけ</td></tr>
+<tr><td>中身</td><td>マッチ条件、優先度、アクション、タイムアウト</td><td>送るパケット（または buffer_id）、アクション（出力ポート）</td></tr>
+</tbody></table></div>
+<h3>なぜ両方送るのか</h3>
+<p>Packet-In で問い合わせてきたパケットは、OFS 上で処理が止まっています。</p>
+<ul>
+<li><strong>Flow-Mod だけ送った場合</strong>：ルールは入りますが、止まっている最初の1個は送り出されません。2個目以降は新しいエントリで流れます。</li>
+<li><strong>Packet-Out だけ送った場合</strong>：その1個は届きます。しかしルールが入らないので、次のパケットもまたテーブルミスになり、毎回 Packet-In が発生します。</li>
+</ul>
+<p>そのため通常は、Flow-Mod でルールを入れ、Packet-Out で最初の1個を送り出すセットになります。</p>
+<h3>たとえ話</h3>
+<p>OFS を荷物の仕分け係、OFC を上司だと考えます。</p>
+<ol>
+<li>仕分け係が、知らない宛先の荷物について上司に「これはどこへ送りますか」と聞く。これが <strong>Packet-In</strong>。</li>
+<li>上司が「大阪行きは3番レーン」とマニュアルに書き足す。これが <strong>Flow-Mod</strong>。</li>
+<li>上司が「その荷物は3番レーンに流して」と指示する。これが <strong>Packet-Out</strong>。</li>
+</ol>
+<p>マニュアルに書き足すだけでは、手元の荷物は流れません。<br>その場で指示するだけでは、次の大阪行きの荷物でもまた質問しに来ます。</p>
+<h3>Packet-Out だけを使う場面</h3>
+<ul>
+<li><strong>宛先がまだ分からないとき</strong>：Packet-Out で FLOOD させるだけで、ルールは入れません。L2 学習スイッチで最初の ping の行きがこの動きです。</li>
+<li><strong>OFC がパケットを作って送らせるとき</strong>：トポロジ把握用の LLDP や、OFC が代理で返す ARP 応答などです。</li>
+<li><strong>破棄するとき</strong>：DROP のルールを Flow-Mod で入れるだけで、Packet-Out は送りません。最初の1個もそのまま捨てられます。</li>
+</ul>
+<h3>試験での見分け方</h3>
+<ul>
+<li>「フローテーブルを書き換える」「エントリを追加する」「経路を設定する」は Flow-Mod。</li>
+<li>「指定したポートからパケットを送出させる」「フローテーブルは変更しない」は Packet-Out。</li>
+<li>「OFS が OFC にパケットを送る」は Packet-In。方向が逆なので混同しないこと。</li>
+</ul>
+
+<h2 id="decision">OFC はどう判断するか</h2>
+<p>OpenFlow のプロトコル自体は、判断の仕方を決めていません。<br>OFC 上で動くアプリケーションが判断し、その中身は管理者が自由に作れます。<br>これが「ネットワークをソフトウェアで制御する」という SDN の意味です。</p>
+<div class="tablewrap"><table>
+<thead><tr><th>判断のしかた</th><th>使う情報</th><th>例</th></tr></thead>
+<tbody>
+<tr><td>L2 学習</td><td>Packet-In で届いたパケットの送信元 MAC と受信ポート</td><td>「H1 は port1 にいる」と覚え、H1 宛てを port1 に出すエントリを入れる</td></tr>
+<tr><td>経路計算</td><td>ネットワーク全体のトポロジ</td><td>最短経路や空いている経路を計算し、経路上の各 OFS に Flow-Mod を送る</td></tr>
+<tr><td>ポリシー</td><td>管理者が設定したルール</td><td>ACL、QoS、負荷分散、ブラックリスト</td></tr>
+</tbody></table></div>
+<p>トポロジは、OFC が各 OFS に Packet-Out で LLDP を送らせ、隣の OFS から Packet-In で戻ってくることで把握するのが一般的です。</p>
+
+<h2 id="blacklist">例：サブネットのブラックリストで破棄する</h2>
+<p>OFC がブラックリストを持ち、一致した通信を OFS で破棄させることができます。<br>破棄は、アクションなしのエントリを Flow-Mod で入れることで実現します。</p>
+<ul>
+<li>リアクティブに入れる場合
+  <ol>
+  <li>未知の通信が来て、OFS が Packet-In を送る</li>
+  <li>OFC が送信元 IP をブラックリストと照合する</li>
+  <li>一致したら <code>priority=300, ip_src=203.0.113.0/24, actions=なし</code> を Flow-Mod で登録する。Packet-Out は送らない</li>
+  <li>以降の同じ送信元は、OFS だけで破棄される</li>
+  </ol>
+</li>
+<li>プロアクティブに入れる場合
+  <ul><li>リストが先に分かっていれば、接続時に優先度の高い DROP エントリをまとめて入れておく。Packet-In が発生しない</li></ul>
+</li>
+</ul>
+<p>注意点は3つです。</p>
+<ul>
+<li>OF1.3 では IP アドレスをマスク付きでマッチできるので、/24 などのプレフィックスを1エントリにまとめられる</li>
+<li>OFS のフローテーブル（TCAM）は容量が小さい。巨大なリストは OFC 側に持ち、OFS には集約したものや idle_timeout 付きのものだけを入れる</li>
+<li>DROP エントリは通常の転送エントリより優先度を高くする。低いと先に転送エントリに一致して通ってしまう</li>
+</ul>
+
+<h2 id="proactive-reactive">プロアクティブ型とリアクティブ型</h2>
+<p>違いは、<strong>OFS のフローテーブルにエントリを入れるタイミング</strong>です。<br>判断の材料（ポリシーやブラックリスト）は、どちらの型でも OFC が持っています。</p>
+<div class="tablewrap"><table>
+<thead><tr><th></th><th>プロアクティブ型</th><th>リアクティブ型</th></tr></thead>
+<tbody>
+<tr><td>入れるタイミング</td><td>通信が来る<strong>前</strong></td><td>通信が来て<strong>から</strong></td></tr>
+<tr><td>きっかけ</td><td>OFC が自分から Flow-Mod（接続時、設定変更時）</td><td>Packet-In を受けて Flow-Mod</td></tr>
+<tr><td>最初のパケット</td><td>遅延なし</td><td>Packet-In の往復ぶん遅れる</td></tr>
+<tr><td>フローテーブルの容量</td><td>あらゆる通信を見越すので多く使う</td><td>必要な分だけで節約できる</td></tr>
+<tr><td>OFC の負荷</td><td>小さい</td><td>Packet-In が多いと大きい</td></tr>
+<tr><td>OFC 停止時</td><td>入っているエントリで転送を続けられる</td><td>新しい通信を処理できない</td></tr>
+<tr><td>向いているもの</td><td>基本経路、既知のブラックリスト</td><td>未知の通信、細かいフロー制御</td></tr>
+</tbody></table></div>
+<p>実際には両方を併用することが多いです。</p>
+
+<h2 id="messages">メッセージ早見表</h2>
+<p>経路を書き込むのは <strong>Flow-Mod</strong> です。Packet-In / Flow-Mod / Packet-Out の3つが頻出セットです。</p>
+<div class="tablewrap"><table>
+<thead><tr><th>メッセージ</th><th>方向</th><th>役割</th></tr></thead>
+<tbody>
+<tr><td>Hello</td><td class="dir">双方向</td><td>接続確立の最初。バージョンを交換する</td></tr>
+<tr><td>Features Request / Reply</td><td class="dir">OFC→OFS / OFS→OFC</td><td>datapath_id やテーブル数を問い合わせる</td></tr>
+<tr><td>Echo Request / Reply</td><td class="dir">双方向</td><td>OpenFlow チャネルの死活監視</td></tr>
+<tr class="key"><td><strong>Packet-In</strong></td><td class="dir">OFS→OFC</td><td>テーブルミスまたはアクション CONTROLLER のとき、パケットを OFC へ送る</td></tr>
+<tr class="key"><td><strong>Flow-Mod</strong></td><td class="dir">OFC→OFS</td><td>フローエントリの追加・変更・削除（ADD / MODIFY / DELETE）</td></tr>
+<tr class="key"><td><strong>Packet-Out</strong></td><td class="dir">OFC→OFS</td><td>指定したパケットを指定ポートから送出させる。フローテーブルは変わらない</td></tr>
+<tr><td>Flow-Removed</td><td class="dir">OFS→OFC</td><td>タイムアウトや削除でエントリが消えたことを通知する</td></tr>
+<tr><td>Port-Status</td><td class="dir">OFS→OFC</td><td>ポートの追加・削除・リンクダウンを通知する</td></tr>
+<tr><td>Multipart（Stats）</td><td class="dir">OFC→OFS / OFS→OFC</td><td>フローやポートの統計を取得する</td></tr>
+</tbody></table></div>
+
+<h2 id="summary">試験向けまとめ</h2>
+<ul>
+<li>従来は各機器が自律分散的に経路を決める。SDN は OFC が全体を見て集中的に決める</li>
+<li>利点：全体最適な経路制御、設定の一元管理、ソフトウェアによる柔軟な制御</li>
+<li>欠点：OFC が単一障害点になりうる、Packet-In が多いと OFC に負荷がかかる</li>
+<li>優先度：条件が細かい方ではなく、<strong>優先度の値が大きい方</strong>が採用される</li>
+<li>テーブルミス：OF1.3 はテーブルミスエントリがないと破棄。OF1.0 は OFC へ送っていた</li>
+<li>タイムアウト：idle_timeout は一致するたびにリセット。hard_timeout は追加からの時間で必ず切れる</li>
+</ul>
+<p>手を動かして確かめるなら <a href="https://claude.ai/artifact/DXAgbfF6bP2ZdXhLKsfLZ2">OpenFlow 練習台</a> を使ってください。</p>
+</main>
+</body>
+</html>
