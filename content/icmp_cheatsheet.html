@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ICMP まとめ</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --card: #ffffff; --text: #1f2328; --muted: #5f6670;
+    --border: #e3e3df; --accent: #2f6fdb; --accent-soft: #e8f0fd;
+    --ok: #1f8a4c; --ok-soft: #e6f4ec; --warn: #b4610b; --warn-soft: #fdf1e3;
+    --err: #c0392b; --err-soft: #fbeaea; --gray-soft: #efefec;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181b; --card: #1e2125; --text: #e6e8eb; --muted: #9aa1a9;
+      --border: #30343a; --accent: #6ea0ff; --accent-soft: #1f2a3d;
+      --ok: #5cc98a; --ok-soft: #1b2e23; --warn: #f0a85a; --warn-soft: #33271a;
+      --err: #f07a6c; --err-soft: #3a2220; --gray-soft: #2a2d32;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+    line-height: 1.7; font-size: 15px;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 40px 20px 80px; }
+  header h1 { font-size: 30px; margin: 0 0 4px; letter-spacing: .02em; }
+  header p { color: var(--muted); margin: 0 0 24px; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px; }
+  nav a {
+    text-decoration: none; color: var(--accent); background: var(--accent-soft);
+    padding: 4px 12px; border-radius: 999px; font-size: 13px;
+  }
+  section {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 24px 28px; margin-bottom: 24px;
+  }
+  h2 { font-size: 20px; margin: 0 0 16px; padding-left: 10px; border-left: 4px solid var(--accent); }
+  h3 { font-size: 16px; margin: 24px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  th { background: var(--gray-soft); font-weight: 600; white-space: nowrap; }
+  td.num { font-family: var(--mono); font-weight: 600; white-space: nowrap; }
+  code, .mono { font-family: var(--mono); font-size: .92em; }
+  code { background: var(--gray-soft); padding: 1px 6px; border-radius: 4px; }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 999px; font-weight: 600; white-space: nowrap; }
+  .t-query { background: var(--accent-soft); color: var(--accent); }
+  .t-error { background: var(--err-soft); color: var(--err); }
+  .t-old { background: var(--gray-soft); color: var(--muted); }
+  .note { border-radius: 8px; padding: 12px 16px; margin: 16px 0 0; font-size: 14px; }
+  .note.info { background: var(--accent-soft); }
+  .note.warn { background: var(--warn-soft); }
+  .note.ok { background: var(--ok-soft); }
+  .note b { display: block; margin-bottom: 2px; }
+
+  /* packet diagram */
+  .pkt { font-family: var(--mono); font-size: 13px; margin: 8px 0; }
+  .pkt .bits { display: grid; grid-template-columns: repeat(4, 1fr); color: var(--muted); font-size: 11px; padding: 0 2px; }
+  .pkt .bits span:last-child { text-align: right; }
+  .pkt .row { display: grid; grid-template-columns: repeat(32, 1fr); }
+  .pkt .f {
+    border: 1px solid var(--accent); background: var(--accent-soft); margin: -1px 0 0 -1px;
+    padding: 10px 4px; text-align: center;
+  }
+  .pkt .f small { display: block; color: var(--muted); font-size: 11px; }
+  .pkt .f.data { background: var(--card); border-style: dashed; }
+
+  /* flow diagrams */
+  .flow { display: grid; grid-template-columns: 120px 1fr 120px; gap: 6px 12px; align-items: center; margin: 12px 0; font-size: 14px; }
+  .node { text-align: center; font-weight: 600; padding: 6px; border-radius: 8px; background: var(--gray-soft); }
+  .arrow { position: relative; text-align: center; font-size: 13px; padding: 4px 0 10px; }
+  .arrow::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 4px; height: 2px; background: currentColor;
+  }
+  .arrow.r::before, .arrow.l::before {
+    content: ""; position: absolute; bottom: 0; width: 0; height: 0;
+    border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+  }
+  .arrow.r::before { right: -2px; border-left: 9px solid currentColor; }
+  .arrow.l::before { left: -2px; border-right: 9px solid currentColor; }
+  .arrow.req { color: var(--accent); }
+  .arrow.rep { color: var(--ok); }
+  .arrow.errc { color: var(--err); }
+  .arrow span { color: var(--text); background: var(--card); position: relative; z-index: 1; padding: 0 6px; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .box { border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .box h4 { margin: 0 0 6px; font-size: 15px; }
+  .box p, .box ul { margin: 0; font-size: 14px; }
+  ul { padding-left: 1.3em; }
+  li { margin: 2px 0; }
+  .muted { color: var(--muted); }
+  @media (max-width: 700px) {
+    section { padding: 18px 16px; }
+    .grid2 { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: 80px 1fr 80px; }
+    table { font-size: 13px; }
+  }
+  @media print {
+    body { background: #fff; }
+    nav { display: none; }
+    section { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>ICMP まとめ</h1>
+  <p>Internet Control Message Protocol：IP通信のエラー通知や疎通確認を担うプロトコル</p>
+</header>
+
+<nav>
+  <a href="#overview">概要</a>
+  <a href="#format">パケット構造</a>
+  <a href="#types">Type一覧</a>
+  <a href="#codes">主なCode</a>
+  <a href="#ping">ping</a>
+  <a href="#traceroute">traceroute</a>
+  <a href="#pmtud">Path MTU Discovery</a>
+  <a href="#rules">エラー送信のルール</a>
+  <a href="#v6">ICMPv6</a>
+  <a href="#security">セキュリティ</a>
+  <a href="#exam">覚えるポイント</a>
+</nav>
+
+<!-- 概要 -->
+<section id="overview">
+  <h2>概要</h2>
+  <table>
+    <tr><th>レイヤ</th><td>ネットワーク層（L3）。IPと一緒に動く制御用プロトコル</td></tr>
+    <tr><th>カプセル化</th><td>IPパケットのデータ部に入る（<b>IPプロトコル番号 = 1</b>）。TCP/UDPは使わない</td></tr>
+    <tr><th>ポート番号</th><td><b>なし</b>。代わりに Type と Code でメッセージの種類を区別する</td></tr>
+    <tr><th>規格</th><td>RFC 792（ICMPv4）／ RFC 4443（ICMPv6）</td></tr>
+    <tr><th>主な役割</th><td>① 疎通確認などの<b>問い合わせ</b>（ping）<br>② 配送できなかったときの<b>エラー通知</b>（到達不能・TTL切れなど）</td></tr>
+  </table>
+  <div class="note info">
+    <b>ポイント</b>
+    ICMPはIPの「おまけ」ではなく、IPの実装に必須の一部です。IPは配送を保証しないので、問題があったことを送信元に伝える手段としてICMPを使います。
+  </div>
+</section>
+
+<!-- パケット構造 -->
+<section id="format">
+  <h2>パケット構造</h2>
+  <h3>共通ヘッダ（先頭4バイト）</h3>
+  <div class="pkt">
+    <div class="bits"><span>0</span><span>8</span><span>16</span><span>31</span></div>
+    <div class="row">
+      <div class="f" style="grid-column: span 8">Type<small>8bit</small></div>
+      <div class="f" style="grid-column: span 8">Code<small>8bit</small></div>
+      <div class="f" style="grid-column: span 16">Checksum<small>16bit</small></div>
+    </div>
+    <div class="row">
+      <div class="f" style="grid-column: span 32">Rest of Header<small>32bit（Typeごとに中身が違う）</small></div>
+    </div>
+    <div class="row">
+      <div class="f data" style="grid-column: span 32">Data<small>可変長</small></div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="box">
+      <h4>Echo（Type 0 / 8）の場合</h4>
+      <ul>
+        <li>Rest of Header ＝ <b>Identifier</b>（16bit）＋ <b>Sequence Number</b>（16bit）</li>
+        <li>Identifier：どのpingプロセスか</li>
+        <li>Sequence：何回目の要求か（応答と対応づける）</li>
+        <li>Data：任意。応答はこれをそのまま返す</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h4>エラーメッセージの場合</h4>
+      <ul>
+        <li>Data ＝ <b>原因になったパケットのIPヘッダ＋先頭8バイト</b></li>
+        <li>先頭8バイトにはTCP/UDPのポート番号が入っているので、送信元はどの通信のエラーか判別できる</li>
+        <li>Type 3 Code 4 では Rest of Header に次ホップのMTUが入る</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Type一覧 -->
+<section id="types">
+  <h2>Type 一覧（ICMPv4）</h2>
+  <table>
+    <thead><tr><th>Type</th><th>名前</th><th>種別</th><th>説明</th></tr></thead>
+    <tbody>
+      <tr><td class="num">0</td><td><b>エコー応答</b><br><span class="muted mono">Echo Reply</span></td><td><span class="tag t-query">問い合わせ</span></td><td>Echo Requestへの返信。pingの応答</td></tr>
+      <tr><td class="num">3</td><td><b>宛先到達不能</b><br><span class="muted mono">Destination Unreachable</span></td><td><span class="tag t-error">エラー</span></td><td>ネットワーク・ホスト・ポートなどに届かない。理由はCodeで区別</td></tr>
+      <tr><td class="num">4</td><td>送信元抑制<br><span class="muted mono">Source Quench</span></td><td><span class="tag t-old">廃止</span></td><td>輻輳時に送信を減らすよう求める。現在は使われない（RFC 6633）</td></tr>
+      <tr><td class="num">5</td><td><b>リダイレクト</b><br><span class="muted mono">Redirect</span></td><td><span class="tag t-error">エラー</span></td><td>もっと良い経路（ゲートウェイ）があることを送信元に通知</td></tr>
+      <tr><td class="num">8</td><td><b>エコー要求</b><br><span class="muted mono">Echo Request</span></td><td><span class="tag t-query">問い合わせ</span></td><td>疎通確認の送信。pingが送るもの</td></tr>
+      <tr><td class="num">9</td><td>ルータ通知<br><span class="muted mono">Router Advertisement</span></td><td><span class="tag t-query">問い合わせ</span></td><td>ルータが自分の存在を知らせる</td></tr>
+      <tr><td class="num">10</td><td>ルータ要請<br><span class="muted mono">Router Solicitation</span></td><td><span class="tag t-query">問い合わせ</span></td><td>ホストがルータを探す</td></tr>
+      <tr><td class="num">11</td><td><b>時間超過</b><br><span class="muted mono">Time Exceeded</span></td><td><span class="tag t-error">エラー</span></td><td>TTLが0になって破棄された。tracerouteで使う</td></tr>
+      <tr><td class="num">12</td><td>パラメータ異常<br><span class="muted mono">Parameter Problem</span></td><td><span class="tag t-error">エラー</span></td><td>IPヘッダに不正な値がある</td></tr>
+      <tr><td class="num">13 / 14</td><td>タイムスタンプ要求／応答<br><span class="muted mono">Timestamp / Reply</span></td><td><span class="tag t-old">ほぼ未使用</span></td><td>時刻のやり取り。情報漏えいの懸念から通常は遮断</td></tr>
+      <tr><td class="num">17 / 18</td><td>アドレスマスク要求／応答<br><span class="muted mono">Address Mask</span></td><td><span class="tag t-old">廃止</span></td><td>サブネットマスクの問い合わせ（DHCPに置き換え）</td></tr>
+    </tbody>
+  </table>
+  <div class="note ok">
+    <b>太字の 0 / 3 / 5 / 8 / 11 が最重要</b>
+    試験や実務で問われるのはほぼこの5つです。
+  </div>
+</section>
+
+<!-- Code -->
+<section id="codes">
+  <h2>主な Code</h2>
+  <h3>Type 3：宛先到達不能</h3>
+  <table>
+    <thead><tr><th>Code</th><th>意味</th><th>誰が返すか・どんなとき</th></tr></thead>
+    <tbody>
+      <tr><td class="num">0</td><td>ネットワーク到達不能（Net Unreachable）</td><td>ルータ：宛先ネットワークへの経路がない</td></tr>
+      <tr><td class="num">1</td><td>ホスト到達不能（Host Unreachable）</td><td>ルータ：宛先ホストが応答しない（ARP解決できないなど）</td></tr>
+      <tr><td class="num">2</td><td>プロトコル到達不能（Protocol Unreachable）</td><td>宛先ホスト：指定されたプロトコルに対応していない</td></tr>
+      <tr><td class="num">3</td><td><b>ポート到達不能（Port Unreachable）</b></td><td>宛先ホスト：<b>UDP</b>で、そのポートを待ち受けているプログラムがない<br><span class="muted">※TCPの場合はICMPではなくRSTで拒否する</span></td></tr>
+      <tr><td class="num">4</td><td><b>フラグメント必要（Fragmentation Needed and DF set）</b></td><td>ルータ：パケットがMTUより大きいがDFフラグで分割禁止。Path MTU Discoveryで使う</td></tr>
+      <tr><td class="num">5</td><td>ソースルート失敗</td><td>ソースルーティングで指定された経路を通れない</td></tr>
+      <tr><td class="num">9 / 10</td><td>ネットワーク／ホストへの通信が管理上禁止</td><td>ルータの設定で禁止されている（古い定義）</td></tr>
+      <tr><td class="num">13</td><td>通信が管理上禁止（Administratively Prohibited）</td><td>ファイアウォールやACLで拒否された</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid2" style="margin-top:8px">
+    <div>
+      <h3>Type 5：リダイレクト</h3>
+      <table>
+        <tr><th>Code</th><th>意味</th></tr>
+        <tr><td class="num">0</td><td>ネットワーク宛てのリダイレクト</td></tr>
+        <tr><td class="num">1</td><td>ホスト宛てのリダイレクト</td></tr>
+        <tr><td class="num">2</td><td>TOSとネットワーク宛て</td></tr>
+        <tr><td class="num">3</td><td>TOSとホスト宛て</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>Type 11：時間超過</h3>
+      <table>
+        <tr><th>Code</th><th>意味</th></tr>
+        <tr><td class="num">0</td><td><b>転送中にTTLが0になった</b>（tracerouteで返ってくるのはこれ）</td></tr>
+        <tr><td class="num">1</td><td>フラグメントの再構築が時間内に終わらなかった</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ping -->
+<section id="ping">
+  <h2>ping の動き</h2>
+  <div class="flow">
+    <div class="node">送信元</div>
+    <div class="arrow r req"><span>Type 8 エコー要求（seq=1）</span></div>
+    <div class="node">宛先</div>
+    <div></div>
+    <div class="arrow l rep"><span>Type 0 エコー応答（seq=1）</span></div>
+    <div></div>
+  </div>
+  <ul>
+    <li>Identifier と Sequence Number で要求と応答を対応づけ、往復時間（RTT）を計測する</li>
+    <li>応答がない＝ダウン、とは限らない。ファイアウォールがICMPを遮断していることも多い</li>
+    <li>途中で届かなかった場合は、ルータから Type 3（到達不能）や Type 11（TTL切れ）が返ってくることもある</li>
+  </ul>
+  <div class="note info">
+    <b>表示の例</b>
+    <span class="mono">Reply from 192.0.2.1: bytes=32 time=12ms TTL=57</span> ← 応答の TTL からおおよそのホップ数も推測できる
+  </div>
+</section>
+
+<!-- traceroute -->
+<section id="traceroute">
+  <h2>traceroute の動き</h2>
+  <p>TTLを1から1ずつ増やして送り、途中のルータが返す <b>Type 11（時間超過）</b> を集めて経路を調べます。</p>
+  <div class="flow">
+    <div class="node">送信元</div>
+    <div class="arrow r req"><span>TTL=1 で送信</span></div>
+    <div class="node">ルータ1</div>
+    <div></div>
+    <div class="arrow l errc"><span>Type 11 Code 0（TTL切れ）</span></div>
+    <div></div>
+    <div class="node">送信元</div>
+    <div class="arrow r req"><span>TTL=2 で送信</span></div>
+    <div class="node">ルータ2</div>
+    <div></div>
+    <div class="arrow l errc"><span>Type 11 Code 0（TTL切れ）</span></div>
+    <div></div>
+    <div class="node">送信元</div>
+    <div class="arrow r req"><span>TTL=n で送信</span></div>
+    <div class="node">宛先</div>
+    <div></div>
+    <div class="arrow l rep"><span>最終応答（下表）</span></div>
+    <div></div>
+  </div>
+  <table>
+    <thead><tr><th>実装</th><th>送るパケット</th><th>宛先に着いたときの応答</th></tr></thead>
+    <tbody>
+      <tr><td><code>traceroute</code>（Linux / macOS）</td><td>UDP（使われていない高いポート番号宛て）</td><td><b>Type 3 Code 3</b>（ポート到達不能）</td></tr>
+      <tr><td><code>tracert</code>（Windows）</td><td>ICMP Echo Request（Type 8）</td><td><b>Type 0</b>（エコー応答）</td></tr>
+    </tbody>
+  </table>
+  <div class="note warn">
+    <b>「* * *」と表示される場合</b>
+    そのルータがICMPを返さない設定になっているか、途中で遮断されています。経路が切れているとは限りません。
+  </div>
+</section>
+
+<!-- PMTUD -->
+<section id="pmtud">
+  <h2>Path MTU Discovery（PMTUD）</h2>
+  <p>経路上で通せる最大のパケットサイズ（Path MTU）を調べる仕組みです。</p>
+  <div class="flow">
+    <div class="node">送信元</div>
+    <div class="arrow r req"><span>1500バイト・DF=1 で送信</span></div>
+    <div class="node">ルータ<br><span class="muted" style="font-weight:400;font-size:12px">次のMTU=1400</span></div>
+    <div></div>
+    <div class="arrow l errc"><span>Type 3 Code 4（MTU=1400）</span></div>
+    <div></div>
+    <div class="node">送信元</div>
+    <div class="arrow r rep"><span>1400バイトに小さくして再送</span></div>
+    <div class="node">宛先へ</div>
+  </div>
+  <div class="note warn">
+    <b>PMTUブラックホール</b>
+    ICMPを全部遮断すると Type 3 Code 4 も届かなくなり、大きなパケットだけが黙って捨てられます。「pingは通るのにWebページが途中で止まる」といった症状の原因になります。
+  </div>
+</section>
+
+<!-- ルール -->
+<section id="rules">
+  <h2>エラーメッセージを送らないケース</h2>
+  <p>エラーの連鎖やトラフィックの爆発を防ぐため、次のパケットに対してはICMPエラーを返しません。</p>
+  <ul>
+    <li><b>ICMPエラーメッセージそのもの</b>（エラーのエラーは返さない。Echoなど問い合わせ型には返す）</li>
+    <li>ブロードキャスト・マルチキャスト宛てのパケット</li>
+    <li>2番目以降のフラグメント（先頭フラグメントのみ対象）</li>
+    <li>送信元アドレスが特定のホストを表さないもの（0.0.0.0、ループバックなど）</li>
+  </ul>
+  <p class="muted">また、多くの機器は ICMP の送信数に上限（レート制限）を設けています。</p>
+</section>
+
+<!-- ICMPv6 -->
+<section id="v6">
+  <h2>ICMPv6 との違い</h2>
+  <p>IPv6ではICMPの役割が大きくなり、ARPやIGMPの機能も取り込んでいます。<b>Next Header = 58</b>。</p>
+  <table>
+    <thead><tr><th>ICMPv6 Type</th><th>名前</th><th>ICMPv4での対応</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>宛先到達不能</td><td>Type 3</td></tr>
+      <tr><td class="num">2</td><td><b>パケット過大（Packet Too Big）</b></td><td>Type 3 Code 4 に相当。IPv6ではルータが分割しないので必須</td></tr>
+      <tr><td class="num">3</td><td>時間超過（Hop Limit 超過）</td><td>Type 11</td></tr>
+      <tr><td class="num">4</td><td>パラメータ異常</td><td>Type 12</td></tr>
+      <tr><td class="num">128</td><td><b>エコー要求</b></td><td>Type 8</td></tr>
+      <tr><td class="num">129</td><td><b>エコー応答</b></td><td>Type 0</td></tr>
+      <tr><td class="num">133 / 134</td><td>ルータ要請 / ルータ広告（RS / RA）</td><td>Type 10 / 9。SLAACでのアドレス自動設定に使う</td></tr>
+      <tr><td class="num">135 / 136</td><td>近隣要請 / 近隣広告（NS / NA）</td><td><b>ARP</b> の代わり</td></tr>
+      <tr><td class="num">137</td><td>リダイレクト</td><td>Type 5</td></tr>
+    </tbody>
+  </table>
+  <div class="note info">
+    <b>番号の付け方</b>
+    ICMPv6では、Type 0〜127 がエラーメッセージ、128〜255 が情報メッセージです。133〜137 をまとめて NDP（近隣探索プロトコル）と呼びます。IPv6でICMPv6を全部遮断すると、通信そのものができなくなります。
+  </div>
+</section>
+
+<!-- セキュリティ -->
+<section id="security">
+  <h2>セキュリティ上の注意</h2>
+  <div class="grid2">
+    <div class="box">
+      <h4>Ping Flood</h4>
+      <p>大量のEcho Requestを送りつけて帯域や処理能力を使い切らせるDoS攻撃。</p>
+    </div>
+    <div class="box">
+      <h4>Smurf 攻撃</h4>
+      <p>送信元を被害者のIPに偽装し、ブロードキャストアドレス宛てにEcho Requestを送る。大量のEcho Replyが被害者に集中する。</p>
+    </div>
+    <div class="box">
+      <h4>Ping of Death</h4>
+      <p>65,535バイトを超える不正なパケットをフラグメントで送り、再構築時にシステムを停止させる（古いOSの脆弱性）。</p>
+    </div>
+    <div class="box">
+      <h4>ICMP トンネリング</h4>
+      <p>Echoのデータ部に別の通信を埋め込み、ファイアウォールを通り抜ける。情報持ち出しなどに使われる。</p>
+    </div>
+    <div class="box">
+      <h4>Redirect の悪用</h4>
+      <p>偽のリダイレクトで通信経路を書き換え、中間者攻撃につなげる。多くのOSは受信を無効にしている。</p>
+    </div>
+    <div class="box">
+      <h4>偵察（スキャン）</h4>
+      <p>Echoで生きているホストを探したり、Type 3 Code 3の有無でUDPポートの開閉を調べたりする。</p>
+    </div>
+  </div>
+  <div class="note ok">
+    <b>対策の考え方</b>
+    ICMPを全部止めるのではなく、必要なもの（Type 3 Code 4 / ICMPv6 Type 2、NDPなど）は通し、不要なもの（Redirect、Timestamp、外部からのEcho Requestなど）を選んで遮断・レート制限するのが基本です。
+  </div>
+</section>
+
+<!-- 覚えるポイント -->
+<section id="exam">
+  <h2>覚えるポイント</h2>
+  <table>
+    <thead><tr><th>聞かれ方</th><th>答え</th></tr></thead>
+    <tbody>
+      <tr><td>Echo Request（Type 8）への返信は？</td><td><b>Echo Reply（Type 0）</b>＝エコー応答</td></tr>
+      <tr><td>TTLが0になったときに返るのは？</td><td><b>Type 11 Code 0</b>（時間超過）</td></tr>
+      <tr><td>閉じたUDPポートに送ると返るのは？</td><td><b>Type 3 Code 3</b>（ポート到達不能）</td></tr>
+      <tr><td>閉じたTCPポートにSYNを送ると返るのは？</td><td>ICMPではなく <b>TCP の RST</b></td></tr>
+      <tr><td>DF付きでMTU超過したときに返るのは？</td><td><b>Type 3 Code 4</b>（フラグメント必要）</td></tr>
+      <tr><td>tracerouteが使うICMPメッセージは？</td><td><b>Type 11</b>（途中のルータ）＋ 最終応答（Type 3 Code 3 または Type 0）</td></tr>
+      <tr><td>ICMPのIPプロトコル番号は？</td><td><b>1</b>（ICMPv6 は 58）</td></tr>
+      <tr><td>ICMPにポート番号はある？</td><td><b>ない</b>（Type と Code で区別）</td></tr>
+      <tr><td>IPv6でARPの代わりをするのは？</td><td>ICMPv6 の <b>NS / NA（Type 135 / 136）</b></td></tr>
+    </tbody>
+  </table>
+</section>
+
+</div>
+</body>
+</html>

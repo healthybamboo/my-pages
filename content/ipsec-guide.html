@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IPsec 図解: IKE SA・Child SA・ESP/AH</title>
+<style>
+/* Layout: 1 カラムの技術解説。上部に固定目次、各セクションは図 → 説明 → 表の順 */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --ink:#17202b; --muted:#5a6575; --line:#d8dde5;
+  --ike:#3a4ec2; --ike-soft:#e5e8fb;
+  --child:#0d877b; --child-soft:#d9f1ee;
+  --rev:#c2532a; --rev-soft:#fbe6dc;
+  --enc:#d99a0b; --enc-soft:#fcefcc;
+  --auth:#8547cc; --auth-soft:#efe4fb;
+  --font-body:"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Yu Gothic", Meiryo, system-ui, sans-serif;
+  --font-mono:ui-monospace, "SFMono-Regular", Menlo, Consolas, "Noto Sans Mono", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10141a; --surface:#171d25; --ink:#e5e9ef; --muted:#9aa4b3; --line:#2b3340;
+    --ike:#8e9cff; --ike-soft:#222949;
+    --child:#3cc6b6; --child-soft:#12312d;
+    --rev:#ff8b5e; --rev-soft:#3a2219;
+    --enc:#f3c24e; --enc-soft:#3a2e10;
+    --auth:#c29bff; --auth-soft:#2c2142;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10141a; --surface:#171d25; --ink:#e5e9ef; --muted:#9aa4b3; --line:#2b3340;
+  --ike:#8e9cff; --ike-soft:#222949;
+  --child:#3cc6b6; --child-soft:#12312d;
+  --rev:#ff8b5e; --rev-soft:#3a2219;
+  --enc:#f3c24e; --enc-soft:#3a2e10;
+  --auth:#c29bff; --auth-soft:#2c2142;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:64px}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+body{margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-body); font-size:16px; line-height:1.75}
+code, .mono{font-family:var(--font-mono); font-size:.9em}
+code{background:var(--line); background:color-mix(in srgb, var(--line) 55%, transparent); padding:.05em .35em; border-radius:4px}
+a{color:var(--ike)}
+h1,h2,h3{text-wrap:balance; line-height:1.35}
+h1{font-size:clamp(1.6rem, 3.6vw, 2.3rem); margin:0 0 .4rem}
+h2{font-size:1.5rem; margin:0 0 .6rem; padding-top:.5rem}
+h3{font-size:1.12rem; margin:2rem 0 .5rem}
+p{margin:.5rem 0 1rem; max-width:70ch}
+ul,ol{max-width:72ch; padding-left:1.3em}
+li{margin:.25rem 0}
+
+nav.toc{position:sticky; top:0; z-index:10; background:var(--bg); border-bottom:1px solid var(--line)}
+nav.toc .in{max-width:1080px; margin:0 auto; padding:0 16px; display:flex; gap:4px; overflow-x:auto; white-space:nowrap}
+nav.toc a{display:block; padding:12px 12px; color:var(--muted); text-decoration:none; font-size:.9rem; font-weight:500; border-bottom:2px solid transparent}
+nav.toc a:hover, nav.toc a:focus-visible{color:var(--ink); border-bottom-color:var(--ike); outline:none}
+
+.wrap{max-width:1080px; margin:0 auto; padding:0 16px}
+header.hero{padding:40px 0 24px}
+header.hero p{color:var(--muted); font-size:1.02rem}
+.legend{display:flex; flex-wrap:wrap; gap:8px 16px; margin-top:12px; font-size:.85rem; color:var(--muted)}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+.sw{width:14px; height:14px; border-radius:3px; display:inline-block; border:1.5px solid}
+.sw.ike{background:var(--ike-soft); border-color:var(--ike)}
+.sw.child{background:var(--child-soft); border-color:var(--child)}
+.sw.rev{background:var(--rev-soft); border-color:var(--rev)}
+.sw.enc{background:var(--enc-soft); border-color:var(--enc)}
+.sw.auth{background:var(--auth-soft); border-color:var(--auth)}
+
+section{padding:40px 0 16px; border-top:1px solid var(--line)}
+.eyebrow{font-family:var(--font-mono); font-size:.78rem; color:var(--muted); letter-spacing:.04em; margin-bottom:4px}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:18px 20px}
+figure{margin:16px 0 20px}
+figure .scroll{overflow-x:auto; background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px}
+figcaption{font-size:.88rem; color:var(--muted); margin-top:8px; max-width:80ch}
+svg{display:block; max-width:100%; height:auto; color:var(--ink); font-family:var(--font-body)}
+svg .mono{font-family:var(--font-mono)}
+.wide svg{min-width:760px}
+
+/* SVG roles */
+.s-ink{stroke:var(--ink)} .s-muted{stroke:var(--muted)} .s-line{stroke:var(--line)}
+.s-ike{stroke:var(--ike)} .s-child{stroke:var(--child)} .s-rev{stroke:var(--rev)}
+.f-ink{fill:var(--ink)} .f-muted{fill:var(--muted)} .f-surface{fill:var(--surface)} .f-bg{fill:var(--bg)}
+.f-ike{fill:var(--ike)} .f-ike-soft{fill:var(--ike-soft)}
+.f-child{fill:var(--child)} .f-child-soft{fill:var(--child-soft)}
+.f-rev{fill:var(--rev)} .f-rev-soft{fill:var(--rev-soft)}
+.f-enc-soft{fill:var(--enc-soft)} .f-auth-soft{fill:var(--auth-soft)}
+.none{fill:none}
+.t-sm{font-size:11px} .t-md{font-size:13px} .t-lg{font-size:15px; font-weight:600}
+.t-b{font-weight:600}
+
+/* sequence */
+.seq-grid{display:grid; grid-template-columns:minmax(0,1fr); gap:16px}
+@media (min-width: 1500px){ .seq-grid{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)} .seq-detail{position:sticky; top:64px; align-self:start} }
+.msg{cursor:pointer}
+.msg .hit{fill:transparent}
+.msg:hover .hit, .msg:focus-visible .hit{fill:var(--ike-soft); fill-opacity:.55}
+.msg.active .hit{fill:var(--ike-soft); fill-opacity:.9}
+.msg:focus{outline:none}
+.seq-detail h4{margin:0 0 4px; font-size:1.05rem}
+.seq-detail .meta{font-family:var(--font-mono); font-size:.8rem; color:var(--muted); margin-bottom:10px}
+.seq-detail ul{padding-left:1.1em; margin:.3rem 0}
+.seq-detail .payload{font-family:var(--font-mono); font-size:.82rem; background:var(--bg); border:1px solid var(--line); border-radius:6px; padding:8px 10px; margin:8px 0; white-space:pre-wrap; word-break:break-word}
+.chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px}
+.chip{font:inherit; font-size:.82rem; padding:4px 10px; border-radius:999px; border:1px solid var(--line); background:var(--surface); color:var(--ink); cursor:pointer}
+.chip:hover{border-color:var(--ike)}
+.chip[aria-pressed="true"]{background:var(--ike); border-color:var(--ike); color:var(--surface)}
+.chip:focus-visible{outline:2px solid var(--ike); outline-offset:2px}
+
+/* tables */
+.tbl{overflow-x:auto; margin:12px 0 20px}
+table{border-collapse:collapse; width:100%; font-size:.9rem; background:var(--surface); border:1px solid var(--line); border-radius:8px; overflow:hidden}
+th,td{text-align:left; padding:8px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+th{background:var(--bg); font-weight:600; font-size:.84rem; color:var(--muted)}
+tr:last-child td{border-bottom:none}
+td.num{font-variant-numeric:tabular-nums; font-family:var(--font-mono); white-space:nowrap}
+
+/* bit diagrams */
+.pkt{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; margin:14px 0 24px}
+.pkt h3{margin:0 0 4px}
+.pkt .sub{color:var(--muted); font-size:.88rem; margin:0 0 12px}
+.bits-scroll{overflow-x:auto}
+.bits{min-width:660px; display:grid; grid-template-columns:repeat(32, minmax(0,1fr)); grid-auto-rows:42px; gap:0; border-left:1px solid var(--muted); border-top:1px solid var(--muted)}
+.ruler{min-width:660px; display:grid; grid-template-columns:repeat(32, minmax(0,1fr)); font-family:var(--font-mono); font-size:9.5px; color:var(--muted); text-align:center; margin-bottom:2px}
+.ruler span.byte{color:var(--ink); font-weight:600}
+.fld{border-right:1px solid var(--muted); border-bottom:1px solid var(--muted); display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-size:12px; line-height:1.2; padding:2px 3px; overflow:hidden; background:var(--surface)}
+.fld .sz{font-family:var(--font-mono); font-size:10px; color:var(--muted)}
+.fld.var{border-bottom-style:dashed; background:repeating-linear-gradient(135deg, transparent 0 8px, color-mix(in srgb, var(--line) 45%, transparent) 8px 9px)}
+.fld.k-ike{background:var(--ike-soft)}
+.fld.k-enc{background:var(--enc-soft)}
+.fld.k-auth{background:var(--auth-soft)}
+.fld.k-child{background:var(--child-soft)}
+.fld.k-res{color:var(--muted)}
+.fld.hl{outline:2px solid var(--ike); outline-offset:-2px}
+.ftable td:first-child{white-space:nowrap; font-weight:600}
+.ftable tr{cursor:default}
+.ftable tr.hl td{background:var(--ike-soft)}
+
+/* ESP/AH layout */
+.lay{margin:12px 0 6px}
+.lay-grid{display:grid; gap:4px 3px; min-width:640px}
+.blk{border:1.5px solid var(--ink); border-radius:5px; padding:8px 4px; text-align:center; font-size:12.5px; line-height:1.25; display:flex; flex-direction:column; justify-content:center; min-height:62px; background:var(--surface)}
+.blk small{display:block; font-family:var(--font-mono); font-size:10px; color:var(--muted); margin-top:2px}
+.blk.new{background:var(--bg); border-style:dashed}
+.blk.esp{background:var(--child-soft); border-color:var(--child)}
+.blk.ah{background:var(--auth-soft); border-color:var(--auth)}
+.blk.udp{background:var(--ike-soft); border-color:var(--ike)}
+.blk.icv{background:var(--surface); border-color:var(--child)}
+.bar{height:26px; border-radius:4px; font-size:12px; display:flex; align-items:center; padding:0 8px; font-weight:600}
+.bar.enc{background:var(--enc-soft); border:1.5px solid var(--enc)}
+.bar.auth{background:var(--auth-soft); border:1.5px solid var(--auth)}
+.bar.none{color:var(--muted); font-weight:400; border:1.5px dashed var(--line)}
+.lay-note{font-size:.9rem; color:var(--muted); margin-top:10px; max-width:80ch}
+
+/* TS simulator */
+.sim{display:grid; grid-template-columns:minmax(0,1fr); gap:16px}
+@media (min-width: 860px){ .sim{grid-template-columns:minmax(0,1fr) minmax(0,1fr)} }
+.sa-card{border:1.5px solid var(--child); background:var(--child-soft); border-radius:8px; padding:10px 12px; margin-bottom:8px; font-size:.88rem}
+.sa-card.on{outline:3px solid var(--child); outline-offset:1px}
+.sa-card .mono{font-size:.8rem}
+.sa-card b{font-weight:600}
+form.simf{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px 12px}
+form.simf label{display:flex; flex-direction:column; font-size:.82rem; color:var(--muted); gap:3px}
+form.simf input, form.simf select{font:inherit; font-family:var(--font-mono); font-size:.9rem; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--ink)}
+form.simf input:focus-visible, form.simf select:focus-visible{outline:2px solid var(--ike); outline-offset:1px}
+.result{margin-top:12px; border-radius:8px; padding:12px 14px; border:1.5px solid var(--line); background:var(--bg); font-size:.92rem}
+.result.ok{border-color:var(--child); background:var(--child-soft)}
+.result.in{border-color:var(--rev); background:var(--rev-soft)}
+.result .mono{font-size:.82rem}
+
+/* misc */
+.cols{display:grid; grid-template-columns:minmax(0,1fr); gap:14px}
+@media (min-width: 760px){ .cols.two{grid-template-columns:repeat(2, minmax(0,1fr))} .cols.three{grid-template-columns:repeat(3, minmax(0,1fr))} }
+.callout{border-left:4px solid var(--ike); background:var(--surface); padding:12px 16px; border-radius:0 8px 8px 0; margin:14px 0}
+.callout.warn{border-left-color:var(--enc)}
+.flow{display:flex; flex-wrap:wrap; align-items:stretch; gap:6px; margin:10px 0}
+.flow .st{flex:1 1 140px; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-size:.86rem}
+.flow .st b{display:block; font-size:.92rem; margin-bottom:2px}
+.flow .ar{align-self:center; color:var(--muted); font-family:var(--font-mono)}
+pre.term{font-family:var(--font-mono); font-size:.8rem; line-height:1.55; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px 14px; overflow-x:auto}
+pre.term .c{color:var(--muted)}
+pre.term .k1{color:var(--child); font-weight:600}
+pre.term .k2{color:var(--rev); font-weight:600}
+.stack{display:grid; gap:8px}
+.layer{display:grid; grid-template-columns:150px minmax(0,1fr); gap:12px; align-items:center; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 14px}
+@media (max-width: 520px){ .layer{grid-template-columns:minmax(0,1fr)} }
+.layer .nm{font-weight:600}
+.layer.ike{border-left:5px solid var(--ike)}
+.layer.db{border-left:5px solid var(--auth)}
+.layer.dp{border-left:5px solid var(--child)}
+footer{padding:40px 0 60px; color:var(--muted); font-size:.85rem}
+@media print{
+  nav.toc{display:none}
+  body{background:#fff}
+  section{break-inside:auto}
+  figure, .pkt, .card, table{break-inside:avoid}
+  .wide svg{min-width:0}
+  .bits, .ruler, .lay-grid{min-width:0}
+}
+</style>
+</head>
+<body>
+<nav class="toc" aria-label="目次"><div class="in">
+  <a href="#overview">全体像</a>
+  <a href="#sequence">IKEv2 シーケンス</a>
+  <a href="#child-sa">Child SA と単方向×2</a>
+  <a href="#replay">Seq・リプレイ・寿命</a>
+  <a href="#scope">Child SA の範囲 (TS)</a>
+  <a href="#packets">パケットフォーマット</a>
+  <a href="#esp-ah">ESP と AH</a>
+  <a href="#summary">VPN まとめ</a>
+  <a href="#glossary">略語・用語集</a>
+</div></nav>
+
+<div class="wrap">
+<header class="hero">
+  <div class="eyebrow">IPsec / IKEv2 (RFC 7296) · ESP (RFC 4303) · AH (RFC 4302)</div>
+  <h1>IPsec 図解: IKE SA・Child SA・ESP/AH</h1>
+  <p>IPsec VPN を「制御用の 1 本 (IKE SA)」と「データ用の何本か (Child SA)」に分けて、確立の流れ、パケットの中身、ESP と AH の違いまでを図でたどります。例はすべて、拠点 A のゲートウェイ GW-A が接続を始め (Initiator)、拠点 B の GW-B が応答する (Responder) 拠点間 VPN です。</p>
+  <div class="legend" aria-label="色の凡例">
+    <span><i class="sw ike"></i>IKE SA / IKE メッセージ</span>
+    <span><i class="sw child"></i>Child SA (A→B 方向)</span>
+    <span><i class="sw rev"></i>Child SA (B→A 方向)</span>
+    <span><i class="sw enc"></i>暗号化される範囲</span>
+    <span><i class="sw auth"></i>改ざん検知 (認証) される範囲</span>
+  </div>
+</header>
+
+<!-- ========== 1. Overview ========== -->
+<section id="overview">
+  <div class="eyebrow">01</div>
+  <h2>全体像: 親 1 本と子の束</h2>
+  <p>GW-A と GW-B の間には、まず <b>IKE SA</b> が 1 本できます。ここを通るのは「鍵を決める」「Child SA を作る・消す」「相手が生きているか確認する」といった制御メッセージだけです。社内の通信そのものは、その下に作られる <b>Child SA</b> (中身は ESP) を通ります。Child SA は保護する通信の範囲ごとに複数持てます。</p>
+
+  <figure>
+    <div class="scroll wide">
+    <svg viewBox="0 0 900 330" role="img" aria-label="GW-A と GW-B の間に IKE SA が 1 本あり、その下に Child SA が 2 本ある。各 Child SA は逆向きの矢印 2 本で表される。">
+      <defs>
+        <marker id="ov-ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-child"/></marker>
+        <marker id="ov-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-rev"/></marker>
+      </defs>
+      <!-- LANs -->
+      <rect x="20" y="115" width="130" height="100" rx="8" class="f-surface s-ink" stroke-width="1.2"/>
+      <text x="85" y="155" text-anchor="middle" class="t-lg f-ink">LAN A</text>
+      <text x="85" y="177" text-anchor="middle" class="t-md mono f-muted">10.1.0.0/24</text>
+      <rect x="750" y="70" width="130" height="90" rx="8" class="f-surface s-ink" stroke-width="1.2"/>
+      <text x="815" y="106" text-anchor="middle" class="t-lg f-ink">LAN B</text>
+      <text x="815" y="128" text-anchor="middle" class="t-md mono f-muted">10.2.0.0/24</text>
+      <rect x="750" y="185" width="130" height="90" rx="8" class="f-surface s-ink" stroke-width="1.2"/>
+      <text x="815" y="221" text-anchor="middle" class="t-lg f-ink">LAN C</text>
+      <text x="815" y="243" text-anchor="middle" class="t-md mono f-muted">10.3.0.0/24</text>
+      <line x1="150" y1="165" x2="190" y2="165" class="s-ink" stroke-width="1.2"/>
+      <line x1="710" y1="115" x2="750" y2="115" class="s-ink" stroke-width="1.2"/>
+      <line x1="710" y1="230" x2="750" y2="230" class="s-ink" stroke-width="1.2"/>
+      <!-- GWs -->
+      <rect x="190" y="30" width="110" height="270" rx="10" class="f-surface s-ink" stroke-width="1.6"/>
+      <text x="245" y="285" text-anchor="middle" class="t-lg f-ink">GW-A</text>
+      <text x="245" y="50" text-anchor="middle" class="t-sm f-muted">Initiator</text>
+      <rect x="600" y="30" width="110" height="270" rx="10" class="f-surface s-ink" stroke-width="1.6"/>
+      <text x="655" y="285" text-anchor="middle" class="t-lg f-ink">GW-B</text>
+      <text x="655" y="50" text-anchor="middle" class="t-sm f-muted">Responder</text>
+      <!-- IKE SA band -->
+      <rect x="300" y="60" width="300" height="44" rx="22" class="f-ike-soft s-ike" stroke-width="2"/>
+      <text x="450" y="80" text-anchor="middle" class="t-md t-b f-ike">IKE SA (UDP 500 / 4500)</text>
+      <text x="450" y="96" text-anchor="middle" class="t-sm f-muted">制御メッセージだけが通る</text>
+      <!-- connectors -->
+      <path d="M314,104 V150 M314,104 V240" class="s-ike" stroke-width="1.3" stroke-dasharray="4 4" fill="none"/>
+      <text x="322" y="122" class="t-sm f-ike">鍵の供給・作成/削除</text>
+      <!-- Child SA 1 -->
+      <text x="478" y="141" text-anchor="middle" class="t-md t-b f-ink">Child SA #1 · 10.1.0.0/24 ⇔ 10.2.0.0/24</text>
+      <line x1="300" y1="152" x2="598" y2="152" class="s-child" stroke-width="2.4" marker-end="url(#ov-ac)"/>
+      <line x1="600" y1="172" x2="302" y2="172" class="s-rev" stroke-width="2.4" marker-end="url(#ov-ar)"/>
+      <text x="580" y="164" text-anchor="end" class="t-sm mono f-muted">ESP</text>
+      <!-- Child SA 2 -->
+      <text x="478" y="228" text-anchor="middle" class="t-md t-b f-ink">Child SA #2 · 10.1.0.0/24 ⇔ 10.3.0.0/24 TCP/443</text>
+      <line x1="300" y1="240" x2="598" y2="240" class="s-child" stroke-width="2.4" marker-end="url(#ov-ac)"/>
+      <line x1="600" y1="260" x2="302" y2="260" class="s-rev" stroke-width="2.4" marker-end="url(#ov-ar)"/>
+      <text x="580" y="252" text-anchor="end" class="t-sm mono f-muted">ESP</text>
+    </svg>
+    </div>
+    <figcaption>IKE SA は 1 本で双方向。Child SA は「A→B の SA」と「B→A の SA」の 2 本で 1 組です (色違いの矢印)。Child SA の鍵は IKE SA が持つ <code>SK_d</code> から作られるので、親がなくなると子もすべて消えます。</figcaption>
+  </figure>
+
+  <div class="tbl"><table>
+    <thead><tr><th></th><th>IKE SA (親)</th><th>Child SA (子)</th></tr></thead>
+    <tbody>
+      <tr><td>役割</td><td>相互認証、鍵交換、制御 (作成・削除・生存確認)</td><td>実データの暗号化と転送</td></tr>
+      <tr><td>プロトコル</td><td>IKEv2 (UDP 500。NAT があれば UDP 4500)</td><td>ESP (IP プロトコル番号 50)。NAT 越えでは UDP 4500 に包む</td></tr>
+      <tr><td>識別子</td><td>SPIi + SPIr (各 8 バイト)</td><td>方向ごとの SPI (4 バイト) × 2</td></tr>
+      <tr><td>向き</td><td>双方向で 1 つ</td><td>単方向 SA × 2 で 1 組</td></tr>
+      <tr><td>数</td><td>ピア間に通常 1 つ</td><td>1 つの IKE SA の下に複数</td></tr>
+      <tr><td>どこで処理</td><td>IKE デーモン (ユーザー空間: strongSwan など)</td><td>OS カーネルやルーターの転送処理 (Linux なら XFRM)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ========== 2. Sequence ========== -->
+<section id="sequence">
+  <div class="eyebrow">02</div>
+  <h2>IKEv2 のシーケンス: 4 メッセージで両方できる</h2>
+  <p>IKEv2 は必ず「要求 → 応答」の往復 (exchange) で進みます。最初の 2 往復、合計 4 メッセージで IKE SA と最初の Child SA が同時にできあがります。図の各メッセージを選ぶと、中身と意味が図の下に出ます。</p>
+
+  <div class="seq-grid">
+  <figure style="margin:0">
+    <div class="scroll wide">
+    <svg viewBox="0 0 900 900" role="img" aria-label="IKEv2 のシーケンス図。IKE_SA_INIT で鍵交換、IKE_AUTH で認証と最初の Child SA の作成、その後 ESP でデータ転送、CREATE_CHILD_SA で追加・更新、INFORMATIONAL で生存確認と削除。" id="seqsvg">
+      <defs>
+        <marker id="sq-ai" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-ike"/></marker>
+        <marker id="sq-ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-child"/></marker>
+        <marker id="sq-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-rev"/></marker>
+      </defs>
+      <!-- lifelines -->
+      <rect x="90" y="16" width="160" height="46" rx="8" class="f-surface s-ink" stroke-width="1.5"/>
+      <text x="170" y="37" text-anchor="middle" class="t-lg f-ink">GW-A</text>
+      <text x="170" y="54" text-anchor="middle" class="t-sm f-muted">Initiator</text>
+      <rect x="650" y="16" width="160" height="46" rx="8" class="f-surface s-ink" stroke-width="1.5"/>
+      <text x="730" y="37" text-anchor="middle" class="t-lg f-ink">GW-B</text>
+      <text x="730" y="54" text-anchor="middle" class="t-sm f-muted">Responder</text>
+      <line x1="170" y1="62" x2="170" y2="890" class="s-muted" stroke-width="1.2" stroke-dasharray="3 5"/>
+      <line x1="730" y1="62" x2="730" y2="890" class="s-muted" stroke-width="1.2" stroke-dasharray="3 5"/>
+
+      <!-- m1 -->
+      <g class="msg" data-id="m1" tabindex="0" role="button" aria-label="1 IKE_SA_INIT 要求">
+        <rect class="hit" x="100" y="86" width="700" height="62" rx="6"/>
+        <text x="450" y="106" text-anchor="middle" class="t-md t-b f-ike">① IKE_SA_INIT 要求 · Msg ID 0 · UDP 500 · 平文</text>
+        <line x1="172" y1="118" x2="726" y2="118" class="s-ike" stroke-width="2" marker-end="url(#sq-ai)"/>
+        <text x="450" y="138" text-anchor="middle" class="t-sm mono f-ink">HDR(SPIi, SPIr=0), SAi1, KEi, Ni, N(NAT_DETECTION_*)</text>
+      </g>
+      <!-- m2 -->
+      <g class="msg" data-id="m2" tabindex="0" role="button" aria-label="2 IKE_SA_INIT 応答">
+        <rect class="hit" x="100" y="158" width="700" height="62" rx="6"/>
+        <text x="450" y="178" text-anchor="middle" class="t-md t-b f-ike">② IKE_SA_INIT 応答 · Msg ID 0 · 平文</text>
+        <line x1="728" y1="190" x2="174" y2="190" class="s-ike" stroke-width="2" marker-end="url(#sq-ai)"/>
+        <text x="450" y="210" text-anchor="middle" class="t-sm mono f-ink">HDR(SPIi, SPIr), SAr1, KEr, Nr, N(NAT_DETECTION_*), [CERTREQ]</text>
+      </g>
+      <!-- key box -->
+      <g class="msg" data-id="keys" tabindex="0" role="button" aria-label="鍵の計算">
+        <rect class="hit" x="100" y="226" width="700" height="72" rx="6"/>
+        <rect x="120" y="232" width="660" height="60" rx="8" class="f-ike-soft s-ike" stroke-width="1.2" stroke-dasharray="5 3"/>
+        <text x="450" y="254" text-anchor="middle" class="t-md t-b f-ink">両側が独立に計算 (鍵そのものは送らない)</text>
+        <text x="450" y="276" text-anchor="middle" class="t-sm mono f-ink">SKEYSEED = prf(Ni|Nr, g^ir) → SK_d, SK_ai/ar, SK_ei/er, SK_pi/pr</text>
+      </g>
+      <!-- m3 -->
+      <g class="msg" data-id="m3" tabindex="0" role="button" aria-label="3 IKE_AUTH 要求">
+        <rect class="hit" x="100" y="306" width="700" height="62" rx="6"/>
+        <text x="450" y="326" text-anchor="middle" class="t-md t-b f-ike">③ IKE_AUTH 要求 · Msg ID 1 · UDP 4500 · 暗号化</text>
+        <line x1="172" y1="338" x2="726" y2="338" class="s-ike" stroke-width="2" marker-end="url(#sq-ai)"/>
+        <text x="450" y="358" text-anchor="middle" class="t-sm mono f-ink">HDR, SK{ IDi, [CERT], [CERTREQ], [IDr], AUTH, SAi2, TSi, TSr }</text>
+      </g>
+      <!-- m4 -->
+      <g class="msg" data-id="m4" tabindex="0" role="button" aria-label="4 IKE_AUTH 応答">
+        <rect class="hit" x="100" y="378" width="700" height="62" rx="6"/>
+        <text x="450" y="398" text-anchor="middle" class="t-md t-b f-ike">④ IKE_AUTH 応答 · Msg ID 1 · 暗号化</text>
+        <line x1="728" y1="410" x2="174" y2="410" class="s-ike" stroke-width="2" marker-end="url(#sq-ai)"/>
+        <text x="450" y="430" text-anchor="middle" class="t-sm mono f-ink">HDR, SK{ IDr, [CERT], AUTH, SAr2, TSi, TSr }</text>
+      </g>
+      <!-- established -->
+      <rect x="120" y="450" width="660" height="40" rx="8" class="f-child-soft s-child" stroke-width="1.4"/>
+      <text x="450" y="475" text-anchor="middle" class="t-md t-b f-ink">IKE SA 確立 ＋ 最初の Child SA 確立 (鍵は SK_d から導出)</text>
+      <!-- ESP -->
+      <g class="msg" data-id="esp" tabindex="0" role="button" aria-label="ESP によるデータ転送">
+        <rect class="hit" x="100" y="498" width="700" height="78" rx="6"/>
+        <text x="450" y="516" text-anchor="middle" class="t-md t-b f-child">データ転送 (ESP · IP プロトコル 50 / NAT-T 時 UDP 4500)</text>
+        <line x1="172" y1="532" x2="726" y2="532" class="s-child" stroke-width="2.4" stroke-dasharray="8 4" marker-end="url(#sq-ac)"/>
+        <text x="450" y="548" text-anchor="middle" class="t-sm mono f-child">SPI=0xC0FFEE01, Seq 1, 2, 3 …</text>
+        <line x1="728" y1="560" x2="174" y2="560" class="s-rev" stroke-width="2.4" stroke-dasharray="8 4" marker-end="url(#sq-ar)"/>
+        <text x="450" y="574" text-anchor="middle" class="t-sm mono f-rev">SPI=0x5A5A0002, Seq 1, 2, 3 …</text>
+      </g>
+      <!-- m5 -->
+      <g class="msg" data-id="m5" tabindex="0" role="button" aria-label="5 CREATE_CHILD_SA 要求">
+        <rect class="hit" x="100" y="600" width="700" height="62" rx="6"/>
+        <text x="450" y="620" text-anchor="middle" class="t-md t-b f-ike">⑤ CREATE_CHILD_SA 要求 · Msg ID 2 (追加・鍵更新)</text>
+        <line x1="172" y1="632" x2="726" y2="632" class="s-ike" stroke-width="2" marker-end="url(#sq-ai)"/>
+        <text x="450" y="652" text-anchor="middle" class="t-sm mono f-ink">HDR, SK{ [N(REKEY_SA)], SA, Ni, [KEi], TSi, TSr }</text>
+      </g>
+      <!-- m6 -->
+      <g class="msg" data-id="m6" tabindex="0" role="button" aria-label="6 CREATE_CHILD_SA 応答">
+        <rect class="hit" x="100" y="672" width="700" height="62" rx="6"/>
+        <text x="450" y="692" text-anchor="middle" class="t-md t-b f-ike">⑥ CREATE_CHILD_SA 応答 · Msg ID 2</text>
+        <line x1="728" y1="704" x2="174" y2="704" class="s-ike" stroke-width="2" marker-end="url(#sq-ai)"/>
+        <text x="450" y="724" text-anchor="middle" class="t-sm mono f-ink">HDR, SK{ SA, Nr, [KEr], TSi, TSr }</text>
+      </g>
+      <!-- m7 -->
+      <g class="msg" data-id="m7" tabindex="0" role="button" aria-label="7 INFORMATIONAL 要求">
+        <rect class="hit" x="100" y="752" width="700" height="62" rx="6"/>
+        <text x="450" y="772" text-anchor="middle" class="t-md t-b f-ike">⑦ INFORMATIONAL 要求 · Msg ID 3 (生存確認・削除)</text>
+        <line x1="172" y1="784" x2="726" y2="784" class="s-ike" stroke-width="2" marker-end="url(#sq-ai)"/>
+        <text x="450" y="804" text-anchor="middle" class="t-sm mono f-ink">HDR, SK{ }  ／  HDR, SK{ D(SPI…) }</text>
+      </g>
+      <!-- m8 -->
+      <g class="msg" data-id="m8" tabindex="0" role="button" aria-label="8 INFORMATIONAL 応答">
+        <rect class="hit" x="100" y="824" width="700" height="62" rx="6"/>
+        <text x="450" y="844" text-anchor="middle" class="t-md t-b f-ike">⑧ INFORMATIONAL 応答 · Msg ID 3</text>
+        <line x1="728" y1="856" x2="174" y2="856" class="s-ike" stroke-width="2" marker-end="url(#sq-ai)"/>
+        <text x="450" y="876" text-anchor="middle" class="t-sm mono f-ink">HDR, SK{ }  ／  HDR, SK{ D(SPI…) }</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>[ ] は省略可能なペイロード。<code>SK{ … }</code> は「中身を IKE SA の鍵で暗号化した Encrypted ペイロード」の意味です。①② だけが平文で、③ 以降の IKE メッセージはすべて暗号化されます。</figcaption>
+  </figure>
+
+  <aside class="card seq-detail" id="seqDetail" aria-live="polite"></aside>
+  </div>
+
+  <h3>ペイロード名の読み方</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>表記</th><th>名前</th><th>中身</th></tr></thead>
+    <tbody>
+      <tr><td class="num">HDR</td><td>IKE ヘッダ</td><td>28 バイト固定。SPI の組、交換の種類、Message ID など (§06 で図解)</td></tr>
+      <tr><td class="num">SAi1 / SAr1</td><td>SA ペイロード</td><td>IKE SA 用の暗号スイートの提案と選択 (暗号・PRF・完全性・DH グループ)</td></tr>
+      <tr><td class="num">SAi2 / SAr2</td><td>SA ペイロード</td><td>Child SA (ESP) 用の提案と選択。<b>自分の受信用 SPI</b> もここに入れる</td></tr>
+      <tr><td class="num">KEi / KEr</td><td>Key Exchange</td><td>Diffie-Hellman の公開値</td></tr>
+      <tr><td class="num">Ni / Nr</td><td>Nonce</td><td>16〜256 バイトの乱数。鍵計算と認証に混ぜる</td></tr>
+      <tr><td class="num">IDi / IDr</td><td>Identification</td><td>自分が誰か (IP アドレス、FQDN、メールアドレス、証明書の DN など)</td></tr>
+      <tr><td class="num">AUTH</td><td>Authentication</td><td>PSK による MAC か、証明書の秘密鍵による署名</td></tr>
+      <tr><td class="num">CERT / CERTREQ</td><td>証明書 / 証明書要求</td><td>証明書認証のときだけ使う</td></tr>
+      <tr><td class="num">TSi / TSr</td><td>Traffic Selector</td><td>Child SA で守る通信の範囲 (Initiator 側 / Responder 側)</td></tr>
+      <tr><td class="num">N(…)</td><td>Notify</td><td>エラー通知や状態通知 (NAT_DETECTION_*, REKEY_SA, TS_UNACCEPTABLE など)</td></tr>
+      <tr><td class="num">D</td><td>Delete</td><td>SA の削除通知 (消したい SA の SPI を入れる)</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ========== 3. Child SA ========== -->
+<section id="child-sa">
+  <div class="eyebrow">03</div>
+  <h2>Child SA は「単方向 SA × 2」で 1 組</h2>
+  <p>SA (Security Association) は本来 <b>一方通行</b> の取り決めです。「この SPI が付いたパケットは、この鍵で復号して、この Seq 番号まで受け取り済み」という情報の束で、片方向の通信 1 本分しか表しません。そこで IKEv2 は Child SA を 1 つ作るたびに、A→B 用と B→A 用の SA を必ずペアで作ります。</p>
+
+  <figure>
+    <div class="scroll wide">
+    <svg viewBox="0 0 900 400" role="img" aria-label="GW-A と GW-B はそれぞれ送信用 SA と受信用 SA を持つ。A から B へのパケットは GW-B が決めた SPI を使い、B から A へのパケットは GW-A が決めた SPI を使う。">
+      <defs>
+        <marker id="cs-ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-child"/></marker>
+        <marker id="cs-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="f-rev"/></marker>
+      </defs>
+      <!-- GW-A -->
+      <rect x="16" y="20" width="262" height="360" rx="12" class="f-surface s-ink" stroke-width="1.6"/>
+      <text x="147" y="46" text-anchor="middle" class="t-lg f-ink">GW-A の SAD</text>
+      <text x="147" y="64" text-anchor="middle" class="t-sm f-muted">(SA データベース)</text>
+      <rect x="32" y="80" width="230" height="120" rx="8" class="f-child-soft s-child" stroke-width="1.6"/>
+      <text x="46" y="102" class="t-md t-b f-child">送信用 SA (A→B)</text>
+      <text x="46" y="126" class="t-sm mono f-ink">SPI  0xC0FFEE01</text>
+      <text x="46" y="146" class="t-sm mono f-ink">鍵   K(i→r)</text>
+      <text x="46" y="166" class="t-sm mono f-ink">次に使う Seq  1043</text>
+      <text x="46" y="188" class="t-sm f-muted">SPI は相手 (B) が決めた値</text>
+      <rect x="32" y="230" width="230" height="130" rx="8" class="f-rev-soft s-rev" stroke-width="1.6"/>
+      <text x="46" y="252" class="t-md t-b f-rev">受信用 SA (B→A)</text>
+      <text x="46" y="276" class="t-sm mono f-ink">SPI  0x5A5A0002</text>
+      <text x="46" y="296" class="t-sm mono f-ink">鍵   K(r→i)</text>
+      <text x="46" y="316" class="t-sm mono f-ink">受信済み Seq の窓</text>
+      <text x="46" y="340" class="t-sm f-muted">SPI は自分 (A) が決めて</text>
+      <text x="46" y="354" class="t-sm f-muted">SAi2 で B に伝えた値</text>
+      <!-- GW-B -->
+      <rect x="622" y="20" width="262" height="360" rx="12" class="f-surface s-ink" stroke-width="1.6"/>
+      <text x="753" y="46" text-anchor="middle" class="t-lg f-ink">GW-B の SAD</text>
+      <text x="753" y="64" text-anchor="middle" class="t-sm f-muted">(SA データベース)</text>
+      <rect x="638" y="80" width="230" height="120" rx="8" class="f-child-soft s-child" stroke-width="1.6"/>
+      <text x="652" y="102" class="t-md t-b f-child">受信用 SA (A→B)</text>
+      <text x="652" y="126" class="t-sm mono f-ink">SPI  0xC0FFEE01</text>
+      <text x="652" y="146" class="t-sm mono f-ink">鍵   K(i→r)</text>
+      <text x="652" y="166" class="t-sm mono f-ink">受信済み Seq の窓</text>
+      <text x="652" y="188" class="t-sm f-muted">SPI は自分 (B) が決めた値</text>
+      <rect x="638" y="230" width="230" height="130" rx="8" class="f-rev-soft s-rev" stroke-width="1.6"/>
+      <text x="652" y="252" class="t-md t-b f-rev">送信用 SA (B→A)</text>
+      <text x="652" y="276" class="t-sm mono f-ink">SPI  0x5A5A0002</text>
+      <text x="652" y="296" class="t-sm mono f-ink">鍵   K(r→i)</text>
+      <text x="652" y="316" class="t-sm mono f-ink">次に使う Seq  988</text>
+      <text x="652" y="340" class="t-sm f-muted">SPI は相手 (A) が決めた値</text>
+      <!-- arrows -->
+      <line x1="262" y1="140" x2="636" y2="140" class="s-child" stroke-width="2.6" marker-end="url(#cs-ac)"/>
+      <rect x="352" y="112" width="196" height="24" rx="4" class="f-surface s-child" stroke-width="1.4"/>
+      <text x="450" y="129" text-anchor="middle" class="t-sm mono f-child">ESP SPI=0xC0FFEE01 Seq=1042</text>
+      <line x1="638" y1="292" x2="264" y2="292" class="s-rev" stroke-width="2.6" marker-end="url(#cs-ar)"/>
+      <rect x="352" y="298" width="196" height="24" rx="4" class="f-surface s-rev" stroke-width="1.4"/>
+      <text x="450" y="315" text-anchor="middle" class="t-sm mono f-rev">ESP SPI=0x5A5A0002 Seq=987</text>
+      <!-- brace -->
+      <text x="450" y="206" text-anchor="middle" class="t-md t-b f-ink">この 2 本で Child SA 1 個</text>
+      <text x="450" y="226" text-anchor="middle" class="t-sm f-muted">鍵も Seq も SPI も方向ごとに別々</text>
+    </svg>
+    </div>
+    <figcaption>同じ色の箱が同じ SA を表します。A→B の SA (緑) は GW-A では「送信用」、GW-B では「受信用」として登録されます。パケットに付く SPI は、そのパケットを <b>受け取る側</b> が選んだ値です。</figcaption>
+  </figure>
+
+  <h3>なぜ 2 本に分けるのか</h3>
+  <ul>
+    <li><b>SPI は受信側が選ぶ。</b>受信側は届いたパケットの SPI だけを見て、自分の SAD から該当する SA を即座に引きます。自分で採番した値なので重複しません。A は SAi2 に「私宛てにはこの SPI を付けて」と自分の受信用 SPI を入れ、B は SAr2 に同じく自分の受信用 SPI を入れます。</li>
+    <li><b>Sequence 番号とリプレイ防止は方向ごと。</b>送信側はカウンタを 1 から増やし、受信側は「受け取り済みの番号の窓」で同じパケットの再送攻撃を弾きます。双方向で 1 つのカウンタを共有すると、この管理が成り立ちません。</li>
+    <li><b>鍵も方向ごとに別。</b>Child SA の鍵素材 <code>KEYMAT = prf+(SK_d, Ni | Nr)</code> を先頭から順に切り出し、「I→R の暗号鍵、I→R の完全性鍵、R→I の暗号鍵、R→I の完全性鍵」に割り当てます。AES-GCM のように同じ鍵と nonce の組を二度使うと壊れる暗号では、方向を分けることが安全性の前提になります。</li>
+    <li><b>寿命の計測も SA ごと。</b>「1 時間」「X バイト」といった lifetime は SA 単位で数えるため、片方向だけ大量に流れる通信でも正しく鍵更新のタイミングを判断できます。</li>
+  </ul>
+
+  <h3>実機で見るとこうなる</h3>
+  <p>Linux (strongSwan) で 1 つの Child SA を作ると、カーネルの <code>ip xfrm state</code> には SA が 2 つ表示されます。</p>
+<pre class="term"><span class="c"># GW-A (203.0.113.1) で実行</span>
+$ sudo ip xfrm state
+<span class="k1">src 203.0.113.1 dst 198.51.100.2</span>          <span class="c">← 送信用 (A→B)</span>
+    proto esp <span class="k1">spi 0xc0ffee01</span> reqid 1 mode tunnel
+    replay-window 0 flag af-unspec
+    aead rfc4106(gcm(aes)) 0x…(鍵)… 128
+<span class="k2">src 198.51.100.2 dst 203.0.113.1</span>          <span class="c">← 受信用 (B→A)</span>
+    proto esp <span class="k2">spi 0x5a5a0002</span> reqid 1 mode tunnel
+    replay-window 32 flag af-unspec
+    aead rfc4106(gcm(aes)) 0x…(別の鍵)… 128
+
+$ sudo swanctl --list-sas
+gw-b: #1, ESTABLISHED, IKEv2, 8a3f…_i* 2c71…_r     <span class="c">← IKE SA (SPIi_SPIr)</span>
+  net-b: #1, reqid 1, INSTALLED, TUNNEL, ESP:AES_GCM_16-128
+    installed 312s ago, rekeying in 2900s
+    in  <span class="k2">5a5a0002</span>, 98211 bytes,  1041 packets   <span class="c">← 1 つの Child SA に</span>
+    out <span class="k1">c0ffee01</span>, 154020 bytes, 1042 packets   <span class="c">← in と out の SPI</span>
+    local  10.1.0.0/24
+    remote 10.2.0.0/24</pre>
+  <p>受信用の SA にだけ <code>replay-window</code> が設定されている点にも注目してください。リプレイ防止は受け取る側の仕事です。</p>
+</section>
+
+<!-- ========== 3b. Seq / replay / lifetime ========== -->
+<section id="replay">
+  <div class="eyebrow">04</div>
+  <h2>シーケンス番号・リプレイ防止・SA の寿命</h2>
+  <p>§03 で「Seq とリプレイ防止は方向ごと」「寿命は SA ごと」と書いた部分を詳しく説明します。</p>
+
+  <h3>シーケンス番号は「ESP パケット 1 個ごと」に増える</h3>
+  <p>SA ごとに独立したカウンターです。1 から始まり、ESP パケットを 1 つ送るたびに 1 増えます。TCP の接続数や HTTP のリクエスト数とは関係なく、通ったパケットの数そのものです。IKE ヘッダの <b>Message ID</b> は「IKE の要求ごとに 1 増える」別のカウンターなので、混同しないように注意してください。</p>
+
+  <h3>リプレイ攻撃: 何がまずいのか</h3>
+  <p>リプレイ攻撃は、<b>中身を読めなくても、改ざんしなくても、本物のパケットをもう一度送るだけで成立する攻撃</b>です。暗号化と改ざん検知は「このパケットは本物か」を保証しますが、「今届いたのは 1 回目か」は保証しません。サイン入りの小切手と同じで、サインは本物なので確認は通りますが、コピーして 2 回持ち込まれたら 2 回支払ってしまいます。</p>
+<pre class="term">LAN A のオペレーター ──「ポンプ起動」(UDP のコマンド) ──▶ LAN B の制御装置
+                    ▲
+          途中の攻撃者が ESP パケットを録画
+          <span class="c">(中身は読めないが「操作した直後に流れた
+           このサイズのパケット」とは推測できる)</span>
+
+夜中に攻撃者がそのパケットを再送 → GW-B は本物として復号 → <span class="k2">ポンプがまた起動</span></pre>
+  <div class="cols three">
+    <div class="card"><b>同じ操作が勝手に繰り返される</b><p style="font-size:.9rem">制御系や IoT のコマンド、入金や在庫の更新、ログや課金カウンターの水増し。特に UDP で動く仕組みは自前の重複チェックがないことが多く、まともに影響を受けます。</p></div>
+    <div class="card"><b>「VPN 経由なら信用できる」が崩れる</b><p style="font-size:.9rem">VPN の内側はファイアウォールを緩めにしがちです。リプレイを許すと、インターネット上の第三者が、その信用された通路に好きなタイミングでパケットを流し込めます。</p></div>
+    <div class="card"><b>負荷をかけられる (DoS)</b><p style="font-size:.9rem">偽物のパケットなら ICV のチェックで安く捨てられますが、本物のコピーは最後まで復号され、LAN に流し込まれます。</p></div>
+  </div>
+  <p>TCP は自分でもシーケンス番号を管理していて重複データを捨てるため、TCP の通信をそのまま再送されても大きな実害にならないことが多いです。ただし IPsec は「上の層が守ってくれるはず」とは前提にできないので、どんな通信でも重複を ESP の段階で一律に弾きます。IKE 側も Message ID と毎回新しい Nonce で再送を見抜きます。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>仕組み</th><th>守るもの</th><th>ESP での担当</th></tr></thead>
+    <tbody>
+      <tr><td>暗号化</td><td>読まれない</td><td>暗号鍵で Payload を暗号化</td></tr>
+      <tr><td>改ざん検知</td><td>書き換えられない</td><td>ICV</td></tr>
+      <tr><td>リプレイ防止</td><td>使い回されない</td><td>Sequence Number と受信窓</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>受信窓 (replay window) の動き</h3>
+  <p>受信側は「今までに見た最大の番号」と、その手前の一定範囲を受け取ったかどうかのビット表を持ちます。範囲に幅を持たせるのは、インターネットではパケットの到着順が入れ替わることがあるからです。「最大値より小さいものは全部捨てる」にすると、正当なパケットまで落ちてしまいます。</p>
+  <figure>
+    <div class="scroll wide">
+    <svg viewBox="0 0 900 190" role="img" aria-label="受信窓の例。最大値 1042 の手前 16 個分が窓。窓より古い番号と受信済みの番号は捨て、窓の中の未受信の番号と最大値より新しい番号は受け取る。">
+      <defs>
+        <marker id="rw-a" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="f-ink"/></marker>
+      </defs>
+      <path d="M176,40 V32 H718 V40" class="s-child none" stroke-width="1.6"/>
+      <text x="447" y="24" text-anchor="middle" class="t-md t-b f-child">受信窓 (この例では 16 個分。実機では 64〜数千)</text>
+      <g id="rwcells"></g>
+      <line x1="90" y1="128" x2="90" y2="92" class="s-ink" stroke-width="1.2" marker-end="url(#rw-a)"/>
+      <text x="90" y="144" text-anchor="middle" class="t-sm mono f-ink">Seq 1024</text>
+      <text x="90" y="161" text-anchor="middle" class="t-sm f-muted">破棄 (窓より古い)</text>
+      <line x1="498" y1="128" x2="498" y2="92" class="s-ink" stroke-width="1.2" marker-end="url(#rw-a)"/>
+      <text x="498" y="144" text-anchor="middle" class="t-sm mono f-ink">Seq 1036</text>
+      <text x="498" y="161" text-anchor="middle" class="t-sm f-rev">破棄 (受信済み = リプレイ)</text>
+      <line x1="634" y1="128" x2="634" y2="92" class="s-ink" stroke-width="1.2" marker-end="url(#rw-a)"/>
+      <text x="634" y="144" text-anchor="middle" class="t-sm mono f-ink">Seq 1040</text>
+      <text x="634" y="161" text-anchor="middle" class="t-sm f-child">受理 (遅れて到着)</text>
+      <line x1="804" y1="128" x2="804" y2="92" class="s-ink" stroke-width="1.2" marker-end="url(#rw-a)"/>
+      <text x="804" y="144" text-anchor="middle" class="t-sm mono f-ink">Seq 1045</text>
+      <text x="804" y="161" text-anchor="middle" class="t-sm f-child">受理して窓を前へ</text>
+      <text x="40" y="184" class="t-sm f-muted">塗りつぶし = 受信済み　白 = 窓の中で未受信　灰 = 窓より古い　点線 = まだ来ていない番号</text>
+    </svg>
+    </div>
+    <figcaption>窓の更新は ICV (改ざん検知) に通ったあとだけ行います。そうしないと、攻撃者が偽の巨大な番号を送るだけで窓を先に進められてしまいます。</figcaption>
+  </figure>
+
+  <h3>受信側の処理の順番 (SPI は受信側が選ぶ)</h3>
+  <div class="flow">
+    <div class="st"><b>① SPI を見る</b>パケット先頭の 4 バイト</div><div class="ar">→</div>
+    <div class="st"><b>② SAD から SA を引く</b>鍵、アルゴリズム、受信窓が出てくる</div><div class="ar">→</div>
+    <div class="st"><b>③ Seq を軽く確認</b>明らかに古ければ即破棄</div><div class="ar">→</div>
+    <div class="st"><b>④ ICV を検証</b>通れば受信窓を更新</div><div class="ar">→</div>
+    <div class="st"><b>⑤ 復号</b>中から元のパケットを取り出す</div><div class="ar">→</div>
+    <div class="st"><b>⑥ TS を確認</b>この SA で来てよい送信元・宛先か</div>
+  </div>
+  <p>SPI は受信側が自分の表を引くための番号なので、<b>受け取る本人が採番</b>します。GW-B が 100 拠点とつながっていれば受信用 SA も 100 組以上あります。送信側が勝手に決めると、拠点 X と拠点 Y が偶然同じ番号を選んで衝突しかねません。受け取る本人が決めれば、自分の表の中で重複しないことを保証できます。ホテルの予約番号はホテル側が発行し、客はそれを伝えるだけ、という関係と同じです。IKE_AUTH の SAi2 / SAr2 で、お互いに「私宛てにはこの番号を付けて送って」と伝え合っています。</p>
+  <p>§05 で書いた「2 回見る」は、送信時に SPD で「どの SA で守るか」を決めることと、受信時の ⑥ で「この SA で来てよいパケットか」を確かめることの 2 つです。</p>
+
+  <h3>カウンターはオーバーフローしないのか</h3>
+  <p>32 ビットなので上限は約 43 億パケットです。高速な回線では、実際に届き得る数です。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>回線</th><th>1 秒あたりのパケット数</th><th>43 億に達するまで</th></tr></thead>
+    <tbody>
+      <tr><td>1 Gbps、1500 バイトのパケット</td><td class="num">約 8.3 万</td><td class="num">約 14 時間</td></tr>
+      <tr><td>10 Gbps、1500 バイトのパケット</td><td class="num">約 83 万</td><td class="num">約 86 分</td></tr>
+      <tr><td>10 Gbps、最小 64 バイトのパケット</td><td class="num">約 1,488 万</td><td class="num">約 5 分</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><b>番号の一周は仕様で禁止されています。</b>上限に達する前に、必ず新しい SA に切り替えます。新しい SA は SPI も鍵も新しく、カウンターは 1 から始まります。これが次に説明する「寿命」の役割の 1 つです。</li>
+    <li><b>ESN (Extended Sequence Number)</b> はカウンターを 64 ビットに拡張する方式です。パケットに載せるのは下位 32 ビットだけで、上位 32 ビットは両者がそれぞれ数え、ICV の計算にだけ混ぜます。64 ビットなら 10 Gbps でも事実上使い切れないので、高速回線ではこれを有効にするのが普通です。</li>
+  </ul>
+
+  <h3>寿命 (lifetime) は「トンネルの長さ」ではなく「鍵の使用期限」</h3>
+  <ul>
+    <li><b>Child SA は TCP の接続ごとに作られるわけではありません。</b>LAN A と LAN B の間の TCP 接続が 1 万本あっても、範囲が同じなら全部 1 つの Child SA を通ります。TCP が切れても Child SA は何も変わりません。</li>
+    <li><b>寿命は「同じ鍵をどれだけ使い続けてよいか」です。</b>寿命が来たら、トンネルは切れずに鍵だけ新しくなります (rekey)。トンネル自体は設定次第で何日でも何か月でも張りっぱなしです。</li>
+    <li><b>測り方は時間・データ量・パケット数の 3 種類</b>で、併用できます。どれかに達したら切り替えます。シーケンス番号の上限もここに含まれます。</li>
+    <li><b>鍵を定期的に替える理由:</b> 1 つの鍵で暗号化するデータ量を抑える (暗号の安全上の限界と Seq の上限)。万一鍵が漏れたときの被害をその期間だけに限る。更新時に DH をやり直せば PFS になる。</li>
+  </ul>
+  <figure>
+    <div class="scroll wide">
+    <svg viewBox="0 0 900 230" role="img" aria-label="鍵更新のタイムライン。古い SA の寿命が切れる前に新しい SA を作り、送信を切り替えてから古い SA を削除する。両方の SA が並存する期間がある。">
+      <line x1="60" y1="190" x2="860" y2="190" class="s-muted" stroke-width="1.2"/>
+      <text x="60" y="210" text-anchor="middle" class="t-sm mono f-muted">0 分</text>
+      <text x="620" y="210" text-anchor="middle" class="t-sm mono f-muted">60 分</text>
+      <rect x="520" y="40" width="100" height="140" class="f-child-soft" opacity=".6"/>
+      <text x="570" y="34" text-anchor="middle" class="t-sm t-b f-child">両方の SA が並存</text>
+      <rect x="60" y="60" width="560" height="34" rx="6" class="f-surface s-child" stroke-width="1.8"/>
+      <text x="80" y="82" class="t-md t-b f-ink">古い Child SA (SPI 0xC0FFEE01)</text>
+      <rect x="520" y="120" width="340" height="34" rx="6" class="f-child-soft s-child" stroke-width="1.8"/>
+      <text x="540" y="142" class="t-md t-b f-ink">新しい Child SA (SPI 0xC0FFEE09)</text>
+      <line x1="520" y1="44" x2="520" y2="190" class="s-ink" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <line x1="560" y1="44" x2="560" y2="190" class="s-ink" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <line x1="620" y1="44" x2="620" y2="190" class="s-ink" stroke-width="1.2" stroke-dasharray="4 3"/>
+      <text x="514" y="112" text-anchor="end" class="t-sm f-ink">① ソフト寿命: CREATE_CHILD_SA で新 SA を交渉</text>
+      <text x="566" y="174" class="t-sm f-ink">② 送信を新 SA に切り替え</text>
+      <text x="626" y="104" class="t-sm f-ink">③ ハード寿命前に旧 SA を Delete</text>
+    </svg>
+    </div>
+    <figcaption>新しい SA を先に作ってから古い SA を消す (make-before-break) ので、通常は切り替えで通信が途切れません。ソフト寿命の時刻には少しランダムな幅を持たせ、両側が同時に更新を始めないようにします。</figcaption>
+  </figure>
+  <div class="tbl"><table>
+    <thead><tr><th>環境</th><th>IKE SA</th><th>Child SA</th></tr></thead>
+    <tbody>
+      <tr><td>strongSwan のデフォルト</td><td>4 時間で rekey</td><td>1 時間で rekey</td></tr>
+      <tr><td>AWS Site-to-Site VPN のデフォルト</td><td>8 時間 (28,800 秒)</td><td>1 時間 (3,600 秒)</td></tr>
+      <tr><td>Cisco IOS (IKEv1) のデフォルト</td><td>24 時間</td><td>1 時間 または 約 4.6 GB</td></tr>
+    </tbody>
+  </table></div>
+  <p>「IKE SA は長め、Child SA は短め」というのが一般的な形です。ただし短いのは鍵の寿命であって、TCP のように通信が終わったら消えるわけではありません。トンネル自体が消えるのは、DPD で相手の応答がなくなったとき、管理者が切ったとき、「一定時間通信がなければ切る」設定があるときなどです。</p>
+
+  <h3>鍵の更新中に通信は遅くなるか</h3>
+  <p><b>正常に動いていれば、体感できる遅延はほぼありません。</b>理由は 3 つあります。</p>
+  <ul>
+    <li><b>交渉は裏の IKE で行われる。</b>CREATE_CHILD_SA は IKE SA 上の 1 往復だけで、その間もデータは古い SA でそのまま流れ続けます。</li>
+    <li><b>先に作ってから切り替える。</b>上の図のとおり、新旧の SA が並存する期間があり、受信側はしばらく両方の SPI を受け付けます。</li>
+    <li><b>1 パケットあたりの処理は変わらない。</b>鍵が変わるだけで、暗号アルゴリズムもパケットの大きさも同じです。</li>
+  </ul>
+  <p>計算の負荷としては、PFS ありの場合に DH をやり直す分の CPU 時間がかかります。楕円曲線 (ECP や Curve25519) なら 1 回あたり 1 ミリ秒未満から数ミリ秒程度で、制御側の処理なので普通は問題になりません。ただし小型のルーターで数百本のトンネルが同時に更新を迎えると、一時的に CPU が張り付くことがあります。</p>
+  <div class="callout warn">
+    <b>実際に問題が出るのは、ほぼ「遅くなる」ではなく「一瞬落ちる・切れる」パターンです。</b>
+    <ul style="margin:.4rem 0 0">
+      <li><b>古い SA を早く消しすぎる:</b> 切り替え直後、古い SA で送られて遅れて届いたパケットが数個捨てられる。</li>
+      <li><b>両側が同時に更新を始める (rekey collision):</b> 仕様上は解決手順があるが、実装の相性で一瞬不安定になることがある。</li>
+      <li><b>寿命の設定が左右で食い違う、または更新の交渉に失敗する:</b> 新しい SA ができないままハード寿命を迎え、SA が消えて通信が止まる。「1 時間ごとに切れる」「8 時間ごとに切れる」症状の典型。</li>
+      <li><b>IKE SA の「再認証 (reauthentication)」:</b> IKE SA の rekey 自体は Child SA を引き継ぐのでデータ通信に影響しない。ただし設定によっては、認証からやり直すために全部を作り直す動作になり、短時間途切れることがある。</li>
+      <li><b>ハードウェアで暗号処理する機器:</b> 新しい SA を専用チップに登録するわずかな時間に、パケットが処理されないことがある。</li>
+    </ul>
+  </div>
+  <p>対策としては、寿命の値を両側でそろえる (または片側だけ短くして、そちらが必ず先に更新を始めるようにする)、DPD を有効にする、IKE SA は再認証ではなく rekey にする、といった設定が定番です。</p>
+</section>
+
+<!-- ========== 4. Scope / TS ========== -->
+<section id="scope">
+  <div class="eyebrow">05</div>
+  <h2>Child SA の「範囲」: Traffic Selector と SPD</h2>
+  <p>Child SA が守る通信の範囲は、IKE_AUTH や CREATE_CHILD_SA に入れる <b>Traffic Selector (TS)</b> で決まります。TS は「アドレスの範囲 × IP プロトコル × ポートの範囲」の組です。TSi が Initiator 側、TSr が Responder 側の範囲で、GW-B から見ても TSi は GW-A 側を指します (「自分側」ではなく「Initiator 側」です)。</p>
+
+  <div class="cols two">
+    <div class="card">
+      <b>交渉の例: 範囲の絞り込み (narrowing)</b>
+      <p style="font-size:.92rem">GW-A が <code>TSi=10.1.0.0/24, TSr=0.0.0.0/0</code> (全部) を提案し、GW-B のポリシーが <code>10.2.0.0/24</code> だけを許すなら、GW-B は <code>TSr=10.2.0.0/24</code> に狭めて返します。重なりがまったくなければ <code>TS_UNACCEPTABLE</code> で Child SA の作成は失敗し、IKE SA だけが残ります。</p>
+    </div>
+    <div class="card">
+      <b>送るときと受け取るときに 2 回見る</b>
+      <p style="font-size:.92rem">送信時は SPD (ポリシー表) で「このパケットはどの Child SA で守るか」を決めます。受信時は SPI で SA を引いて復号したあと、中身の送信元・宛先がその SA の TS に収まっているかを確認し、範囲外なら捨てます。</p>
+    </div>
+  </div>
+
+  <div class="flow" aria-label="送信時の処理の流れ">
+    <div class="st"><b>① パケット発生</b>10.1.0.25 → 10.2.0.80</div><div class="ar">→</div>
+    <div class="st"><b>② SPD を検索</b>PROTECT / BYPASS / DISCARD のどれか</div><div class="ar">→</div>
+    <div class="st"><b>③ SAD から SA を選ぶ</b>送信用 SPI・鍵・Seq を取得</div><div class="ar">→</div>
+    <div class="st"><b>④ ESP で包んで送信</b>外側は 203.0.113.1 → 198.51.100.2</div>
+  </div>
+
+  <h3>試してみる: このパケットはどの Child SA に乗る?</h3>
+  <p>GW-A の立場で判定します。GW-A には次の 2 つの Child SA があるものとします。</p>
+  <div class="sim">
+    <div>
+      <div class="sa-card" id="sa1"><b>Child SA #1</b> · 送信 SPI <span class="mono">0xC0FFEE01</span><br>
+        <span class="mono">TSi: 10.1.0.0–10.1.0.255, proto 0 (全部), port 0–65535<br>TSr: 10.2.0.0–10.2.0.255, proto 0 (全部), port 0–65535</span></div>
+      <div class="sa-card" id="sa2"><b>Child SA #2</b> · 送信 SPI <span class="mono">0xC0FFEE07</span><br>
+        <span class="mono">TSi: 10.1.0.0–10.1.0.255, proto 6 (TCP), port 0–65535<br>TSr: 10.3.0.0–10.3.0.255, proto 6 (TCP), port 443–443</span></div>
+      <div class="chips" aria-label="例">
+        <button type="button" class="chip" data-p="10.1.0.25,10.2.0.80,6,22">SSH で LAN B へ</button>
+        <button type="button" class="chip" data-p="10.1.0.25,10.3.0.10,6,443">HTTPS で LAN C へ</button>
+        <button type="button" class="chip" data-p="10.1.0.25,10.3.0.10,6,80">HTTP で LAN C へ</button>
+        <button type="button" class="chip" data-p="10.1.0.25,8.8.8.8,17,53">DNS でインターネットへ</button>
+        <button type="button" class="chip" data-p="10.2.0.80,10.1.0.25,6,51234">LAN B から届いた返事</button>
+      </div>
+    </div>
+    <div class="card">
+      <form class="simf" id="simf">
+        <label for="sSrc">送信元 IP<input id="sSrc" value="10.1.0.25" inputmode="decimal" autocomplete="off"></label>
+        <label for="sDst">宛先 IP<input id="sDst" value="10.2.0.80" inputmode="decimal" autocomplete="off"></label>
+        <label for="sProto">プロトコル<select id="sProto"><option value="6">TCP (6)</option><option value="17">UDP (17)</option><option value="1">ICMP (1)</option></select></label>
+        <label for="sPort">宛先ポート<input id="sPort" value="22" inputmode="numeric" autocomplete="off"></label>
+      </form>
+      <div class="result" id="simResult" aria-live="polite"></div>
+    </div>
+  </div>
+  <p style="font-size:.9rem;color:var(--muted)">どの TS にも当たらないパケットの扱い (平文で通すか捨てるか) は、機器の設定や SPD のポリシーによって決まります。ここでは一般的な「通常ルーティングで平文送信 (BYPASS)」として表示しています。</p>
+</section>
+
+<!-- ========== 5. Packets ========== -->
+<section id="packets">
+  <div class="eyebrow">06</div>
+  <h2>パケットフォーマット (ビット単位)</h2>
+  <p>RFC の図と同じく、1 行を 32 ビット (4 バイト) として描いています。上の目盛りがビット番号で、斜線の欄は長さが可変です。黄色は暗号化される部分、紫は改ざん検知だけの部分です。長さが固定のフィールドと、アルゴリズムや中身によって長さが変わるフィールドがはっきり分かれているのがわかります。</p>
+  <div id="pktRoot"></div>
+
+  <h3>値の対応表</h3>
+  <div class="cols two">
+    <div class="tbl" style="margin:0"><table>
+      <thead><tr><th>Exchange Type</th><th>値</th></tr></thead>
+      <tbody>
+        <tr><td>IKE_SA_INIT</td><td class="num">34</td></tr>
+        <tr><td>IKE_AUTH</td><td class="num">35</td></tr>
+        <tr><td>CREATE_CHILD_SA</td><td class="num">36</td></tr>
+        <tr><td>INFORMATIONAL</td><td class="num">37</td></tr>
+      </tbody>
+    </table></div>
+    <div class="tbl" style="margin:0"><table>
+      <thead><tr><th>Next Payload (ペイロード種別)</th><th>値</th></tr></thead>
+      <tbody>
+        <tr><td>SA / KE / IDi / IDr</td><td class="num">33 / 34 / 35 / 36</td></tr>
+        <tr><td>CERT / CERTREQ / AUTH</td><td class="num">37 / 38 / 39</td></tr>
+        <tr><td>Nonce / Notify / Delete</td><td class="num">40 / 41 / 42</td></tr>
+        <tr><td>TSi / TSr / SK (暗号化)</td><td class="num">44 / 45 / 46</td></tr>
+        <tr><td>ペイロードの終わり</td><td class="num">0</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="callout">IKE メッセージは「ヘッダ → ペイロード → ペイロード → …」の鎖です。各ペイロードの先頭 4 バイトにある <b>Next Payload</b> が「次は何が来るか」を示し、0 で終わります。③ の IKE_AUTH なら <code>HDR(Next=46) → SK(Next=35) → [暗号化された中身: IDi(Next=39) → AUTH(Next=33) → SA(Next=44) → TSi(Next=45) → TSr(Next=0)]</code> とつながります。</div>
+</section>
+
+<!-- ========== 6. ESP/AH ========== -->
+<section id="esp-ah">
+  <div class="eyebrow">07</div>
+  <h2>ESP と AH: 何を守るかの違い</h2>
+  <div class="cols two">
+    <div class="card" style="border-top:4px solid var(--child)">
+      <b>ESP (Encapsulating Security Payload)</b> · IP プロトコル 50
+      <ul style="font-size:.93rem">
+        <li>中身を<b>暗号化</b>し、ESP ヘッダから後ろの<b>改ざんも検知</b>する</li>
+        <li>外側の IP ヘッダは守らない。そのため NAT と組み合わせられる (UDP 4500 に包む NAT-T)</li>
+        <li>現在の VPN はほぼすべて ESP。AES-GCM などの AEAD なら暗号化と改ざん検知を 1 つのアルゴリズムで行う</li>
+      </ul>
+    </div>
+    <div class="card" style="border-top:4px solid var(--auth)">
+      <b>AH (Authentication Header)</b> · IP プロトコル 51
+      <ul style="font-size:.93rem">
+        <li><b>暗号化しない</b>。改ざん検知と送信元の確認だけを行う</li>
+        <li>外側の IP ヘッダ (途中で変わる TTL などを除く) まで検証対象。だから途中で NAT がアドレスを書き換えると検証に失敗する</li>
+        <li>実務ではほとんど使われない。暗号化不要でも、ESP の NULL 暗号 (改ざん検知のみ) で代用するのが一般的</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>モード: トンネルとトランスポート</h3>
+  <p><b>トンネルモード</b>は元の IP パケットを丸ごと包み、新しい IP ヘッダ (GW 同士のアドレス) を付けます。拠点間 VPN は通常こちらです。<b>トランスポートモード</b>は元の IP ヘッダをそのまま使い、その後ろのデータだけを守ります。ホスト同士の直接通信や、GRE や L2TP を IPsec で守る構成で使います。下のボタンで 5 つのパターンを切り替えられます。</p>
+
+  <div class="chips" id="layChips" role="group" aria-label="パケット構成の切り替え">
+    <button type="button" class="chip" data-m="esp-tun" aria-pressed="true">ESP トンネル</button>
+    <button type="button" class="chip" data-m="esp-tun-nat" aria-pressed="false">ESP トンネル + NAT-T</button>
+    <button type="button" class="chip" data-m="esp-tr" aria-pressed="false">ESP トランスポート</button>
+    <button type="button" class="chip" data-m="ah-tun" aria-pressed="false">AH トンネル</button>
+    <button type="button" class="chip" data-m="ah-tr" aria-pressed="false">AH トランスポート</button>
+  </div>
+  <div class="card">
+    <div style="overflow-x:auto"><div class="lay" id="lay"></div></div>
+    <div class="lay-note" id="layNote"></div>
+  </div>
+
+  <h3>オーバーヘッドの目安 (MTU の話)</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>構成</th><th>増える部分</th><th>合計</th></tr></thead>
+    <tbody>
+      <tr><td>ESP トンネル · AES-GCM-128</td><td>外側 IP 20 + SPI/Seq 8 + IV 8 + パディング 0〜3 + Pad Length/Next Header 2 + ICV 16</td><td class="num">54〜57 B</td></tr>
+      <tr><td>上と同じ + NAT-T</td><td>+ UDP ヘッダ 8</td><td class="num">62〜65 B</td></tr>
+      <tr><td>ESP トンネル · AES-CBC + HMAC-SHA256-128</td><td>外側 IP 20 + 8 + IV 16 + パディング 0〜15 + 2 + ICV 16</td><td class="num">62〜77 B</td></tr>
+    </tbody>
+  </table></div>
+  <p>1500 バイトの回線で 1500 バイトの元パケットは入りきらず、断片化か「Packet Too Big」が起きます。VPN で「ping は通るのに Web や SMB が固まる」ときは、まず MTU と TCP MSS の調整 (例: MSS を 1360 前後に) を疑うのが定石です。</p>
+</section>
+
+<!-- ========== 7. Summary ========== -->
+<section id="summary">
+  <div class="eyebrow">08</div>
+  <h2>VPN まわりのまとめ</h2>
+
+  <h3>IPsec を構成する 3 層</h3>
+  <div class="stack">
+    <div class="layer ike"><div class="nm">制御プレーン<br><span class="mono" style="font-size:.8rem;color:var(--muted)">IKEv2 · UDP 500/4500</span></div><div>IKE デーモン同士が IKE SA を作り、認証し、Child SA の鍵とポリシーを交渉する。結果をカーネルに書き込む。</div></div>
+    <div class="layer db"><div class="nm">SPD と SAD<br><span class="mono" style="font-size:.8rem;color:var(--muted)">カーネル内の 2 つの表</span></div><div><b>SPD</b> (ポリシー) は「どの通信を守るか」、<b>SAD</b> (SA) は「どう守るか: SPI・鍵・Seq・寿命」。Linux なら <code>ip xfrm policy</code> と <code>ip xfrm state</code>。</div></div>
+    <div class="layer dp"><div class="nm">データプレーン<br><span class="mono" style="font-size:.8rem;color:var(--muted)">ESP (50) / AH (51)</span></div><div>パケットごとに SPD と SAD を引き、ESP で包んで送る。受け取ったら SPI で SA を引き、検証して復号する。IKE デーモンが止まっても、SA の寿命が切れるまでは通信が続く。</div></div>
+  </div>
+
+  <h3>鍵の決め方は差し替えられる部品: IKEv2 以外の方式</h3>
+  <p>IPsec の全体設計 (RFC 4301) で固定されているのは、上の図の下 2 層、つまり <b>ESP/AH と、単方向 SA を 2 本で 1 組にする形</b>です。一番上の「誰が SA を作って鍵を決めるか」は、別の方式に入れ替えられる部品として扱われています。IKE SA と Child SA の親子関係は、その部品の 1 つである IKEv2 の構造と呼び名です。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>方式</th><th>親子構造</th><th>位置づけ</th></tr></thead>
+    <tbody>
+      <tr><td><b>IKEv2</b></td><td>IKE SA → Child SA</td><td><b>現在の標準。</b>インターネット VPN を新しく作るならほぼこれ</td></tr>
+      <tr><td>IKEv1</td><td>ISAKMP SA (Phase 1) → IPsec SA (Phase 2)</td><td>考え方は同じ親子構造で、呼び名が違うだけ。RFC 9395 で非推奨になったが、古い機器にはまだ多い</td></tr>
+      <tr><td>手動鍵 (manual keying)</td><td>親なし</td><td>SPI と鍵を管理者が両側に直接設定する。鍵の自動更新も PFS もない。検証用以外では使わない</td></tr>
+      <tr><td>GDOI (グループ鍵)</td><td>鍵サーバー → グループ SA</td><td>多数の拠点が同じ鍵を共有し、拠点ごとのトンネルを作らない。閉域網の上で暗号化をかける用途 (例: Cisco GETVPN)</td></tr>
+      <tr><td>コントローラー配布</td><td>親なし (コントローラーが配る)</td><td>SD-WAN 製品などで、中央のコントローラーが各拠点に SA の鍵を配る。IETF にも IKE を使わない形の仕様がある (RFC 9061)</td></tr>
+      <tr><td>KINK</td><td>Kerberos で鍵を決める</td><td>仕様はあるが、実際にはほぼ使われていない</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout">まとめ: IKE SA と Child SA 以外にも方式はあるが、インターネット上で 2 点を結ぶ IPsec VPN の事実上の標準は IKEv2 (古い環境では IKEv1)。なので、実務ではこの親子構造がほぼ必ず出てくる。</div>
+
+  <h3>設定でいう「方式」: ポリシーベースとルートベース</h3>
+  <p>機器の設定画面で「方式」と言うときは、鍵の決め方ではなく、<b>どの通信を Child SA に流すか</b>の違いを指すことが多いです。どちらも IKEv2 の親子構造は同じです。</p>
+  <div class="cols two">
+    <div class="card">
+      <b>ポリシーベース</b>
+      <p style="font-size:.92rem">Traffic Selector に具体的なサブネットを書く (<code>10.1.0.0/24 ⇔ 10.2.0.0/24</code>)。拠点やサブネットの組み合わせごとに Child SA が増える。このページの例はこちら。</p>
+    </div>
+    <div class="card">
+      <b>ルートベース (VTI)</b>
+      <p style="font-size:.92rem">TS は <code>0.0.0.0/0 ⇔ 0.0.0.0/0</code> にして Child SA を 1 つだけ作り、トンネルを仮想インターフェースとして扱う。どの通信を流すかはルーティング (静的ルートや BGP) で決める。AWS の VPN 接続や多くのファイアウォール製品はこちら。</p>
+    </div>
+  </div>
+
+  <h3>ライフサイクル</h3>
+  <div class="flow">
+    <div class="st"><b>確立</b>IKE_SA_INIT + IKE_AUTH の 4 メッセージ</div><div class="ar">→</div>
+    <div class="st"><b>追加</b>CREATE_CHILD_SA で別の範囲の Child SA</div><div class="ar">→</div>
+    <div class="st"><b>鍵更新 (rekey)</b>寿命の前に新しい SA を作って切り替え、古い SA は Delete</div><div class="ar">→</div>
+    <div class="st"><b>生存確認 (DPD)</b>空の INFORMATIONAL を送り、返事がなければ SA を消す</div><div class="ar">→</div>
+    <div class="st"><b>削除</b>Delete ペイロード。IKE SA を消すと配下の Child SA も消える</div>
+  </div>
+  <p>Child SA の鍵更新は CREATE_CHILD_SA に <code>N(REKEY_SA)</code> を付けて行います。IKE SA 自体の鍵更新も CREATE_CHILD_SA を使います (TS は付けず、SA ペイロードに IKE 用の提案を入れる)。新しい IKE SA ができると、既存の Child SA はそちらに引き継がれます。KEi/KEr を付けて DH をやり直すと、古い鍵が漏れても新しい鍵は守られる <b>PFS</b> になります。</p>
+
+  <h3>IKEv1 の用語との対応</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>IKEv1</th><th>IKEv2</th><th>補足</th></tr></thead>
+    <tbody>
+      <tr><td>Phase 1 (Main Mode 6 メッセージ / Aggressive Mode 3 メッセージ)、ISAKMP SA</td><td>IKE SA (IKE_SA_INIT + IKE_AUTH)</td><td>v2 は 4 メッセージで Child SA まで作る</td></tr>
+      <tr><td>Phase 2 (Quick Mode)、IPsec SA</td><td>Child SA</td><td>2 本目以降は CREATE_CHILD_SA</td></tr>
+      <tr><td>Proxy ID / 暗号 ACL</td><td>Traffic Selector</td><td>機器によって呼び名が違うだけで中身は同じ</td></tr>
+      <tr><td>DPD (拡張仕様)</td><td>INFORMATIONAL (標準)</td><td>v2 では生存確認が本体の仕様に入っている</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>ほかの VPN との位置づけ</h3>
+  <div class="tbl"><table>
+    <thead><tr><th></th><th>IPsec (IKEv2 + ESP)</th><th>OpenVPN / SSL-VPN</th><th>WireGuard</th></tr></thead>
+    <tbody>
+      <tr><td>鍵交換</td><td>IKEv2 (別プロトコル)</td><td>TLS</td><td>Noise プロトコル (Curve25519)</td></tr>
+      <tr><td>データ</td><td>ESP (IP 層)</td><td>独自形式を UDP または TCP で運ぶ</td><td>ChaCha20-Poly1305 を UDP で運ぶ</td></tr>
+      <tr><td>暗号の選び方</td><td>提案と選択で交渉する</td><td>TLS の交渉</td><td>固定 (交渉しない)</td></tr>
+      <tr><td>制御とデータの分離</td><td>IKE SA と Child SA で明確に分かれる</td><td>同じ接続の中</td><td>同じ UDP の中</td></tr>
+      <tr><td>主な用途</td><td>拠点間、クラウド接続 (AWS/Azure の VPN 接続)、リモートアクセス</td><td>リモートアクセス</td><td>リモートアクセス、拠点間、メッシュ</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>つながらないときの切り分け</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>症状</th><th>止まっている場所</th><th>よくある原因</th></tr></thead>
+    <tbody>
+      <tr><td>① の応答がない</td><td>IKE_SA_INIT</td><td>UDP 500/4500 の遮断、相手のアドレス違い</td></tr>
+      <tr><td><code>NO_PROPOSAL_CHOSEN</code> (②)</td><td>IKE_SA_INIT</td><td>IKE の暗号・PRF・DH グループの不一致</td></tr>
+      <tr><td><code>INVALID_KE_PAYLOAD</code></td><td>IKE_SA_INIT</td><td>最初に送った DH グループが相手の希望と違う (正しいグループで自動的にやり直すことが多い)</td></tr>
+      <tr><td><code>AUTHENTICATION_FAILED</code></td><td>IKE_AUTH</td><td>PSK の違い、ID (IDi/IDr) の不一致、証明書の検証失敗</td></tr>
+      <tr><td>IKE SA はできたが Child SA がない</td><td>IKE_AUTH の SA/TS 部分</td><td>ESP の提案の不一致 (<code>NO_PROPOSAL_CHOSEN</code>)、TS の不一致 (<code>TS_UNACCEPTABLE</code>)</td></tr>
+      <tr><td>SA はあるのに通信できない</td><td>データプレーン</td><td>ルーティング、FW が ESP(50)/UDP 4500 を通さない、NAT 除外の設定、MTU</td></tr>
+      <tr><td>一定時間ごとに切れる</td><td>鍵更新、DPD</td><td>寿命や rekey 設定の食い違い、DPD のタイムアウト、NAT のセッション切れ</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3 id="glossary">略語・用語集</h3>
+  <p>ページに出てくる略語を、正式名と一緒にまとめました。</p>
+  <h4 style="margin:1.4rem 0 .3rem;font-size:1rem">まず押さえたい 4 つ</h4>
+  <p style="font-size:.92rem"><b>Child SA</b> は略語ではなく、そのまま「子の SA」です。IKE SA (親) の下にぶら下がるので Child と呼びます。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>略語</th><th>正式名</th><th>意味</th></tr></thead>
+    <tbody>
+      <tr><td class="num">IPsec</td><td>IP security</td><td>IP 層でパケットを守る仕組み全体の名前</td></tr>
+      <tr><td class="num">IKE</td><td>Internet Key Exchange</td><td>インターネット上で鍵を交換するためのプロトコル。IKEv2 はその第 2 版</td></tr>
+      <tr><td class="num">SA</td><td>Security Association</td><td>「この相手と、この鍵、この方式で守る」という取り決め</td></tr>
+      <tr><td class="num">SPI</td><td>Security Parameters Index</td><td>SA を見分ける番号。パケットに付いていて、受け取った側はこれを見てどの SA の鍵で開けるかを決める</td></tr>
+    </tbody>
+  </table></div>
+  <h4 style="margin:1.4rem 0 .3rem;font-size:1rem">SK まわり (鍵の名前)</h4>
+  <p style="font-size:.92rem"><b>SK は何の略か:</b> IKEv2 の仕様 (RFC 7296) には正式な展開形が書かれていません。由来は IKEv1 (RFC 2409) の <code>SKEYID</code> で、そこでも「交換の当事者だけが知っている秘密から導いた値」と説明されるだけで、略語としての展開はありません。IKEv1 には <code>SKEYID_d / SKEYID_a / SKEYID_e</code> という鍵があり、IKEv2 ではこれが <code>SKEYSEED</code> と <code>SK_d / SK_a / SK_e / SK_p</code> に整理されました。末尾の d・a・e の意味も v1 と同じです。中身が秘密の鍵なので、<b>Secret Key (秘密鍵) の SK</b> と読むのが自然で、一般にもそう説明されます。ただしこれは慣習的な読み方で、RFC の定義ではありません。</p>
+  <p style="font-size:.92rem">IKEv2 の中での使われ方は 2 つです。<code>SK_xx</code> は IKE SA で作られる鍵の名前、<code>SK{ … }</code> は「中身をその鍵 (SK_e と SK_a) で暗号化・保護した」という印 (Encrypted ペイロード) です。</p>
+  <p style="font-size:.92rem;color:var(--muted)">別の文書では SK が Shared Key (事前共有鍵、つまり PSK) の意味で使われることもあります (例: RFC 6738 の「IKEv2 SK」)。鍵の名前の SK_xx とは別物なので、文脈で読み分けてください。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>名前</th><th>読み方</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td class="num">SKEYSEED</td><td>SK + seed (種)</td><td>すべての鍵の元になる値</td></tr>
+      <tr><td class="num">SK_d</td><td>d = derive (導出)</td><td>Child SA の鍵を作るための鍵</td></tr>
+      <tr><td class="num">SK_a</td><td>a = authentication</td><td>IKE メッセージの改ざん検知用</td></tr>
+      <tr><td class="num">SK_e</td><td>e = encryption</td><td>IKE メッセージの暗号化用</td></tr>
+      <tr><td class="num">SK_p</td><td>(RFC に展開なし)</td><td>AUTH ペイロードの計算用</td></tr>
+      <tr><td class="num">…i / …r</td><td>initiator / responder</td><td>接続を始めた側 / 応答した側。例: SK_ei は「Initiator が送るときの暗号鍵」</td></tr>
+    </tbody>
+  </table></div>
+  <h4 style="margin:1.4rem 0 .3rem;font-size:1rem">データを運ぶ側</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>略語</th><th>正式名</th><th>意味</th></tr></thead>
+    <tbody>
+      <tr><td class="num">ESP</td><td>Encapsulating Security Payload</td><td>中身を包んで暗号化と改ざん検知をする</td></tr>
+      <tr><td class="num">AH</td><td>Authentication Header</td><td>改ざん検知だけ。暗号化はしない</td></tr>
+      <tr><td class="num">ICV</td><td>Integrity Check Value</td><td>改ざん検知のための値</td></tr>
+      <tr><td class="num">IV</td><td>Initialization Vector</td><td>暗号化のたびに変える初期値</td></tr>
+      <tr><td class="num">ESN</td><td>Extended Sequence Number</td><td>64 ビットに拡張した通し番号</td></tr>
+      <tr><td class="num">SPD</td><td>Security Policy Database</td><td>「どの通信を守るか」の表</td></tr>
+      <tr><td class="num">SAD</td><td>Security Association Database</td><td>「どう守るか (SPI・鍵など)」の表</td></tr>
+      <tr><td class="num">TS</td><td>Traffic Selector</td><td>Child SA で守る通信の範囲</td></tr>
+    </tbody>
+  </table></div>
+  <h4 style="margin:1.4rem 0 .3rem;font-size:1rem">IKE のメッセージに出てくるもの (ペイロード)</h4>
+  <p style="font-size:.92rem">Nonce と Notify はどちらも頭文字が N ですが、Nonce は Ni/Nr、Notify は N(…) と書き分けます。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>表記</th><th>正式名</th><th>意味</th></tr></thead>
+    <tbody>
+      <tr><td class="num">HDR</td><td>Header</td><td>IKE ヘッダ</td></tr>
+      <tr><td class="num">SA</td><td>Security Association</td><td>暗号方式の提案と選択</td></tr>
+      <tr><td class="num">KE</td><td>Key Exchange</td><td>DH 鍵交換の公開値</td></tr>
+      <tr><td class="num">Ni / Nr</td><td>Nonce (number used once)</td><td>一度しか使わない乱数</td></tr>
+      <tr><td class="num">ID</td><td>Identification</td><td>自分が誰か</td></tr>
+      <tr><td class="num">AUTH</td><td>Authentication</td><td>本人であることの証明</td></tr>
+      <tr><td class="num">CERT / CERTREQ</td><td>Certificate / Certificate Request</td><td>証明書 / 証明書の要求</td></tr>
+      <tr><td class="num">N(…)</td><td>Notify</td><td>通知 (エラーや状態)</td></tr>
+      <tr><td class="num">D</td><td>Delete</td><td>SA の削除</td></tr>
+      <tr><td class="num">CP</td><td>Configuration Payload</td><td>リモートアクセスで IP アドレスなどを配る</td></tr>
+    </tbody>
+  </table></div>
+  <h4 style="margin:1.4rem 0 .3rem;font-size:1rem">暗号・仕組みの用語</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>略語</th><th>正式名</th><th>意味</th></tr></thead>
+    <tbody>
+      <tr><td class="num">DH</td><td>Diffie-Hellman</td><td>鍵そのものを送らずに共通の秘密を作る方法</td></tr>
+      <tr><td class="num">MODP / ECP</td><td>Modular Exponential / Elliptic Curve over GF[P]</td><td>DH の種類 (素数を使う方式 / 楕円曲線を使う方式)</td></tr>
+      <tr><td class="num">PRF / prf+</td><td>Pseudo-Random Function</td><td>擬似乱数関数。prf+ はそれを繰り返して必要な長さの鍵素材を作る</td></tr>
+      <tr><td class="num">HMAC / MAC</td><td>Hash-based MAC / Message Authentication Code</td><td>ハッシュを使った改ざん検知の値</td></tr>
+      <tr><td class="num">AEAD</td><td>Authenticated Encryption with Associated Data</td><td>暗号化と改ざん検知を一体で行う方式</td></tr>
+      <tr><td class="num">GCM</td><td>Galois/Counter Mode</td><td>AES-GCM の GCM。AEAD の代表例</td></tr>
+      <tr><td class="num">PFS</td><td>Perfect Forward Secrecy</td><td>鍵が 1 つ漏れても、ほかの時期の通信は守られる性質</td></tr>
+      <tr><td class="num">PSK</td><td>Pre-Shared Key</td><td>事前に共有したパスワード的な鍵</td></tr>
+      <tr><td class="num">EAP</td><td>Extensible Authentication Protocol</td><td>ユーザー認証の枠組み (リモートアクセスで使う)</td></tr>
+    </tbody>
+  </table></div>
+  <h4 style="margin:1.4rem 0 .3rem;font-size:1rem">運用・周辺の用語</h4>
+  <div class="tbl"><table>
+    <thead><tr><th>略語</th><th>正式名</th><th>意味</th></tr></thead>
+    <tbody>
+      <tr><td class="num">NAT / NAT-T</td><td>Network Address Translation / NAT Traversal</td><td>アドレス変換 / それを越える仕組み</td></tr>
+      <tr><td class="num">DPD</td><td>Dead Peer Detection</td><td>相手が生きているかの確認</td></tr>
+      <tr><td class="num">VTI</td><td>Virtual Tunnel Interface</td><td>ルートベース VPN の仮想インターフェース</td></tr>
+      <tr><td class="num">MOBIKE</td><td>IKEv2 Mobility and Multihoming</td><td>回線が切り替わっても SA を維持する拡張</td></tr>
+      <tr><td class="num">ISAKMP</td><td>Internet Security Association and Key Management Protocol</td><td>IKEv1 の土台になった枠組み</td></tr>
+      <tr><td class="num">GDOI</td><td>Group Domain of Interpretation</td><td>多数の拠点で鍵を共有する方式</td></tr>
+      <tr><td class="num">KINK</td><td>Kerberized Internet Negotiation of Keys</td><td>Kerberos で鍵を決める方式 (ほぼ使われない)</td></tr>
+      <tr><td class="num">XFRM</td><td>transform</td><td>Linux カーネルの IPsec 実装の名前</td></tr>
+      <tr><td class="num">RFC</td><td>Request for Comments</td><td>インターネットの標準仕様の文書</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>出典: RFC 7296 (IKEv2)、RFC 4301 (IPsec アーキテクチャ)、RFC 2409 (IKEv1)、RFC 9395 (IKEv1 の非推奨化)、RFC 6738、RFC 6407 (GDOI)、RFC 9061 (IKE を使わない SDN 型)、RFC 4303 (ESP)、RFC 4302 (AH)、RFC 3948 (ESP の UDP カプセル化)。SPI や Seq の値は説明用の例です。</footer>
+</div>
+
+<script>
+(function(){
+  /* ---------- Sequence details ---------- */
+  var D = {
+    m1:{t:"① IKE_SA_INIT 要求", meta:"GW-A → GW-B · Exchange 34 · Msg ID 0 · Flags I=1 · UDP 500 · 平文",
+      p:"HDR(SPIi=0x8a3f…, SPIr=0)\nSAi1   IKE SA 用の暗号スイート候補\nKEi    DH 公開値 g^i\nNi     乱数\nN(NAT_DETECTION_SOURCE_IP / _DESTINATION_IP)",
+      b:["GW-A が 8 バイトの SPIi を乱数で決める。相手の SPIr はまだないので 0。",
+         "SAi1 には「AES-GCM-256 / PRF-HMAC-SHA384 / DH 19 (ECP-256)」のような候補を複数並べる。",
+         "KEi には、相手が選ぶと予想した DH グループの公開値を入れる。外れると INVALID_KE_PAYLOAD が返り、正しいグループでやり直す。",
+         "NAT_DETECTION は自分の IP・ポートのハッシュ。相手が実際に見た値と比べて、途中に NAT があるかを判定する。",
+         "まだ鍵がないので完全に平文。盗聴者にも中身は見えるが、DH の秘密値は流れないので問題ない。"]},
+    m2:{t:"② IKE_SA_INIT 応答", meta:"GW-B → GW-A · Exchange 34 · Msg ID 0 · Flags R=1 · 平文",
+      p:"HDR(SPIi=0x8a3f…, SPIr=0x2c71…)\nSAr1   選んだ暗号スイート 1 つ\nKEr    DH 公開値 g^r\nNr     乱数\nN(NAT_DETECTION_*)\n[CERTREQ]  信頼する CA の一覧 (証明書認証時)",
+      b:["GW-B が自分の SPIr を決める。これで IKE SA の識別子 (SPIi, SPIr) が決まる。",
+         "SAr1 には候補の中から選んだ 1 つだけを返す。合うものがなければ N(NO_PROPOSAL_CHOSEN)。",
+         "負荷が高いときは、先に N(COOKIE) を返して「この Cookie を付けてもう一度」と求めることがある (DoS 対策)。",
+         "この時点で両者は g^ir (DH の共有値) を計算でき、ここから全部の鍵が出てくる。"]},
+    keys:{t:"鍵の計算 (通信ではなく各自の内部処理)", meta:"RFC 7296 §2.13–2.14, §2.17",
+      p:"SKEYSEED = prf(Ni | Nr, g^ir)\n{SK_d | SK_ai | SK_ar | SK_ei | SK_er | SK_pi | SK_pr}\n   = prf+(SKEYSEED, Ni | Nr | SPIi | SPIr)\n\nChild SA:  KEYMAT = prf+(SK_d, Ni | Nr)\n   (PFS 時: prf+(SK_d, g^ir(new) | Ni | Nr))",
+      b:["SK_d: Child SA の鍵の元。IKE SA と Child SA をつなぐのはこの鍵。",
+         "SK_ai / SK_ar: IKE メッセージの改ざん検知用 (i=Initiator が送るとき, r=Responder が送るとき)。AEAD なら使わない。",
+         "SK_ei / SK_er: IKE メッセージの暗号化用。方向ごとに別の鍵。",
+         "SK_pi / SK_pr: AUTH ペイロードの計算に使う。",
+         "鍵の長さは選んだアルゴリズムで決まる (例: AES-256-GCM なら 32 バイトの鍵 + 4 バイトの salt)。"]},
+    m3:{t:"③ IKE_AUTH 要求", meta:"GW-A → GW-B · Exchange 35 · Msg ID 1 · Flags I=1 · UDP 4500 (NAT 検出時) · SK_ei で暗号化",
+      p:"HDR\nSK{\n  IDi       自分の ID (例: FQDN gw-a.example.jp)\n  [CERT]    自分の証明書\n  [CERTREQ]\n  [IDr]     話したい相手の ID (任意)\n  AUTH      本人である証明\n  SAi2      ESP 用の提案 + 自分の受信用 SPI 0x5A5A0002\n  TSi       10.1.0.0/24\n  TSr       10.2.0.0/24\n}",
+      b:["ここから全部 SK{} の中。ID も暗号化されるので、第三者には誰と誰の VPN かが見えない。",
+         "AUTH は「① で自分が送ったメッセージ全体 | Nr | prf(SK_pi, IDi)」に対する署名 (証明書) または MAC (PSK)。①② の中身に縛られるので、途中で書き換えられていれば失敗する。",
+         "後半の SAi2 / TSi / TSr が最初の Child SA の交渉。IKE SA の認証と Child SA の作成を同じメッセージで済ませるのが IKEv2 の特徴。",
+         "SAi2 の Proposal の中の SPI (4 バイト) は「私宛ての ESP にはこの SPI を付けて」という自分の受信用 SPI。"]},
+    m4:{t:"④ IKE_AUTH 応答", meta:"GW-B → GW-A · Exchange 35 · Msg ID 1 · Flags R=1 · SK_er で暗号化",
+      p:"HDR\nSK{\n  IDr       GW-B の ID\n  [CERT]\n  AUTH\n  SAr2      選んだ ESP 方式 + GW-B の受信用 SPI 0xC0FFEE01\n  TSi       10.1.0.0/24  (狭める場合あり)\n  TSr       10.2.0.0/24\n}",
+      b:["GW-B も AUTH で本人証明をする。これで相互認証が終わり、IKE SA が確立する。",
+         "SAr2 で ESP の方式 (例: AES-GCM-128) が 1 つに決まり、SPI が双方そろう。",
+         "TS は自分のポリシーに合わせて狭めて返してよい (narrowing)。",
+         "ここで認証は通ったが Child SA の部分だけ合わない場合、N(TS_UNACCEPTABLE) や N(NO_PROPOSAL_CHOSEN) が入り、IKE SA だけができる。"]},
+    esp:{t:"データ転送 (ESP)", meta:"IKE ではない · IP プロトコル 50 (NAT-T 時は UDP 4500)",
+      p:"A→B:  [外 IP 203.0.113.1→198.51.100.2][ESP SPI=0xC0FFEE01 Seq=n][暗号化された元パケット][ICV]\nB→A:  [外 IP 198.51.100.2→203.0.113.1][ESP SPI=0x5A5A0002 Seq=m][暗号化された元パケット][ICV]",
+      b:["ここからは IKE デーモンではなく、カーネルやルーターの転送処理がパケットごとに暗号化する。",
+         "方向ごとに SPI、鍵、Seq が独立している (§03)。",
+         "IKE SA はこの間も裏で生きていて、鍵更新や生存確認に使われる。"]},
+    m5:{t:"⑤ CREATE_CHILD_SA 要求", meta:"Exchange 36 · Msg ID 2 · どちら側から送ってもよい",
+      p:"HDR\nSK{\n  [N(REKEY_SA)]  鍵更新なら古い SA の SPI を入れる\n  SA             新しい Child SA の提案 + 新しい受信用 SPI\n  Ni             新しい乱数\n  [KEi]          PFS を使うなら新しい DH 公開値\n  TSi, TSr\n}",
+      b:["用途は 3 つ: (1) 別の範囲の Child SA を追加、(2) Child SA の鍵更新、(3) IKE SA 自体の鍵更新。",
+         "(2) では新しい SA を作ってから古い SA を Delete するので、通信は途切れない。",
+         "(3) では TS を付けず、SA ペイロードに IKE 用の提案と新しい IKE SPI を入れる。",
+         "KEi/KEr を付けると DH をやり直すので PFS になる。付けなければ SK_d と新しい nonce だけで鍵を作る。"]},
+    m6:{t:"⑥ CREATE_CHILD_SA 応答", meta:"Exchange 36 · Msg ID 2 · Flags R=1",
+      p:"HDR\nSK{ SA, Nr, [KEr], TSi, TSr }",
+      b:["相手側の新しい受信用 SPI が返り、新しい Child SA (単方向 × 2) ができる。",
+         "新しい鍵は KEYMAT = prf+(SK_d, [g^ir(new) |] Ni | Nr) から作る。"]},
+    m7:{t:"⑦ INFORMATIONAL 要求", meta:"Exchange 37 · Msg ID 3",
+      p:"生存確認 (DPD):  HDR, SK{ }        ← 中身が空\n削除:            HDR, SK{ D(ESP, SPI=0x5A5A0002) }\nIKE SA の削除:   HDR, SK{ D(IKE) }",
+      b:["中身が空の INFORMATIONAL が DPD (相手が生きているかの確認)。一定回数応答がなければ SA を消す。",
+         "Delete ペイロードで SA を消す。ESP の SA を消すときは、自分の受信用 SPI を書く。",
+         "IKE SA を消すと、その下の Child SA もすべて消える。"]},
+    m8:{t:"⑧ INFORMATIONAL 応答", meta:"Exchange 37 · Msg ID 3 · Flags R=1",
+      p:"HDR, SK{ }  または  HDR, SK{ D(ESP, SPI=0xC0FFEE01) }",
+      b:["DPD なら空のまま返す。",
+         "Child SA の削除要求には、対になる自分側の受信用 SPI を入れた Delete を返し、2 本とも消える。",
+         "Message ID は要求と同じ値。次の要求は Msg ID 4 になる。"]}
+  };
+  var det = document.getElementById('seqDetail');
+  var msgs = document.querySelectorAll('#seqsvg .msg');
+  function esc(s){return s.replace(/[&<>]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];});}
+  function show(id){
+    var d = D[id]; if(!d) return;
+    msgs.forEach(function(m){ m.classList.toggle('active', m.getAttribute('data-id')===id); });
+    det.innerHTML = '<h4>'+esc(d.t)+'</h4><div class="meta">'+esc(d.meta)+'</div><div class="payload">'+esc(d.p)+'</div><ul>'+d.b.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>';
+  }
+  msgs.forEach(function(m){
+    m.addEventListener('click', function(){ show(m.getAttribute('data-id')); });
+    m.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); show(m.getAttribute('data-id')); }});
+  });
+  show('m3');
+
+  /* ---------- TS simulator ---------- */
+  function ip2n(s){ var p=String(s).trim().split('.'); if(p.length!==4) return null; var n=0; for(var i=0;i<4;i++){ var v=+p[i]; if(!/^\d+$/.test(p[i])||v>255) return null; n=n*256+v; } return n; }
+  function inR(ip, a, b){ return ip>=ip2n(a) && ip<=ip2n(b); }
+  var SAS = [
+    {id:'sa1', name:'Child SA #1', spiOut:'0xC0FFEE01', spiIn:'0x5A5A0002', l:['10.1.0.0','10.1.0.255'], r:['10.2.0.0','10.2.0.255'], proto:0, rport:[0,65535]},
+    {id:'sa2', name:'Child SA #2', spiOut:'0xC0FFEE07', spiIn:'0x5A5A0008', l:['10.1.0.0','10.1.0.255'], r:['10.3.0.0','10.3.0.255'], proto:6, rport:[443,443]}
+  ];
+  var sSrc=document.getElementById('sSrc'), sDst=document.getElementById('sDst'), sProto=document.getElementById('sProto'), sPort=document.getElementById('sPort'), out=document.getElementById('simResult');
+  function sim(){
+    var src=ip2n(sSrc.value), dst=ip2n(sDst.value), pr=+sProto.value, port=parseInt(sPort.value,10);
+    SAS.forEach(function(s){ document.getElementById(s.id).classList.remove('on'); });
+    out.className='result';
+    if(src===null||dst===null){ out.innerHTML='IP アドレスは 10.1.0.25 のような IPv4 の形式で入力してください。'; return; }
+    if(pr===1) port=0;
+    if(isNaN(port)||port<0||port>65535){ out.innerHTML='ポートは 0〜65535 の数字で入力してください。'; return; }
+    for(var i=0;i<SAS.length;i++){
+      var s=SAS[i];
+      var protoOk = s.proto===0 || s.proto===pr;
+      if(inR(src,s.l[0],s.l[1]) && inR(dst,s.r[0],s.r[1]) && protoOk && port>=s.rport[0] && port<=s.rport[1]){
+        document.getElementById(s.id).classList.add('on'); out.className='result ok';
+        out.innerHTML='<b>送信: '+s.name+' で暗号化</b><br>SPD の判定は PROTECT。送信用 SA の SPI <span class="mono">'+s.spiOut+'</span> を付けた ESP で GW-B へ送ります。<br><span class="mono">[外 IP 203.0.113.1→198.51.100.2][ESP SPI='+s.spiOut+'][暗号化: '+esc(sSrc.value)+'→'+esc(sDst.value)+' …]</span>';
+        return;
+      }
+      if(inR(dst,s.l[0],s.l[1]) && inR(src,s.r[0],s.r[1]) && protoOk && (s.proto===0 || (port>=0))){
+        var revOk = s.rport[0]===0 && s.rport[1]===65535;
+        if(revOk || s.proto===pr){
+          document.getElementById(s.id).classList.add('on'); out.className='result in';
+          out.innerHTML='<b>受信: '+s.name+' の受信用 SA で届くはずのパケット</b><br>GW-B が SPI <span class="mono">'+s.spiIn+'</span> (GW-A が決めた受信用 SPI) を付けて送ってきます。GW-A は復号後、中身の送信元・宛先が '+s.name+' の TS に収まっているかを確認してから LAN A に流します。'+(revOk?'':'<br><span style="font-size:.85rem">(#2 は相手側ポート 443 に限定した SA なので、戻りは送信元ポート 443 のパケットだけが対象です。この簡易判定では宛先ポートは見ていません。)</span>');
+          return;
+        }
+      }
+    }
+    var why='';
+    if(inR(src,'10.1.0.0','10.1.0.255') && inR(dst,'10.3.0.0','10.3.0.255')) why='宛先は LAN C ですが、#2 は TCP の 443 番だけが対象なので外れます。';
+    else if(!inR(src,'10.1.0.0','10.1.0.255') && !inR(dst,'10.1.0.0','10.1.0.255')) why='送信元も宛先も LAN A (10.1.0.0/24) ではないので、どの TS にも該当しません。';
+    else why='宛先がどの TSr の範囲 (10.2.0.0/24, 10.3.0.0/24 TCP/443) にも入っていません。';
+    out.innerHTML='<b>どの Child SA にも当たらない</b><br>'+why+' SPD の判定は BYPASS として、通常のルーティングで暗号化せずに送られます (設定によっては DISCARD で破棄)。';
+  }
+  [sSrc,sDst,sPort].forEach(function(el){ el.addEventListener('input', sim); });
+  sProto.addEventListener('change', sim);
+  document.getElementById('simf').addEventListener('submit', function(e){ e.preventDefault(); sim(); });
+  document.querySelectorAll('[data-p]').forEach(function(b){
+    b.addEventListener('click', function(){ var v=b.getAttribute('data-p').split(','); sSrc.value=v[0]; sDst.value=v[1]; sProto.value=v[2]; sPort.value=v[3]; sim(); });
+  });
+  sim();
+
+  /* ---------- Bit diagrams ---------- */
+  var GH = [ {n:'Next Payload',b:8,k:'ike'}, {n:'C',b:1,k:'ike'}, {n:'RESERVED',b:7,k:'res'}, {n:'Payload Length',b:16,k:'ike'} ];
+  var GHd = [ ['Next Payload','8 bit','次に続くペイロードの種別番号 (0 なら最後)'], ['C','1 bit','Critical。受信側がこのペイロードを知らなければ、メッセージ全体を拒否させる'], ['RESERVED','7 bit','0'], ['Payload Length','16 bit','この 4 バイトのヘッダを含むペイロード全体の長さ (バイト)'] ];
+  var P = [
+    {id:'ike-hdr', t:'IKE ヘッダ', sub:'すべての IKE メッセージの先頭。28 バイト固定。UDP 500 (または 4500) のペイロードとして運ばれる。',
+     f:[{n:'Initiator SPI',b:64,k:'ike'},{n:'Responder SPI',b:64,k:'ike'},{n:'Next Payload',b:8},{n:'MjVer',b:4},{n:'MnVer',b:4},{n:'Exchange Type',b:8},{n:'X',b:2,k:'res'},{n:'R',b:1},{n:'V',b:1},{n:'I',b:1},{n:'X',b:3,k:'res'},{n:'Message ID',b:32},{n:'Length',b:32}],
+     d:[['Initiator SPI','64 bit','Initiator が決める乱数。IKE SA の識別子の前半'],['Responder SPI','64 bit','Responder が決める。① の要求では 0'],['Next Payload','8 bit','最初のペイロードの種別 (① なら 33 = SA、③ 以降は 46 = SK)'],['MjVer / MnVer','4 + 4 bit','2 と 0 (IKEv2)'],['Exchange Type','8 bit','34 IKE_SA_INIT / 35 IKE_AUTH / 36 CREATE_CHILD_SA / 37 INFORMATIONAL'],['Flags (R, V, I)','8 bit','R = 応答なら 1、V = より新しいバージョンを話せる (通常 0)、I = 最初の Initiator が送ったなら 1。X は 0'],['Message ID','32 bit','要求ごとに 0, 1, 2 … と増える。応答は要求と同じ値。再送の検出とリプレイ防止に使う'],['Length','32 bit','このヘッダを含むメッセージ全体の長さ (バイト)']]},
+    {id:'gen', t:'汎用ペイロードヘッダ', sub:'SA、KE、Nonce、TS など、どのペイロードも先頭はこの 4 バイト。',
+     f:GH.concat([{n:'ペイロード本体',b:'var',k:''}]), d:GHd},
+    {id:'ke', t:'Key Exchange (KE) ペイロード', sub:'DH の公開値。長さは DH グループで決まる。',
+     f:GH.concat([{n:'DH Group Num',b:16},{n:'RESERVED',b:16,k:'res'},{n:'Key Exchange Data',b:'var',r:2}]),
+     d:[['DH Group Num','16 bit','14 = MODP 2048 bit、19 = ECP 256 bit、20 = ECP 384 bit、31 = Curve25519'],['Key Exchange Data','可変','DH の公開値。グループ 14 なら 256 バイト、19 なら 64 バイト、31 なら 32 バイト']]},
+    {id:'nonce', t:'Nonce ペイロード', sub:'鍵計算と認証に混ぜる乱数。',
+     f:GH.concat([{n:'Nonce Data',b:'var',r:2}]),
+     d:[['Nonce Data','可変','16〜256 バイト。少なくとも PRF の鍵長の半分以上。毎回新しい乱数']]},
+    {id:'ts', t:'Traffic Selector (TSi / TSr) ペイロード', sub:'Child SA の範囲。下は IPv4 の TS が 1 つの例 (TS は複数並べられる)。',
+     f:GH.concat([{n:'Number of TSs',b:8,k:'child'},{n:'RESERVED',b:24,k:'res'},{n:'TS Type',b:8,k:'child'},{n:'IP Protocol ID',b:8,k:'child'},{n:'Selector Length',b:16,k:'child'},{n:'Start Port',b:16,k:'child'},{n:'End Port',b:16,k:'child'},{n:'Starting Address',b:32,k:'child'},{n:'Ending Address',b:32,k:'child'}]),
+     d:[['Number of TSs','8 bit','このペイロードに入っている TS の個数'],['TS Type','8 bit','7 = IPv4 の範囲、8 = IPv6 の範囲'],['IP Protocol ID','8 bit','0 = すべて、6 = TCP、17 = UDP、1 = ICMP'],['Selector Length','16 bit','この TS 1 つ分の長さ。IPv4 なら 16'],['Start / End Port','16 + 16 bit','ポート範囲。全部なら 0〜65535、HTTPS だけなら 443〜443'],['Starting / Ending Address','32 + 32 bit','CIDR ではなく「開始〜終了」で表す。10.2.0.0/24 なら 10.2.0.0〜10.2.0.255']]},
+    {id:'sk', t:'Encrypted (SK) ペイロード', sub:'③ 以降の IKE メッセージの本体。中に IDi、AUTH、SA などのペイロードが暗号化されて入る。',
+     f:GH.concat([{n:'Initialization Vector (IV)',b:'var',k:'auth'},{n:'暗号化された IKE ペイロード群 (IDi, AUTH, SAi2, TSi, TSr …)',b:'var',k:'enc',r:2},{n:'Padding',b:24,k:'enc'},{n:'Pad Length',b:8,k:'enc'},{n:'Integrity Checksum (ICV)',b:'var'}]),
+     d:[['Next Payload','8 bit','暗号化された中身の「最初の」ペイロードの種別 (例: 35 = IDi)'],['IV','可変','AES-CBC なら 16 バイト、AES-GCM なら 8 バイト'],['暗号化された中身','可変','SK_ei (または SK_er) で暗号化。ペイロードの鎖が丸ごと入る'],['Padding / Pad Length','可変 + 8 bit','ブロック長に合わせる詰め物と、その長さ (図では 24 bit で描いているが実際は 0〜255 バイト)'],['ICV','可変','IKE ヘッダから Pad Length までの改ざん検知値。HMAC-SHA256-128 や GCM のタグなら 16 バイト']]},
+    {id:'esp', t:'ESP パケット (RFC 4303)', sub:'IP ヘッダ (プロトコル番号 50) の直後に来る。固定なのは先頭 8 バイトだけ。',
+     f:[{n:'Security Parameters Index (SPI)',b:32,k:'auth'},{n:'Sequence Number',b:32,k:'auth'},{n:'IV (アルゴリズムによる)',b:'var',k:'auth'},{n:'Payload Data (トンネルなら元の IP パケット丸ごと)',b:'var',k:'enc',r:2},{n:'Padding (0〜255 B)',b:16,k:'enc'},{n:'Pad Length',b:8,k:'enc'},{n:'Next Header',b:8,k:'enc'},{n:'Integrity Check Value (ICV)',b:'var'}],
+     d:[['SPI','32 bit','受信側が決めた値。受信側はこれで SA を引く。0 は使わず、1〜255 は予約'],['Sequence Number','32 bit','SA ごとに 1 から増える。ESN (64 bit) 使用時も送るのは下位 32 bit だけで、上位は ICV の計算にだけ含める'],['IV','可変','AES-GCM なら 8 バイト、AES-CBC なら 16 バイト。仕様上は Payload Data の先頭に含まれる'],['Payload Data','可変','暗号化される本体。トンネルモードなら元の IP パケット、トランスポートモードなら TCP/UDP 以降'],['Padding','0〜255 B','ブロック長と 4 バイト境界に揃えるための詰め物'],['Pad Length','8 bit','Padding のバイト数'],['Next Header','8 bit','中身の種類。4 = IPv4 (トンネル)、41 = IPv6、6 = TCP (トランスポート)、59 = ダミー'],['ICV','可変','SPI から Next Header までの改ざん検知値。AES-GCM-128 のタグなら 16 バイト']]},
+    {id:'ah', t:'AH ヘッダ (RFC 4302)', sub:'IP ヘッダ (プロトコル番号 51) の直後に来る。暗号化はしないので、後ろに続く中身は平文のまま。',
+     f:[{n:'Next Header',b:8,k:'auth'},{n:'Payload Len',b:8,k:'auth'},{n:'RESERVED',b:16,k:'res'},{n:'Security Parameters Index (SPI)',b:32,k:'auth'},{n:'Sequence Number',b:32,k:'auth'},{n:'Integrity Check Value (ICV)',b:'var',k:'auth'}],
+     d:[['Next Header','8 bit','AH の後ろに続くものの種類 (4 = IPv4、6 = TCP など)'],['Payload Len','8 bit','AH 全体の長さを 4 バイト単位で数えて 2 を引いた値'],['SPI / Sequence Number','32 + 32 bit','ESP と同じ意味'],['ICV','可変','IP ヘッダの不変部分、AH (ICV 欄は 0 として計算)、その後ろの中身すべてにかかる。IPv4 では 4 バイト境界、IPv6 では 8 バイト境界に揃える']]},
+    {id:'natt', t:'NAT-T: UDP 4500 で運ぶ IKE', sub:'NAT を検出したら IKE を UDP 4500 に移す。ESP も同じ UDP 4500 に包む (RFC 3948)。',
+     f:[{n:'Source Port (4500)',b:16,k:'ike'},{n:'Destination Port (4500)',b:16,k:'ike'},{n:'Length',b:16,k:'ike'},{n:'Checksum',b:16,k:'ike'},{n:'Non-ESP Marker = 0x00000000',b:32,k:'res'},{n:'IKE ヘッダ以降 (28 バイト + ペイロード)',b:'var'}],
+     d:[['UDP ヘッダ','8 バイト','ポートは 4500。NAT がポートを書き換えるので、相手からは別の番号に見えることがある'],['Non-ESP Marker','32 bit','全部 0。「これは ESP ではなく IKE」という印。ESP の SPI は 0 にならないので、同じポート 4500 上でも区別できる'],['ESP の場合','','マーカーを置かず、UDP ヘッダの直後に ESP の SPI が来る']]}
+  ];
+  var root=document.getElementById('pktRoot');
+  function ruler(){ var r='<div class="ruler" aria-hidden="true">'; for(var i=0;i<32;i++){ r+='<span'+(i%8===0?' class="byte"':'')+'>'+i+'</span>'; } return r+'</div>'; }
+  P.forEach(function(pk){
+    var html='<div class="pkt" id="pkt-'+pk.id+'"><h3>'+esc(pk.t)+'</h3><p class="sub">'+esc(pk.sub)+'</p><div class="bits-scroll">'+ruler()+'<div class="bits">';
+    var row=1,col=0;
+    pk.f.forEach(function(f,idx){
+      var cls='fld'+(f.k?' k-'+f.k:''), style, sz;
+      if(f.b==='var'){ var r=f.r||1; style='grid-row:'+row+' / span '+r+';grid-column:1 / -1'; row+=r; col=0; cls+=' var'; sz='可変長'; }
+      else if(f.b>=32 && col===0){ var rr=f.b/32; style='grid-row:'+row+' / span '+rr+';grid-column:1 / -1'; row+=rr; sz=f.b+' bit'; }
+      else { style='grid-row:'+row+';grid-column:'+(col+1)+' / span '+f.b; col+=f.b; sz=f.b+(f.b>2?' bit':''); if(col>=32){ row++; col=0; } }
+      html+='<div class="'+cls+'" style="'+style+'"><span>'+esc(f.n)+'</span>'+(f.b>=4||f.b==='var'?'<span class="sz">'+sz+'</span>':'')+'</div>';
+    });
+    html+='</div></div><div class="tbl" style="margin-bottom:0"><table class="ftable"><thead><tr><th>フィールド</th><th>長さ</th><th>意味</th></tr></thead><tbody>';
+    pk.d.forEach(function(r){ html+='<tr><td>'+esc(r[0])+'</td><td class="num">'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>'; });
+    html+='</tbody></table></div></div>';
+    root.insertAdjacentHTML('beforeend', html);
+  });
+
+  /* ---------- ESP / AH layouts ---------- */
+  var L = {
+    'esp-tun':{b:[['新しい IP ヘッダ','20 B · proto 50','new',3],['ESP ヘッダ','SPI + Seq · 8 B','esp',2],['IV','8〜16 B','esp',1.3],['元の IP ヘッダ','10.1.0.25→10.2.0.80','',3],['TCP/UDP + データ','','',5],['ESP トレーラ','Pad + PadLen + NH','esp',2.2],['ICV','16 B など','icv',1.5]],
+      enc:[4,6], auth:[2,6], note:'拠点間 VPN の標準形。元の IP ヘッダごと暗号化されるので、社内アドレスも通信内容も外からは見えません。外から見えるのは GW 同士のアドレスと SPI、Seq だけです。'},
+    'esp-tun-nat':{b:[['新しい IP ヘッダ','20 B · proto 17','new',3],['UDP ヘッダ','4500→4500 · 8 B','udp',2],['ESP ヘッダ','SPI + Seq','esp',2],['IV','','esp',1.2],['元の IP ヘッダ','','',3],['TCP/UDP + データ','','',4.5],['ESP トレーラ','','esp',2],['ICV','','icv',1.4]],
+      enc:[5,7], auth:[3,7], note:'途中に NAT があるときの形。ESP にはポート番号がないので、NAT (特に複数端末で 1 つのアドレスを共有する NAPT) では通せません。UDP ヘッダを付けて普通の UDP 通信に見せることで NAT を通します。UDP ヘッダは守られていないので、NAT が書き換えても問題ありません。'},
+    'esp-tr':{b:[['元の IP ヘッダ','proto 50 に変わる','',3],['ESP ヘッダ','SPI + Seq','esp',2],['IV','','esp',1.3],['TCP/UDP + データ','','',6],['ESP トレーラ','NH = 6 (TCP)','esp',2.2],['ICV','','icv',1.5]],
+      enc:[4,5], auth:[2,5], note:'元の IP ヘッダはそのまま (プロトコル番号だけ 50 に変わる)。ホスト同士の通信や、GRE・L2TP を IPsec で守るときに使います。IP ヘッダは暗号化されないので、誰と誰が通信しているかは見えます。'},
+    'ah-tun':{b:[['新しい IP ヘッダ','proto 51','new',3],['AH ヘッダ','NH, Len, SPI, Seq, ICV','ah',3],['元の IP ヘッダ','','',3],['TCP/UDP + データ','','',6]],
+      enc:null, auth:[1,4], note:'暗号化はなし。新しい IP ヘッダまで含めて全体を検証します (TTL、チェックサム、フラグメント関連、DSCP など途中で変わるフィールドは 0 とみなして計算)。そのため途中で NAT がアドレスを書き換えると検証に失敗します。'},
+    'ah-tr':{b:[['元の IP ヘッダ','proto 51 に変わる','',3],['AH ヘッダ','','ah',3],['TCP/UDP + データ','','',7]],
+      enc:null, auth:[1,3], note:'元の IP ヘッダの不変部分から中身まですべてを改ざん検知します。中身は平文なので覗けますが、書き換えれば受信側で必ずばれます。'}
+  };
+  var lay=document.getElementById('lay'), layNote=document.getElementById('layNote');
+  function drawLay(m){
+    var c=L[m], cols=c.b.map(function(x){return x[3]+'fr';}).join(' ');
+    var h='<div class="lay-grid" style="grid-template-columns:'+cols+'">';
+    c.b.forEach(function(x,i){ h+='<div class="blk '+x[2]+'" style="grid-row:1;grid-column:'+(i+1)+'">'+esc(x[0])+(x[1]?'<small>'+esc(x[1])+'</small>':'')+'</div>'; });
+    var n=c.b.length;
+    if(c.enc) h+='<div class="bar enc" style="grid-row:2;grid-column:'+c.enc[0]+' / '+(c.enc[1]+1)+'">暗号化される範囲</div>';
+    else h+='<div class="bar none" style="grid-row:2;grid-column:1 / '+(n+1)+'">暗号化なし (中身は平文のまま)</div>';
+    h+='<div class="bar auth" style="grid-row:3;grid-column:'+c.auth[0]+' / '+(c.auth[1]+1)+'">改ざん検知 (ICV) の対象</div>';
+    h+='</div>';
+    lay.innerHTML=h; layNote.textContent=c.note;
+    document.querySelectorAll('#layChips .chip').forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-m')===m ? 'true':'false'); });
+  }
+  document.querySelectorAll('#layChips .chip').forEach(function(b){ b.addEventListener('click', function(){ drawLay(b.getAttribute('data-m')); }); });
+  drawLay('esp-tun');
+
+  /* ---------- replay window cells ---------- */
+  (function(){
+    var g=document.getElementById('rwcells'); if(!g) return;
+    var NS='http://www.w3.org/2000/svg', h='';
+    for(var q=1023;q<=1046;q++){
+      var x=40+(q-1023)*34, cls, dash='';
+      if(q<1027){ cls='f-bg s-muted'; }
+      else if(q<=1042){ cls=(q===1033||q===1040)?'f-surface s-child':'f-child-soft s-child'; }
+      else { cls='f-surface s-muted'; dash=' stroke-dasharray="3 3"'; }
+      h+='<rect x="'+x+'" y="50" width="32" height="38" rx="3" class="'+cls+'" stroke-width="1.4"'+dash+'/>';
+      h+='<text x="'+(x+16)+'" y="73" text-anchor="middle" class="mono f-ink" style="font-size:9.5px">'+q+'</text>';
+    }
+    g.innerHTML=h;
+  })();
+})();
+</script>
+</body>
+</html>
