@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BGP まとめ（ネットワークスペシャリスト試験対策）</title><style>
+:root{--cds-text-primary:#1f1e1d;--cds-text-secondary:#6b6a66;--cds-chart-axis:#a8a59c;--cds-chart-grid:#dddbd4;--cds-chart-reference-tint:#efeee9;--cds-chart-categorical-1:#2f72d6;--cds-chart-status-good:#2e8b3d;--cds-chart-status-warning:#c8871a;--cds-chart-status-critical:#d0423a;--bg:#fbfaf7;--card:#ffffff;--line:#e4e2dc;--accent-bg:#eef4fd}
+@media (prefers-color-scheme:dark){:root{--cds-text-primary:#ecebe7;--cds-text-secondary:#a8a69f;--cds-chart-axis:#77756f;--cds-chart-grid:#3d3c39;--cds-chart-reference-tint:#2b2a28;--cds-chart-categorical-1:#6aa2f2;--cds-chart-status-good:#5fbf6e;--cds-chart-status-critical:#ef6b62;--bg:#1b1a19;--card:#232221;--line:#3a3936;--accent-bg:#1f2b3d}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--cds-text-primary);font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic UI","Meiryo",system-ui,sans-serif;line-height:1.8;font-size:15.5px}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr);max-width:1180px;margin:0 auto;gap:40px;padding:32px 24px 80px}
+nav.side{position:sticky;top:24px;align-self:start;font-size:13.5px;border-right:1px solid var(--line);padding-right:16px;max-height:calc(100vh - 48px);overflow:auto}
+nav.side h2{font-size:12px;letter-spacing:.08em;color:var(--cds-text-secondary);margin:0 0 8px;border:0;padding:0}
+nav.side ol{list-style:none;margin:0;padding:0}nav.side li{margin:2px 0}
+nav.side a{color:var(--cds-text-primary);text-decoration:none;display:block;padding:4px 8px;border-radius:6px}nav.side a:hover{background:var(--accent-bg)}
+main{min-width:0}
+h1{font-size:28px;line-height:1.4;margin:0 0 4px}
+h2{font-size:21px;margin:56px 0 14px;padding-bottom:8px;border-bottom:2px solid var(--line);scroll-margin-top:16px}
+h3{font-size:16.5px;margin:32px 0 10px}
+.byline{color:var(--cds-text-secondary);font-size:13px;margin:0 0 24px}
+p{margin:10px 0}
+strong{background:linear-gradient(transparent 62%,rgba(47,114,214,.18) 62%)}
+figure{margin:20px 0;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 16px 10px}
+figure .svg svg{width:100%;height:auto;display:block}
+figcaption{font-size:12.5px;color:var(--cds-text-secondary);margin-top:6px;text-align:center}
+table{border-collapse:collapse;width:100%;margin:14px 0;font-size:14px;background:var(--card);border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+th,td{border-bottom:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+th{background:var(--cds-chart-reference-tint);font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+blockquote{margin:24px 0;padding:12px 16px;border-left:4px solid var(--cds-chart-categorical-1);background:var(--accent-bg);border-radius:0 10px 10px 0}
+blockquote p{margin:0}blockquote p::before{content:"次へ ▸ ";font-weight:600;color:var(--cds-chart-categorical-1)}
+pre{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;overflow:auto;font-size:13.5px;line-height:1.6}
+code{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
+ul,ol{padding-left:1.5em}li{margin:4px 0}
+li:has(> input[type=checkbox]){list-style:none;margin-left:-1.3em}
+input[type=checkbox]{margin-right:8px;transform:translateY(1px)}
+a{color:var(--cds-chart-categorical-1)}
+.bonus{margin-top:72px;padding-top:32px;border-top:3px double var(--line)}
+@media (max-width:860px){.layout{grid-template-columns:1fr}nav.side{position:static;border:0;max-height:none}}
+@media print{nav.side{display:none}.layout{display:block}figure,table{break-inside:avoid}body{background:#fff}}
+</style></head>
+<body><div class="layout"><nav class="side"><h2>目次</h2><ol><li><a href="#s1">1. BGPとは</a></li><li><a href="#s2">2. どういう時にBGPを使うか</a></li><li><a href="#s3">3. まずつながる：R1とISP-Aがピアを張る</a></li><li><a href="#s4">4. 経路が届く：UPDATEの中身とAS_PATH</a></li><li><a href="#s5">5. 社内に配る：iBGP</a></li><li><a href="#s6">6. 台数が増えると困る：iBGPのループ防止とフルメッシュ</a></li><li><a href="#s7">7. 同じ宛先への道が2本：最適経路の選び方</a></li><li><a href="#s8">8. 選び方を自分で操作する：主回線と予備回線</a></li><li><a href="#s9">9. 試験頻出ポイントとひっかけ</a></li><li><a href="#bonus">おまけ：個人でBGPを触る方法</a></li></ol></nav>
+<main><h1>BGP まとめ（ネットワークスペシャリスト試験対策）</h1>
+<p class="byline">2026-11-14 · Takeru</p><h2 id="s1">1. BGPとは</h2>
+<p>BGP（Border Gateway Protocol、現行はBGP-4／RFC 4271）は、<strong>AS（自律システム）同士の間で経路情報を交換するEGP</strong>です。インターネット全体の経路制御は事実上BGPだけで成り立っています。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 290" role="img" aria-label="AS内はIGP、AS間はBGPで経路を交換する" font-size="13"><text x="24" y="34" font-size="15" font-weight="600" fill="var(--cds-text-primary)">AS内はIGP、AS間はBGPで経路を交換する</text><g stroke="var(--cds-chart-categorical-1)" stroke-width="2"><line x1="190" y1="184" x2="314" y2="184"></line><line x1="446" y1="184" x2="570" y2="184"></line></g><g><rect x="24" y="64" width="200" height="168" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><line x1="90" y1="184" x2="158" y2="184" stroke="var(--cds-chart-axis)" stroke-width="1.25" stroke-dasharray="4 4"></line><circle cx="74" cy="184" r="16" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="1.5"></circle><circle cx="174" cy="184" r="16" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="1.5"></circle><text x="124" y="94" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">AS 65001（企業）</text><text x="124" y="118" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">内部はIGP（OSPFなど）</text><text x="124" y="174" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">IGP</text><text x="74" y="188" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">R1</text><text x="174" y="188" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">R2</text></g><g><rect x="280" y="64" width="200" height="168" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><line x1="346" y1="184" x2="414" y2="184" stroke="var(--cds-chart-axis)" stroke-width="1.25" stroke-dasharray="4 4"></line><circle cx="330" cy="184" r="16" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="1.5"></circle><circle cx="430" cy="184" r="16" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="1.5"></circle><text x="380" y="94" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">AS 100（ISP-A）</text><text x="380" y="118" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">内部はIGP（IS-ISなど）</text><text x="380" y="174" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">IGP</text><text x="330" y="188" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">R3</text><text x="430" y="188" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">R4</text></g><g><rect x="536" y="64" width="200" height="168" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><line x1="602" y1="184" x2="670" y2="184" stroke="var(--cds-chart-axis)" stroke-width="1.25" stroke-dasharray="4 4"></line><circle cx="586" cy="184" r="16" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="1.5"></circle><circle cx="686" cy="184" r="16" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="1.5"></circle><text x="636" y="94" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">AS 200（ISP-B）</text><text x="636" y="118" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">内部はIGP（OSPFなど）</text><text x="636" y="174" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">IGP</text><text x="586" y="188" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">R5</text><text x="686" y="188" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">R6</text></g><text x="252" y="172" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">eBGP</text><text x="508" y="172" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">eBGP</text><text x="380" y="266" text-anchor="middle" fill="var(--cds-text-secondary)">BGP＝「どのASを経由すれば届くか」をAS間で交換するパスベクタ型プロトコル（TCP 179）</text></svg></div><figcaption>図1　IGPとBGPの守備範囲 · 3つのASをeBGPで接続</figcaption></figure>
+<p>AS内の経路はOSPFやIS-ISなどのIGPが受け持ち、AS間の経路はBGPが受け持ちます。ASとは「1つの管理主体が一貫したポリシーで運用するネットワークの集まり」で、AS番号（ASN）で識別します。</p>
+<h3>基本スペック（暗記用）</h3>
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>種別</td>
+<td>EGP、<strong>パスベクタ型</strong></td>
+</tr>
+<tr>
+<td>トランスポート</td>
+<td><strong>TCP ポート179</strong>（再送・順序制御はTCPに任せる）</td>
+</tr>
+<tr>
+<td>更新方式</td>
+<td>最初に全経路を交換し、以後は<strong>差分のみ（トリガードアップデート）</strong>。定期的な全経路送信はしない</td>
+</tr>
+<tr>
+<td>生存確認</td>
+<td>KEEPALIVE（既定60秒）。ホールドタイム（既定180秒）以内に何も届かなければ切断</td>
+</tr>
+<tr>
+<td>AS番号</td>
+<td>2バイト（1〜65535）から4バイトに拡張（RFC 6793）</td>
+</tr>
+<tr>
+<td>プライベートAS</td>
+<td>64512〜65534、4200000000〜4294967294（RFC 6996）。インターネットには出さない</td>
+</tr>
+<tr>
+<td>経路の選び方</td>
+<td>単一のコスト値ではなく、<strong>パス属性＋ポリシー</strong>で選ぶ</td>
+</tr>
+</tbody></table>
+<h3>IGPとの違い</h3>
+<table>
+<thead>
+<tr>
+<th>観点</th>
+<th>IGP（OSPF・IS-IS など）</th>
+<th>BGP</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>範囲</td>
+<td>AS内</td>
+<td>AS間（＋AS内のiBGP）</td>
+</tr>
+<tr>
+<td>目的</td>
+<td>最短経路を速く求める</td>
+<td><strong>ポリシーに沿って到達性を交換</strong></td>
+</tr>
+<tr>
+<td>アルゴリズム</td>
+<td>リンクステート／距離ベクタ</td>
+<td>パスベクタ（経由ASの列を運ぶ）</td>
+</tr>
+<tr>
+<td>経路数</td>
+<td>数百〜数千</td>
+<td>インターネットのフルルートでIPv4約100万規模</td>
+</tr>
+<tr>
+<td>収束</td>
+<td>速い</td>
+<td>遅め（安定性を重視）</td>
+</tr>
+<tr>
+<td>ループ防止</td>
+<td>SPF計算、スプリットホライズン</td>
+<td>AS_PATH（4章）</td>
+</tr>
+</tbody></table>
+<p><strong>パスベクタ型</strong>とは、距離ベクタ型の「距離」の代わりに「経由してきたASの列（AS_PATH）」を経路に付けて運ぶ方式です。経路が自分のAS番号を含んでいればループと判断できるのが最大の特徴です。</p>
+<h2 id="s2">2. どういう時にBGPを使うか</h2>
+<p>BGPを選ぶのは、<strong>管理主体の異なるネットワークとつなぐとき</strong>、または<strong>出口が複数あり、どちらを通すかをポリシーで決めたいとき</strong>です。試験で最もよく出るのは、企業が2社のISPと接続する「マルチホーム」です。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 416" role="img" aria-label="マルチホーム：2社のISPとeBGPでつなぎ、冗長化と経路制御を両立" font-size="13"><text x="24" y="34" font-size="15" font-weight="600" fill="var(--cds-text-primary)">マルチホーム：2社のISPとeBGPでつなぎ、冗長化と経路制御を両立</text><g fill="none"><line x1="204" y1="152" x2="204" y2="104" stroke="var(--cds-chart-axis)" stroke-width="1.25"></line><line x1="556" y1="152" x2="556" y2="104" stroke="var(--cds-chart-axis)" stroke-width="1.25"></line><line x1="204" y1="296" x2="204" y2="200" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></line><line x1="556" y1="296" x2="556" y2="200" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></line><line x1="284" y1="324" x2="476" y2="324" stroke="var(--cds-chart-axis)" stroke-width="1.25" stroke-dasharray="5 4"></line></g><g><rect x="200" y="60" width="360" height="44" rx="22" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="380" y="87" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">インターネット（他のAS群）</text></g><g><rect x="104" y="152" width="200" height="48" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="204" y="181" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-A（AS 100）</text></g><g><rect x="456" y="152" width="200" height="48" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="556" y="181" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-B（AS 200）</text></g><g><rect x="64" y="248" width="632" height="144" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="380" y="274" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">自社 AS 65001</text><rect x="124" y="296" width="160" height="60" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><text x="204" y="320" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R1（境界ルータ）</text><text x="204" y="340" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">ISP-A向け</text><rect x="476" y="296" width="160" height="60" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><text x="556" y="320" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R2（境界ルータ）</text><text x="556" y="340" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">ISP-B向け</text><text x="380" y="378" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">自社のアドレス空間を両ISPから広告してもらう</text></g><text x="214" y="230" font-weight="600" fill="var(--cds-text-primary)">eBGP</text><text x="566" y="230" font-weight="600" fill="var(--cds-text-primary)">eBGP</text><text x="380" y="316" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">iBGP</text><text x="380" y="344" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">境界ルータ同士で経路を共有</text></svg></div><figcaption>図2　企業のマルチホーム構成 · eBGP 2本＋iBGP 1本</figcaption></figure>
+<p>各境界ルータが自分のISPとeBGPを張り、境界ルータ同士はiBGPで経路を共有します。片方のISPが落ちても、経路が取り下げられて自動的にもう一方へ切り替わります。</p>
+<h3>主な利用場面</h3>
+<table>
+<thead>
+<tr>
+<th>場面</th>
+<th>BGPで何をするか</th>
+<th>試験でのキーワード</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ISP同士の接続</td>
+<td>インターネットの経路を相互に交換する</td>
+<td>トランジット、ピアリング、IX、フルルート</td>
+</tr>
+<tr>
+<td>企業のマルチホーム</td>
+<td>複数ISPで冗長化・負荷分散。自社のアドレスを両ISPから広告する</td>
+<td>グローバルAS番号、PIアドレス、LOCAL_PREF、AS_PATHプリペンド</td>
+</tr>
+<tr>
+<td>IP-VPN（MPLS-VPN）</td>
+<td>通信事業者網の中でMP-BGPがVPN経路を運ぶ。PE-CE間もBGPが多い</td>
+<td>MP-BGP、VPNv4、RD、RT、as-override</td>
+</tr>
+<tr>
+<td>クラウド専用線接続</td>
+<td>AWS Direct Connect、Azure ExpressRoute などは経路交換にBGPが前提</td>
+<td>プライベートAS、冗長回線の優先制御</td>
+</tr>
+<tr>
+<td>データセンタ内</td>
+<td>リーフ・スパイン構成のアンダーレイをeBGPで組む。EVPNでL2を延伸</td>
+<td>Clos、ECMP、EVPN/VXLAN</td>
+</tr>
+</tbody></table>
+<h3>BGPが「不要」なケース</h3>
+<ul>
+<li>ISP 1社とだけつなぐ<strong>シングルホーム</strong>なら、デフォルトルートの静的経路で十分。</li>
+<li>1社内で完結し、ポリシー制御も要らないならOSPFなどのIGPで十分。</li>
+</ul>
+<p>試験で「なぜ静的経路でなくBGPなのか」と問われたら、<strong>障害時に経路が自動で取り下げられ切り替わること</strong>と<strong>対向のISP側の障害も検知できること</strong>が定番の答え方です。</p>
+<h3>この先の読み方</h3>
+<p>3章からは、<strong>上のマルチホーム構成だけを使い、経路が届いて実際に使われるまでを順に追います</strong>。各章は、前の章で残った問題を解く形でつながっています。</p>
+<table>
+<thead>
+<tr>
+<th>章</th>
+<th>この構成で起きること</th>
+<th>そこで学ぶこと</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>3</td>
+<td>R1とISP-Aがつながる</td>
+<td>ピア確立、TCP 179、メッセージ、状態遷移</td>
+</tr>
+<tr>
+<td>4</td>
+<td>ISP-Aから経路が届く</td>
+<td>UPDATEとパス属性、AS_PATHによるAS間のループ防止</td>
+</tr>
+<tr>
+<td>5</td>
+<td>R1がR2に経路を教える</td>
+<td>iBGP、eBGPとの違い、next-hop-self</td>
+</tr>
+<tr>
+<td>6</td>
+<td>社内のBGPルータが増える</td>
+<td>iBGPのループ防止、フルメッシュ、ルートリフレクタ</td>
+</tr>
+<tr>
+<td>7</td>
+<td>同じ宛先にISP-A経由とISP-B経由の2本がある</td>
+<td>最適経路の選び方</td>
+</tr>
+<tr>
+<td>8</td>
+<td>「主回線はISP-A」と自分で決めたい</td>
+<td>LOCAL_PREF、AS_PATHプリペンド、MED</td>
+</tr>
+</tbody></table>
+<p>例で使う値：自社はAS 65001で「203.0.113.0/24」を持ち、通信先の例はX社（AS 64500、198.51.100.0/24）です。</p>
+<h2 id="s3">3. まずつながる：R1とISP-Aがピアを張る</h2>
+<p>2章の構成で最初に必要なのは、R1とISP-Aのルータが互いをBGPの相手（ピア）として認めることです。BGPはOSPFのHelloのような自動発見をしないので、<strong>両方のルータに相手のIPアドレスとAS番号を手で設定</strong>し、TCP 179でセッションを張ります。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 468" role="img" aria-label="TCP接続→OPEN交換→KEEPALIVEで確立し、その後UPDATEで経路を交換する" font-size="12"><defs><marker id="seq-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cds-chart-axis)"></path></marker><marker id="seq-arrow-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cds-chart-categorical-1)"></path></marker></defs><text x="24" y="30" font-size="15" font-weight="600" fill="var(--cds-text-primary)">TCP接続 → OPEN交換 → KEEPALIVEで確立し、その後UPDATEで経路を交換</text><g stroke="var(--cds-chart-axis)" stroke-width="1" stroke-dasharray="3 4"><line x1="200" y1="100" x2="200" y2="412"></line><line x1="560" y1="100" x2="560" y2="412"></line></g><g><rect x="120" y="50" width="160" height="50" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><text x="200" y="72" text-anchor="middle" font-size="13" font-weight="600" fill="var(--cds-text-primary)">R1</text><text x="200" y="90" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">AS 65001・192.0.2.2</text></g><g><rect x="480" y="50" width="160" height="50" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="560" y="72" text-anchor="middle" font-size="13" font-weight="600" fill="var(--cds-text-primary)">ISP-Aのルータ</text><text x="560" y="90" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">AS 100・192.0.2.1</text></g><g><path d="M200 140H560" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25" marker-end="url(#seq-arrow)" marker-start="url(#seq-arrow)"></path><path d="M200 186H560" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25" marker-end="url(#seq-arrow)"></path><path d="M560 226H200" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25" marker-end="url(#seq-arrow)"></path><path d="M200 266H560" fill="none" stroke="var(--cds-chart-categorical-1)" stroke-width="2" marker-end="url(#seq-arrow-hot)" marker-start="url(#seq-arrow-hot)"></path><path d="M200 312H560" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25" marker-end="url(#seq-arrow)" marker-start="url(#seq-arrow)"></path><path d="M200 352H560" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25" marker-end="url(#seq-arrow)" marker-start="url(#seq-arrow)"></path><path d="M200 392H560" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25" marker-end="url(#seq-arrow)" marker-start="url(#seq-arrow)"></path></g><text x="380" y="132" text-anchor="middle" fill="var(--cds-text-primary)">TCP接続（3ウェイハンドシェイク、宛先ポート179）</text><text x="380" y="178" text-anchor="middle" fill="var(--cds-text-primary)">OPEN（AS 65001、ホールドタイム、BGP ID）</text><text x="380" y="218" text-anchor="middle" fill="var(--cds-text-primary)">OPEN（AS 100、ホールドタイム、BGP ID）</text><text x="380" y="258" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">KEEPALIVE（相手のOPENを受け入れた）</text><text x="380" y="304" text-anchor="middle" fill="var(--cds-text-primary)">UPDATE（持っている経路をすべて送る）</text><text x="380" y="344" text-anchor="middle" fill="var(--cds-text-primary)">KEEPALIVE（既定60秒ごと）</text><text x="380" y="384" text-anchor="middle" fill="var(--cds-text-primary)">UPDATE（変化があったときだけ差分を送る）</text><text x="24" y="144" font-size="11.5" fill="var(--cds-text-secondary)">① TCP</text><text x="24" y="210" font-size="11.5" fill="var(--cds-text-secondary)">② OPEN交換</text><text x="24" y="270" font-size="11.5" font-weight="600" fill="var(--cds-text-primary)">③ 確立</text><text x="24" y="316" font-size="11.5" fill="var(--cds-text-secondary)">④ 経路交換</text><text x="24" y="376" font-size="11.5" fill="var(--cds-text-secondary)">⑤ 維持</text><text x="576" y="270" font-size="11.5" font-weight="600" fill="var(--cds-text-primary)">ここでEstablished</text><text x="24" y="446" font-size="11.5" fill="var(--cds-text-secondary)">ホールドタイム（既定180秒）の間に何も届かなければ切断。エラー時はNOTIFICATIONを送って切断する</text></svg></div><figcaption>図3　R1とISP-Aのセッション確立 · 7つのやり取り</figcaption></figure>
+<p>再送や順序の保証はTCPが担うので、BGP自身は信頼性の仕組みを持ちません。一度全経路を送ったら、あとは差分だけ送ればよいのもこのためです。</p>
+<h3>ルータの中では：状態遷移</h3>
+<p>上のやり取りをルータ内部の状態で表すと次のとおりです。showコマンドで見えるのはこの状態名です。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 380" role="img" aria-label="6つの状態を経てEstablishedになると経路交換が始まる" font-size="13"><defs><marker id="fsm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cds-chart-axis)"></path></marker><marker id="fsm-arrow-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cds-chart-status-critical)"></path></marker></defs><text x="24" y="34" font-size="15" font-weight="600" fill="var(--cds-text-primary)">6つの状態を経てEstablishedになると経路交換が始まる</text><g fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"><path d="M155 120H179" marker-end="url(#fsm-arrow)"></path><path d="M297 120H321" marker-end="url(#fsm-arrow)"></path><path d="M439 120H463" marker-end="url(#fsm-arrow)"></path><path d="M581 120H605" marker-end="url(#fsm-arrow)"></path><path d="M250 156V214" marker-end="url(#fsm-arrow)"></path><path d="M368 214V156" marker-end="url(#fsm-arrow)"></path></g><g fill="none" stroke="var(--cds-chart-status-critical)" stroke-width="1.25" stroke-dasharray="5 4"><path d="M664 156V324H96V156" marker-end="url(#fsm-arrow-bad)"></path></g><g><rect x="37" y="84" width="118" height="72" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="96" y="114" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">Idle</text><text x="96" y="136" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">初期状態</text></g><g><rect x="179" y="84" width="118" height="72" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="238" y="114" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">Connect</text><text x="238" y="136" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">TCP接続を試行</text></g><g><rect x="321" y="84" width="118" height="72" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="380" y="114" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">OpenSent</text><text x="380" y="136" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">OPEN送信済み</text></g><g><rect x="463" y="84" width="118" height="72" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="522" y="114" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">OpenConfirm</text><text x="522" y="136" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">KEEPALIVE待ち</text></g><g><rect x="605" y="84" width="118" height="72" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><text x="664" y="114" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">Established</text><text x="664" y="136" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">UPDATE交換</text></g><g><rect x="239" y="214" width="140" height="72" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="309" y="244" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">Active</text><text x="309" y="266" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">TCP接続の再試行・待受</text></g><text x="242" y="190" text-anchor="end" font-size="11.5" fill="var(--cds-text-secondary)">TCP失敗</text><text x="376" y="190" font-size="11.5" fill="var(--cds-text-secondary)">TCP成功</text><text x="380" y="314" text-anchor="middle" font-size="11.5" fill="var(--cds-chart-status-critical)">エラー（NOTIFICATION）・ホールドタイム満了でIdleへ</text><text x="380" y="356" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">Activeで止まる＝TCP 179がつながらない（ACL・FW、ピアアドレスやAS番号の設定ミス）</text></svg></div><figcaption>図4　ルータ内部の状態遷移（FSM） · 6状態</figcaption></figure>
+<p>状態が<strong>Activeのまま</strong>なら、TCP接続自体が失敗しています。名前に反して「動いている」状態ではないのがひっかけポイントです。</p>
+<h3>メッセージの種類</h3>
+<table>
+<thead>
+<tr>
+<th>メッセージ</th>
+<th>役割</th>
+<th>主な中身</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>OPEN</td>
+<td>セッション開始時のパラメータ交換</td>
+<td>自分のAS番号、ホールドタイム、BGP識別子（ルータID）、対応機能（4バイトAS、MP-BGP など）</td>
+</tr>
+<tr>
+<td>UPDATE</td>
+<td>経路の広告と取り下げ</td>
+<td>取り下げる経路、パス属性、NLRI（広告する宛先）。中身は4章</td>
+</tr>
+<tr>
+<td>KEEPALIVE</td>
+<td>生存確認。OPENへの応答も兼ねる</td>
+<td>ヘッダのみ19バイト。既定60秒間隔（ホールドタイムの1/3）</td>
+</tr>
+<tr>
+<td>NOTIFICATION</td>
+<td>エラー通知</td>
+<td>エラーコード。<strong>送信後にセッションを切断する</strong></td>
+</tr>
+<tr>
+<td>ROUTE-REFRESH（RFC 2918）</td>
+<td>相手に経路の再送を要求</td>
+<td>ポリシー変更を、セッションを切らずに反映できる</td>
+</tr>
+</tbody></table>
+<h3>セッションを保つための数字</h3>
+<ul>
+<li>ホールドタイムは<strong>OPENで互いに提示し、小さい方を採用</strong>する。</li>
+<li>既定値のままだと、ISP-A側の障害を検知するのに最大180秒かかる。早くISP-Bへ切り替えたいなら<strong>BFD</strong>と連携させる（ミリ秒単位で検知）。</li>
+<li>ルータの再起動中も転送を続けたい場合は<strong>グレースフルリスタート</strong>を使う。</li>
+</ul>
+<blockquote>
+<p>ここまででR1とISP-Aは「話せる関係」になりました。次は、このセッションに乗ってISP-Aから届く<strong>経路そのもの</strong>を見ます。</p>
+</blockquote>
+<h2 id="s4">4. 経路が届く：UPDATEの中身とAS_PATH</h2>
+<p>セッションが張れると、ISP-AはR1に、自分経由で届く宛先をUPDATEで知らせてきます。UPDATEは<strong>宛先（NLRI）と、そこへの道のりを説明するパス属性のセット</strong>です。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 340" role="img" aria-label="UPDATEは宛先とそこへの道のり（パス属性）のセットで届く" font-size="13"><text x="24" y="30" font-size="15" font-weight="600" fill="var(--cds-text-primary)">UPDATEは「宛先」と「そこへの道のり（パス属性）」のセットで届く</text><text x="24" y="56" font-size="11.5" fill="var(--cds-text-secondary)">ISP-A → R1 に届くUPDATEの例</text><g><rect x="24" y="70" width="376" height="38" rx="6" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="40" y="94" font-weight="600" fill="var(--cds-text-primary)">取り下げる経路</text><text x="200" y="94" fill="var(--cds-text-secondary)">なし</text></g><g><rect x="24" y="116" width="376" height="152" rx="6" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="40" y="138" font-weight="600" fill="var(--cds-text-primary)">パス属性</text><line x1="40" y1="148" x2="384" y2="148" stroke="var(--cds-chart-grid)"></line><text x="56" y="170" fill="var(--cds-text-primary)">ORIGIN</text><text x="200" y="170" font-weight="600" fill="var(--cds-text-primary)">i（IGP）</text><text x="56" y="198" fill="var(--cds-text-primary)">AS_PATH</text><text x="200" y="198" font-weight="600" fill="var(--cds-text-primary)">100 64500</text><text x="56" y="226" fill="var(--cds-text-primary)">NEXT_HOP</text><text x="200" y="226" font-weight="600" fill="var(--cds-text-primary)">192.0.2.1</text><text x="56" y="254" fill="var(--cds-text-secondary)">（任意）</text><text x="200" y="254" fill="var(--cds-text-secondary)">MED、COMMUNITY など</text></g><g><rect x="24" y="276" width="376" height="40" rx="6" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><text x="40" y="301" font-weight="600" fill="var(--cds-text-primary)">NLRI（宛先）</text><text x="200" y="301" font-weight="600" fill="var(--cds-text-primary)">198.51.100.0/24</text></g><g font-size="12"><line x1="404" y1="90" x2="424" y2="90" stroke="var(--cds-chart-grid)" stroke-width="1.25"></line><line x1="404" y1="166" x2="424" y2="166" stroke="var(--cds-chart-grid)" stroke-width="1.25"></line><line x1="404" y1="194" x2="424" y2="194" stroke="var(--cds-chart-grid)" stroke-width="1.25"></line><line x1="404" y1="222" x2="424" y2="222" stroke="var(--cds-chart-grid)" stroke-width="1.25"></line><line x1="404" y1="250" x2="424" y2="250" stroke="var(--cds-chart-grid)" stroke-width="1.25"></line><line x1="404" y1="297" x2="424" y2="297" stroke="var(--cds-chart-grid)" stroke-width="1.25"></line><text x="432" y="94" fill="var(--cds-text-secondary)">もう使えなくなった宛先の一覧</text><text x="432" y="170" fill="var(--cds-text-secondary)">経路の出どころ（i＝networkコマンド）</text><text x="432" y="198" fill="var(--cds-text-primary)">通ってきたAS。右端が発信元のX社</text><text x="432" y="226" fill="var(--cds-text-primary)">このルータにパケットを渡せばよい</text><text x="432" y="254" fill="var(--cds-text-secondary)">経路の選び方を操作するときに使う（8章）</text><text x="432" y="301" fill="var(--cds-text-primary)">この宛先についての情報です</text></g></svg></div><figcaption>図5　UPDATEメッセージの中身 · X社宛ての経路の例</figcaption></figure>
+<p>ORIGIN・AS_PATH・NEXT_HOPの3つは<strong>ウェルノウン必須属性</strong>で、すべてのUPDATEに必ず入っています。この例でいえば、「X社の198.51.100.0/24へは、AS 100→AS 64500と通れば届く。最初は192.0.2.1に渡せばよい」という意味です。</p>
+<h3>パス属性の4分類</h3>
+<table>
+<thead>
+<tr>
+<th>分類</th>
+<th>意味</th>
+<th>該当する属性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ウェルノウン必須</td>
+<td>全実装が理解し、UPDATEに必ず含める</td>
+<td><strong>ORIGIN、AS_PATH、NEXT_HOP</strong></td>
+</tr>
+<tr>
+<td>ウェルノウン任意</td>
+<td>全実装が理解するが、含めるかは任意</td>
+<td>LOCAL_PREF、ATOMIC_AGGREGATE</td>
+</tr>
+<tr>
+<td>オプション推移的</td>
+<td>理解できなくても次のASへ渡す</td>
+<td>AGGREGATOR、COMMUNITY</td>
+</tr>
+<tr>
+<td>オプション非推移的</td>
+<td>理解できなければ捨て、次のASへ渡さない</td>
+<td>MED、ORIGINATOR_ID、CLUSTER_LIST</td>
+</tr>
+</tbody></table>
+<h3>主なパス属性（どの章で使うか）</h3>
+<table>
+<thead>
+<tr>
+<th>属性</th>
+<th>中身</th>
+<th>伝わる範囲</th>
+<th>優先</th>
+<th>出てくる章</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ORIGIN</td>
+<td>経路の出どころ。i：networkコマンド、e：旧EGP、?：再配送</td>
+<td>全体</td>
+<td>i ＞ e ＞ ?</td>
+<td>4・7</td>
+</tr>
+<tr>
+<td>AS_PATH</td>
+<td>経由AS番号の列。eBGPで送るとき自分のAS番号を先頭に追加</td>
+<td>全体</td>
+<td>短い方</td>
+<td>4・7・8</td>
+</tr>
+<tr>
+<td>NEXT_HOP</td>
+<td>次にパケットを渡すルータのIPアドレス</td>
+<td>eBGPで書き換え、iBGPではそのまま</td>
+<td>到達できることが前提</td>
+<td>5</td>
+</tr>
+<tr>
+<td>LOCAL_PREF</td>
+<td>AS内での出口の優先度（既定100）</td>
+<td>自社AS内（iBGP）だけ</td>
+<td>大きい方</td>
+<td>7・8</td>
+</tr>
+<tr>
+<td>MED</td>
+<td>隣接ASに「この入口から入ってほしい」と伝える値</td>
+<td>隣接AS（1つ先）まで</td>
+<td>小さい方</td>
+<td>7・8</td>
+</tr>
+<tr>
+<td>COMMUNITY</td>
+<td>経路に付ける32ビットのタグ（AS番号:値）</td>
+<td>設定次第</td>
+<td>—</td>
+<td>8</td>
+</tr>
+<tr>
+<td>ATOMIC_AGGREGATE／AGGREGATOR</td>
+<td>集約でAS_PATH情報が失われたこと／集約したルータ</td>
+<td>全体</td>
+<td>—</td>
+<td>6</td>
+</tr>
+<tr>
+<td>ORIGINATOR_ID／CLUSTER_LIST</td>
+<td>ルートリフレクタ使用時のループ防止</td>
+<td>自社AS内</td>
+<td>—</td>
+<td>6</td>
+</tr>
+</tbody></table>
+<h3>AS_PATHでAS間のループを防ぐ</h3>
+<p>AS_PATHにはもう一つ大事な役目があります。eBGPで経路を渡すたびに送り手は自分のAS番号を先頭に足し、受け手は<strong>AS_PATHに自分のAS番号があればその経路を捨てます</strong>。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 352" role="img" aria-label="自社の経路が一周して戻ってきても、AS_PATHに65001があるので捨てられる" font-size="13"><defs><marker id="loop-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cds-chart-axis)"></path></marker><marker id="loop-arrow-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cds-chart-status-critical)"></path></marker></defs><text x="24" y="32" font-size="15" font-weight="600" fill="var(--cds-text-primary)">自社の経路が一周して戻ってきても、AS_PATHに65001があるので捨てられる</text><g fill="none" stroke-width="1.5"><path d="M140 260V142" stroke="var(--cds-chart-axis)" marker-end="url(#loop-arrow)"></path><path d="M240 110H518" stroke="var(--cds-chart-axis)" marker-end="url(#loop-arrow)"></path><path d="M620 140V258" stroke="var(--cds-chart-axis)" marker-end="url(#loop-arrow)"></path><path d="M520 290H242" stroke="var(--cds-chart-status-critical)" stroke-dasharray="5 4" marker-end="url(#loop-arrow-bad)"></path></g><g><rect x="40" y="260" width="200" height="60" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><text x="140" y="284" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">自社 AS 65001</text><text x="140" y="304" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">203.0.113.0/24 を広告</text></g><g><rect x="40" y="80" width="200" height="60" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="140" y="115" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-A（AS 100）</text></g><g><rect x="520" y="80" width="200" height="60" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="620" y="115" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">別のISP（AS 300）</text></g><g><rect x="520" y="260" width="200" height="60" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="620" y="295" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-B（AS 200）</text></g><text x="152" y="206" font-size="11.5" fill="var(--cds-text-primary)">AS_PATH: 65001</text><text x="380" y="100" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">AS_PATH: 100 65001</text><text x="608" y="206" text-anchor="end" font-size="11.5" fill="var(--cds-text-primary)">AS_PATH: 300 100 65001</text><text x="380" y="280" text-anchor="middle" font-size="11.5" fill="var(--cds-chart-status-critical)">AS_PATH: 200 300 100 65001</text><text x="380" y="312" text-anchor="middle" font-weight="600" fill="var(--cds-chart-status-critical)">自分の65001を含む → R2が破棄</text></svg></div><figcaption>図6　AS_PATHによるAS間ループの検出 · 自社の経路が4つのASを一周</figcaption></figure>
+<p>自社が広告した203.0.113.0/24がISP-A→AS 300→ISP-Bと回ってR2に戻ってきても、AS_PATHに65001があるのでR2は受け取りません。この仕組みだけでASをまたぐループは起きず、「パスベクタ型」と呼ばれるのもこのためです。</p>
+<p><strong>試験のひっかけ：同じAS番号を複数の拠点で使う場合</strong></p>
+<ul>
+<li>IP-VPNで全拠点のCEが同じプライベートAS（例：65001）だと、拠点Aの経路が拠点Bに届いたとき自分の65001があるため破棄され、拠点間で通信できない。</li>
+<li>対策は、受け手のCEで自分のASを許容する<strong>allowas-in</strong>か、事業者のPEで拠点のAS番号を自分のAS番号に書き換える<strong>as-override</strong>。</li>
+</ul>
+<p><strong>用語：CE・PE・P</strong>（IP-VPN＝MPLS-VPNの構成要素）</p>
+<table>
+<thead>
+<tr>
+<th>用語</th>
+<th>正式名</th>
+<th>どこにあるどんなルータか</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>CE</td>
+<td>Customer Edge</td>
+<td><strong>お客さん側の端</strong>。自社の各拠点に置き、自社で管理する。事業者網への出入口</td>
+</tr>
+<tr>
+<td>PE</td>
+<td>Provider Edge</td>
+<td><strong>事業者側の端</strong>。CEとつながり、お客さんごとに経路を分けて管理する（VRF）</td>
+</tr>
+<tr>
+<td>P</td>
+<td>Provider</td>
+<td>事業者網の<strong>内部</strong>。お客さんとは直接つながらず、PE同士の間でパケットを中継するだけ</td>
+</tr>
+</tbody></table>
+<pre><code>[拠点A] CE ──── PE ── P ── P ── PE ──── CE [拠点B]
+  自社管理  │←────── 事業者網 ──────→│  自社管理
+</code></pre>
+<p>CEとPEの間では拠点の経路を渡すためにeBGPをよく張り、PE同士は事業者網の中でMP-BGPを使ってお客さんごとの経路を配ります。上のひっかけで、拠点Aの経路が拠点BのCEに届いて捨てられるのはこの構成です。</p>
+<blockquote>
+<p>R1はこれでX社への経路を覚えました。でもR2や社内の他のルータは、まだこの経路を知りません。次は社内に配る方法です。</p>
+</blockquote>
+<h2 id="s5">5. 社内に配る：iBGP</h2>
+<p>R1が覚えた経路をR2にも教えるには、同じAS内のルータ同士でBGPを張ります。これが<strong>iBGP</strong>で、ISP-Aとの間のeBGPとは振る舞いが少し違います。</p>
+<h3>なぜ iBGP が必要か</h3>
+<ul>
+<li>R2の先にいる社内ユーザーも、X社へはISP-A経由で行けると知る必要がある。</li>
+<li>R2はISP-BからもX社への経路を受け取る。どちらが良いか比べるには、両方を知っていなければならない（7章）。</li>
+<li>OSPFに再配送すればよいのでは？→ フルルート（約100万経路）はIGPには載せられず、AS_PATHなどの属性も消えてしまう。</li>
+</ul>
+<h3>eBGPとiBGPで何が変わるか</h3>
+<table>
+<thead>
+<tr>
+<th>観点</th>
+<th>eBGP（ISP-A → R1）</th>
+<th>iBGP（R1 → R2）</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>AS_PATH</td>
+<td>ISP-Aが自分の100を先頭に追加</td>
+<td>変えない（自社の65001は足さない）</td>
+</tr>
+<tr>
+<td>NEXT_HOP</td>
+<td>送り手のアドレス（192.0.2.1）に書き換える</td>
+<td><strong>変えない</strong>（192.0.2.1のまま）</td>
+</tr>
+<tr>
+<td>LOCAL_PREF</td>
+<td>伝えない</td>
+<td>伝える（8章で使う）</td>
+</tr>
+<tr>
+<td>ピアを張るアドレス</td>
+<td>直結IF（192.0.2.1と192.0.2.2）</td>
+<td>ループバック（10.0.0.1と10.0.0.2）</td>
+</tr>
+<tr>
+<td>TTL（既定）</td>
+<td>1（隣接前提。超えるならebgp-multihop）</td>
+<td>255</td>
+</tr>
+<tr>
+<td>学んだ経路の再広告</td>
+<td>他のピアへ広告する</td>
+<td>他のiBGPピアへは広告しない（6章）</td>
+</tr>
+<tr>
+<td>管理距離（Cisco）</td>
+<td>20</td>
+<td>200</td>
+</tr>
+</tbody></table>
+<p>iBGPをループバックで張るのは、R1とR2の間の物理リンクが1本落ちても、OSPFが迂回路を見つけてセッションが続くからです。管理距離はOSPFが110なので、同じ宛先ならeBGP ＞ OSPF ＞ iBGPの順で採用されます。</p>
+<h3>NEXT_HOPの落とし穴とnext-hop-self</h3>
+<p>表の中でいちばん問題になるのが、iBGPがNEXT_HOPを変えないことです。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 306" role="img" aria-label="iBGPはNEXT_HOPを変えないので、境界ルータでnext-hop-selfを使う" font-size="13"><defs><marker id="nh-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cds-chart-axis)"></path></marker></defs><text x="24" y="30" font-size="15" font-weight="600" fill="var(--cds-text-primary)">iBGPはNEXT_HOPを変えない → 境界ルータでnext-hop-self</text><text x="24" y="70" font-size="11.5" font-weight="600" fill="var(--cds-chart-status-critical)">① 何もしない場合</text><text x="24" y="200" font-size="11.5" font-weight="600" fill="var(--cds-chart-status-good)">② R1でnext-hop-selfを設定した場合</text><g fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"><path d="M164 108H300" marker-end="url(#nh-arrow)"></path><path d="M440 108H576" marker-end="url(#nh-arrow)"></path><path d="M164 238H300" marker-end="url(#nh-arrow)"></path><path d="M440 238H576" marker-end="url(#nh-arrow)"></path></g><g><rect x="24" y="84" width="140" height="48" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><rect x="300" y="84" width="140" height="48" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><rect x="576" y="84" width="140" height="48" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="94" y="105" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-A（AS 100）</text><text x="94" y="123" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">192.0.2.1</text><text x="370" y="105" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R1（AS 65001）</text><text x="370" y="123" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">Lo 10.0.0.1</text><text x="646" y="105" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R2（AS 65001）</text><text x="646" y="123" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">ISP-B側の境界ルータ</text><text x="232" y="100" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">eBGP</text><text x="232" y="126" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">NH=192.0.2.1</text><text x="508" y="100" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">iBGP</text><text x="508" y="126" text-anchor="middle" font-size="11.5" fill="var(--cds-chart-status-critical)">NH=192.0.2.1</text><text x="716" y="152" text-anchor="end" font-size="11.5" fill="var(--cds-chart-status-critical)">R2は192.0.2.1への行き方を知らない → 経路が使えない</text></g><g><rect x="24" y="214" width="140" height="48" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><rect x="300" y="214" width="140" height="48" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><rect x="576" y="214" width="140" height="48" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="94" y="235" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-A（AS 100）</text><text x="94" y="253" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">192.0.2.1</text><text x="370" y="235" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R1（AS 65001）</text><text x="370" y="253" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">next-hop-self</text><text x="646" y="235" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R2（AS 65001）</text><text x="646" y="253" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">ISP-B側の境界ルータ</text><text x="232" y="230" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">eBGP</text><text x="232" y="256" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">NH=192.0.2.1</text><text x="508" y="230" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">iBGP</text><text x="508" y="256" text-anchor="middle" font-size="11.5" fill="var(--cds-chart-status-good)">NH=10.0.0.1</text><text x="716" y="282" text-anchor="end" font-size="11.5" fill="var(--cds-chart-status-good)">R1のループバックはOSPFで到達できる → 経路が使える</text></g></svg></div><figcaption>図7　R1→R2へのNEXT_HOPの引き継ぎ · 設定なしとnext-hop-selfの比較（NH＝NEXT_HOP）</figcaption></figure>
+<p>R2が受け取った経路のNEXT_HOPは、ISP-Aのアドレス192.0.2.1のままです。R2がこのアドレスへの行き方をOSPFで知らなければ、経路は届いていても「到達不能」として使われません。</p>
+<p>対策は3つあります。</p>
+<ol>
+<li><strong>next-hop-self</strong>：R1がiBGPで広告するとき、NEXT_HOPを自分のループバックに書き換える。最も一般的。</li>
+<li><strong>ISPとの接続セグメントをOSPFに載せる</strong>：R1のISP-A側インタフェースをOSPFに含める（passive-interfaceにする）か、直結経路を再配送する。</li>
+<li><strong>静的経路</strong>：R2に192.0.2.1宛ての静的経路を設定する（管理が大変なので非推奨）。</li>
+</ol>
+<h3>あわせて覚えること</h3>
+<ul>
+<li>BGPは自分でパケットを運ばない。NEXT_HOPまでの実際の道は<strong>IGPで解決する</strong>（再帰的な経路解決）。</li>
+<li><strong>BGP同期（synchronization）</strong>：iBGPで学んだ経路は、IGPでも同じ経路を学ぶまで使わないという古いルール。現在の実装では既定で無効。</li>
+<li>R1とR2の間に<strong>BGPを動かしていないルータ</strong>があると、そこはX社宛てを知らずパケットを捨てる（ブラックホール）。対策はそのルータにもiBGPを張るか、MPLSでトンネルする。これが次の章のきっかけになる。</li>
+</ul>
+<blockquote>
+<p>境界ルータ2台ならこれで完成です。しかし社内のコアルータにもBGPを動かして台数が増えると、iBGPのあるルールが問題になります。</p>
+</blockquote>
+<h2 id="s6">6. 台数が増えると困る：iBGPのループ防止とフルメッシュ</h2>
+<p>社内にコアルータR3を足してBGPを動かすと、R1→R2と伝わった経路がR3には届きません。原因は、<strong>iBGPで学んだ経路は他のiBGPピアに渡さない</strong>というルールです。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 268" role="img" aria-label="iBGPで学んだ経路は他のiBGPピアに渡さないためフルメッシュが必要" font-size="13"><defs><marker id="sh-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cds-chart-axis)"></path></marker><marker id="sh-arrow-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cds-chart-status-critical)"></path></marker></defs><text x="24" y="32" font-size="15" font-weight="600" fill="var(--cds-text-primary)">iBGPで学んだ経路は他のiBGPピアに渡さない → フルメッシュが必要</text><g fill="none" stroke-width="1.5"><path d="M144 110H208" stroke="var(--cds-chart-axis)" marker-end="url(#sh-arrow)"></path><path d="M328 110H392" stroke="var(--cds-chart-axis)" marker-end="url(#sh-arrow)"></path><path d="M512 110H576" stroke="var(--cds-chart-status-critical)" stroke-dasharray="5 4" marker-end="url(#sh-arrow-bad)"></path></g><g><rect x="24" y="86" width="120" height="48" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="84" y="115" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-A</text></g><g><rect x="208" y="86" width="120" height="48" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><text x="268" y="115" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R1</text></g><g><rect x="392" y="86" width="120" height="48" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="452" y="115" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R2</text></g><g><rect x="576" y="86" width="120" height="48" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="636" y="115" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R3（社内コア）</text><text x="636" y="156" text-anchor="middle" font-size="11.5" fill="var(--cds-chart-status-critical)">経路を知らない</text></g><text x="176" y="100" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">eBGP</text><text x="360" y="100" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">iBGP</text><text x="360" y="130" text-anchor="middle" font-size="11.5" fill="var(--cds-chart-status-good)">渡す</text><text x="544" y="100" text-anchor="middle" font-size="11.5" fill="var(--cds-chart-status-critical)">iBGP</text><text x="544" y="130" text-anchor="middle" font-size="11.5" fill="var(--cds-chart-status-critical)">渡さない</text><g><rect x="24" y="180" width="712" height="68" rx="8" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></rect><text x="40" y="206" fill="var(--cds-text-primary)">対策① フルメッシュ：n台なら n(n−1)/2 本のセッション（10台で45本、100台で4950本）</text><text x="40" y="232" fill="var(--cds-text-primary)">対策② ルートリフレクタ（RR）　　対策③ コンフェデレーション</text></g></svg></div><figcaption>図8　iBGPスプリットホライズン · R3に経路が届かない</figcaption></figure>
+<h3>なぜこんなルールがあるのか</h3>
+<p>4章で見たように、AS間のループはAS_PATHで防げます。しかしiBGPではAS_PATHが増えないので（5章の表）、社内で経路がぐるぐる回っても検出できません。そこで「そもそも又貸ししない」と決めてループを防いでいます。これを<strong>iBGPスプリットホライズン</strong>と呼びます。</p>
+<table>
+<thead>
+<tr>
+<th>ループの種類</th>
+<th>防ぐ仕組み</th>
+<th>章</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>ASをまたぐループ</td>
+<td>AS_PATHに自分のAS番号があれば捨てる</td>
+<td>4</td>
+</tr>
+<tr>
+<td>自社AS内のループ</td>
+<td>iBGPで学んだ経路は他のiBGPピアへ渡さない</td>
+<td>6</td>
+</tr>
+<tr>
+<td>RRを使ったときのループ</td>
+<td>ORIGINATOR_ID、CLUSTER_LIST</td>
+<td>6</td>
+</tr>
+<tr>
+<td>コンフェデレーション内のループ</td>
+<td>AS_CONFED_SEQUENCE</td>
+<td>6</td>
+</tr>
+</tbody></table>
+<h3>その代償：フルメッシュ</h3>
+<p>このルールのもとで全ルータに経路を届けるには、社内のBGPルータ全部がお互い直接ピアを張る<strong>フルメッシュ</strong>が必要です。セッション数は n(n−1)/2 で、R1〜R3の3台なら3本ですが、10台で45本、100台で4,950本と急に破綻します。計算問題としても出やすいので、公式は覚えておきましょう。</p>
+<p>これを避ける方法が、ルートリフレクタとコンフェデレーションです。</p>
+<h3>解決策①：ルートリフレクタ（RR、RFC 4456）</h3>
+<p>社内に1台、例外的に又貸しを許されたルータ（RR）を置きます。R1〜R3はRRとだけピアを張ればよく、クライアント側に特別な設定はいりません。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 376" role="img" aria-label="ルートリフレクタはiBGP経路を例外的に反射してフルメッシュを不要にする" font-size="13"><text x="24" y="32" font-size="15" font-weight="600" fill="var(--cds-text-primary)">ルートリフレクタはiBGP経路を例外的に「反射」し、フルメッシュを不要にする</text><g><rect x="24" y="64" width="536" height="256" rx="10" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1" stroke-dasharray="6 4"></rect><text x="40" y="88" font-size="11.5" fill="var(--cds-text-secondary)">クラスタ（R1〜R3はクライアント）</text></g><g stroke="var(--cds-chart-categorical-1)" stroke-width="1.75" fill="none"><line x1="240" y1="158" x2="130" y2="246"></line><line x1="292" y1="158" x2="292" y2="246"></line><line x1="344" y1="158" x2="454" y2="246"></line><line x1="392" y1="130" x2="600" y2="130"></line></g><g><rect x="192" y="102" width="200" height="56" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><text x="292" y="126" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">RR（ルートリフレクタ）</text><text x="292" y="146" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">受けた経路を反射する</text></g><g><rect x="42" y="246" width="140" height="48" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="112" y="275" text-anchor="middle" fill="var(--cds-text-primary)">R1（ISP-A側）</text></g><g><rect x="222" y="246" width="140" height="48" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="292" y="275" text-anchor="middle" fill="var(--cds-text-primary)">R2（ISP-B側）</text></g><g><rect x="402" y="246" width="140" height="48" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="472" y="275" text-anchor="middle" fill="var(--cds-text-primary)">R3（社内）</text></g><g><rect x="600" y="106" width="136" height="48" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="668" y="135" text-anchor="middle" fill="var(--cds-text-primary)">非クライアント</text></g><text x="496" y="120" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">iBGP</text><text x="292" y="311" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">クライアント同士はピア不要</text><text x="24" y="354" font-size="11.5" fill="var(--cds-text-secondary)">反射時にORIGINATOR_ID（元の送信者）とCLUSTER_LIST（通過したクラスタ）を付与 → 自分のIDがあれば破棄</text></svg></div><figcaption>図9　ルートリフレクタを入れた自社内 · RR 1台＋クライアント3台＋非クライアント1台</figcaption></figure>
+<table>
+<thead>
+<tr>
+<th>RRが経路を受け取った相手</th>
+<th>反射（広告）する先</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>eBGPピア</td>
+<td>クライアント、非クライアントのすべて</td>
+</tr>
+<tr>
+<td>クライアント</td>
+<td>送信元以外のクライアント＋非クライアント</td>
+</tr>
+<tr>
+<td>非クライアント</td>
+<td><strong>クライアントのみ</strong>（非クライアント同士は従来どおりフルメッシュ）</td>
+</tr>
+</tbody></table>
+<p>又貸しを許すと社内でループする可能性が戻ってくるので、RRは反射するときに2つの属性を付けます。</p>
+<ul>
+<li><strong>ORIGINATOR_ID</strong>：その経路を社内で最初に広告したルータ（例：R1）のID。自分のID付きの経路が戻ってきたら捨てる。</li>
+<li><strong>CLUSTER_LIST</strong>：通過したクラスタIDの列（いわばAS内版のAS_PATH）。RRは自分のクラスタIDがあれば捨てる。</li>
+</ul>
+<p>RRが1台だけだと、それが故障した瞬間に社内のBGP経路が止まります。そのため<strong>同じクラスタにRRを2台置いて冗長化</strong>するのが定石です。またRRは自分が選んだ最適経路1本だけを反射し、NEXT_HOPも書き換えません。</p>
+<h3>解決策②：コンフェデレーション（RFC 5065）</h3>
+<p>AS 65001を、たとえば本社側とデータセンタ側のような複数の<strong>サブAS</strong>（プライベートAS番号）に分けます。サブASの中はフルメッシュ、サブAS同士はeBGPに近い振る舞いでつなぎ、AS_PATHに<strong>AS_CONFED_SEQUENCE</strong>を積んでループを検出します。ISP-AやISP-Bからは、今までどおり1つのAS 65001に見えます。</p>
+<table>
+<thead>
+<tr>
+<th>観点</th>
+<th>ルートリフレクタ</th>
+<th>コンフェデレーション</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>考え方</td>
+<td>中継役が経路を配る</td>
+<td>ASを小さなサブASに分ける</td>
+</tr>
+<tr>
+<td>ループ防止</td>
+<td>ORIGINATOR_ID、CLUSTER_LIST</td>
+<td>AS_CONFED_SEQUENCE</td>
+</tr>
+<tr>
+<td>導入の手間</td>
+<td>小さい（RRだけ設定）</td>
+<td>大きい（全ルータの設定変更）</td>
+</tr>
+<tr>
+<td>使われ方</td>
+<td>主流</td>
+<td>合併した組織の統合など</td>
+</tr>
+</tbody></table>
+<h3>その他のループ・不安定の要因</h3>
+<ul>
+<li><strong>相互再配送によるループ</strong>：BGP→OSPF→BGPと経路が戻ると循環する。再配送時にタグを付けてフィルタする、iBGP経路をIGPへ再配送しない、などで防ぐ。</li>
+<li><strong>経路集約とAS_SET</strong>：集約すると元のAS_PATHが失われる。AS_SETで元のAS番号を残せば、ループ検出に使える。</li>
+<li><strong>ルートフラップダンプニング</strong>：広告と取り下げを繰り返す経路を一時的に抑える。ループではなく不安定への対策。</li>
+</ul>
+<blockquote>
+<p>これで社内の全ルータが、ISP-A経由とISP-B経由の両方の経路を知るようになりました。では、同じX社への道が2本あるとき、どちらを使うのでしょうか。</p>
+</blockquote>
+<h2 id="s7">7. 同じ宛先への道が2本：最適経路の選び方</h2>
+<p>5・6章で社内に経路が行き渡った結果、R1はX社への経路を、ISP-Aから直接受けたものとR2経由（元はISP-B）のものの2本持つことになります。BGPは属性を<strong>決まった順番で比べて1本だけを最適経路に選び</strong>、それだけをルーティングテーブルに入れて他のピアに広告します。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 372" role="img" aria-label="X社への道は2本。R1は両方を見比べて1本を選ぶ" font-size="13"><text x="24" y="30" font-size="15" font-weight="600" fill="var(--cds-text-primary)">X社への道は2本。R1は両方を見比べて1本を選ぶ</text><g fill="none"><line x1="160" y1="100" x2="100" y2="172" stroke="var(--cds-chart-categorical-1)" stroke-width="2.5"></line><line x1="100" y1="212" x2="100" y2="292" stroke="var(--cds-chart-categorical-1)" stroke-width="2.5"></line><line x1="280" y1="100" x2="340" y2="124" stroke="var(--cds-chart-axis)" stroke-width="1.25"></line><line x1="340" y1="160" x2="340" y2="196" stroke="var(--cds-chart-axis)" stroke-width="1.25"></line><line x1="340" y1="236" x2="340" y2="292" stroke="var(--cds-chart-axis)" stroke-width="1.25"></line><line x1="160" y1="314" x2="280" y2="314" stroke="var(--cds-chart-axis)" stroke-width="1.25" stroke-dasharray="5 4"></line></g><g><rect x="120" y="52" width="200" height="48" rx="8" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="220" y="72" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">X社（AS 64500）</text><text x="220" y="90" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">198.51.100.0/24</text></g><g><rect x="24" y="172" width="152" height="40" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="100" y="197" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-A（AS 100）</text></g><g><rect x="264" y="124" width="152" height="36" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="340" y="147" text-anchor="middle" fill="var(--cds-text-primary)">AS 300</text></g><g><rect x="264" y="196" width="152" height="40" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="340" y="221" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-B（AS 200）</text></g><g><rect x="24" y="276" width="392" height="76" rx="10" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1" stroke-dasharray="6 4"></rect><rect x="40" y="292" width="120" height="44" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><text x="100" y="319" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R1</text><rect x="280" y="292" width="120" height="44" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="340" y="319" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R2</text><text x="220" y="306" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">iBGP</text><text x="220" y="340" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">自社 AS 65001</text></g><text x="110" y="256" font-weight="600" fill="var(--cds-text-primary)">①</text><text x="350" y="268" font-weight="600" fill="var(--cds-text-primary)">②</text><g><text x="456" y="64" font-weight="600" fill="var(--cds-text-primary)">R1が持つX社宛ての候補</text><rect x="456" y="80" width="280" height="80" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><text x="472" y="104" font-weight="600" fill="var(--cds-text-primary)">① ISP-Aから（eBGP）</text><text x="720" y="104" text-anchor="end" font-weight="600" fill="var(--cds-text-primary)">最適</text><text x="472" y="126" font-size="11.5" fill="var(--cds-text-primary)">AS_PATH：100 64500（2個）</text><text x="472" y="146" font-size="11.5" fill="var(--cds-text-secondary)">NEXT_HOP：192.0.2.1</text><rect x="456" y="172" width="280" height="80" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="472" y="196" font-weight="600" fill="var(--cds-text-primary)">② R2から（iBGP、元はISP-B）</text><text x="472" y="218" font-size="11.5" fill="var(--cds-text-primary)">AS_PATH：200 300 64500（3個）</text><text x="472" y="238" font-size="11.5" fill="var(--cds-text-secondary)">NEXT_HOP：10.0.0.2（R2）</text><text x="456" y="284" font-size="11.5" fill="var(--cds-text-secondary)">LOCAL_PREFが同じ（既定100）なら…</text><text x="456" y="306" font-weight="600" fill="var(--cds-text-primary)">AS_PATHが短い①が選ばれる</text><text x="456" y="328" font-size="11.5" fill="var(--cds-text-secondary)">判定の順番は下の図のとおり</text></g></svg></div><figcaption>図10　X社宛ての2つの候補 · ISP-A経由とISP-B経由</figcaption></figure>
+<h3>比べる順番</h3>
+<figure><div class="svg"><svg viewBox="0 0 760 480" role="img" aria-label="上から順に比べ、差がついた時点で最適経路が決まる" font-size="13"><text x="24" y="30" font-size="15" font-weight="600" fill="var(--cds-text-primary)">上から順に比べ、差がついた時点で最適経路が決まる</text><text x="88" y="62" font-size="11.5" fill="var(--cds-text-secondary)">比較項目</text><text x="256" y="62" font-size="11.5" fill="var(--cds-text-secondary)">優先される値</text><text x="440" y="62" font-size="11.5" fill="var(--cds-text-secondary)">意味・用途</text><g><g><rect x="72" y="78" width="664" height="28" rx="6" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1"></rect><circle cx="44" cy="92" r="13" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></circle></g><text x="44" y="96" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">1</text><text x="88" y="97" font-weight="600" fill="var(--cds-text-primary)">Weight</text><text x="256" y="97" fill="var(--cds-text-primary)">大きい方</text><text x="440" y="96" font-size="11.5" fill="var(--cds-text-secondary)">Cisco独自。そのルータ内だけで有効</text></g><g><g><rect x="72" y="114" width="664" height="28" rx="6" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="1.5"></rect><circle cx="44" cy="128" r="13" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></circle></g><text x="44" y="132" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">2</text><text x="88" y="133" font-weight="600" fill="var(--cds-text-primary)">LOCAL_PREF</text><text x="256" y="133" fill="var(--cds-text-primary)">大きい方</text><text x="440" y="132" font-size="11.5" fill="var(--cds-text-primary)">AS全体の「出口」を決める（既定100）</text></g><g><g><rect x="72" y="150" width="664" height="28" rx="6" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1"></rect><circle cx="44" cy="164" r="13" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></circle></g><text x="44" y="168" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">3</text><text x="88" y="169" font-weight="600" fill="var(--cds-text-primary)">自ルータ生成</text><text x="256" y="169" fill="var(--cds-text-primary)">自分が生成した経路</text><text x="440" y="168" font-size="11.5" fill="var(--cds-text-secondary)">network／aggregate／再配送した経路</text></g><g><g><rect x="72" y="186" width="664" height="28" rx="6" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="1.5"></rect><circle cx="44" cy="200" r="13" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></circle></g><text x="44" y="204" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">4</text><text x="88" y="205" font-weight="600" fill="var(--cds-text-primary)">AS_PATH</text><text x="256" y="205" fill="var(--cds-text-primary)">短い方</text><text x="440" y="204" font-size="11.5" fill="var(--cds-text-primary)">経由AS数。プリペンドで「入口」を操作</text></g><g><g><rect x="72" y="222" width="664" height="28" rx="6" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1"></rect><circle cx="44" cy="236" r="13" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></circle></g><text x="44" y="240" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">5</text><text x="88" y="241" font-weight="600" fill="var(--cds-text-primary)">ORIGIN</text><text x="256" y="241" fill="var(--cds-text-primary)">IGP ＞ EGP ＞ ?</text><text x="440" y="240" font-size="11.5" fill="var(--cds-text-secondary)">経路の出どころ（i ＞ e ＞ incomplete）</text></g><g><g><rect x="72" y="258" width="664" height="28" rx="6" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="1.5"></rect><circle cx="44" cy="272" r="13" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></circle></g><text x="44" y="276" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">6</text><text x="88" y="277" font-weight="600" fill="var(--cds-text-primary)">MED</text><text x="256" y="277" fill="var(--cds-text-primary)">小さい方</text><text x="440" y="276" font-size="11.5" fill="var(--cds-text-primary)">隣接ASに「入口」の希望を伝える</text></g><g><g><rect x="72" y="294" width="664" height="28" rx="6" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1"></rect><circle cx="44" cy="308" r="13" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></circle></g><text x="44" y="312" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">7</text><text x="88" y="313" font-weight="600" fill="var(--cds-text-primary)">eBGP ＞ iBGP</text><text x="256" y="313" fill="var(--cds-text-primary)">eBGPで学んだ方</text><text x="440" y="312" font-size="11.5" fill="var(--cds-text-secondary)">外から直接学んだ経路を優先</text></g><g><g><rect x="72" y="330" width="664" height="28" rx="6" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1"></rect><circle cx="44" cy="344" r="13" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></circle></g><text x="44" y="348" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">8</text><text x="88" y="349" font-weight="600" fill="var(--cds-text-primary)">IGPメトリック</text><text x="256" y="349" fill="var(--cds-text-primary)">小さい方</text><text x="440" y="348" font-size="11.5" fill="var(--cds-text-secondary)">NEXT_HOPまでの社内コスト（ホットポテト）</text></g><g><g><rect x="72" y="366" width="664" height="28" rx="6" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1"></rect><circle cx="44" cy="380" r="13" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></circle></g><text x="44" y="384" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">9</text><text x="88" y="385" font-weight="600" fill="var(--cds-text-primary)">最も古いeBGP経路</text><text x="256" y="385" fill="var(--cds-text-primary)">古い方</text><text x="440" y="384" font-size="11.5" fill="var(--cds-text-secondary)">切り替わりを減らし安定させる</text></g><g><g><rect x="72" y="402" width="664" height="28" rx="6" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1"></rect><circle cx="44" cy="416" r="13" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></circle></g><text x="44" y="420" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">10</text><text x="88" y="421" font-weight="600" fill="var(--cds-text-primary)">ルータID</text><text x="256" y="421" fill="var(--cds-text-primary)">小さい方</text><text x="440" y="420" font-size="11.5" fill="var(--cds-text-secondary)">最後の決め手（次いでネイバーアドレス）</text></g><text x="24" y="452" font-size="11.5" fill="var(--cds-text-secondary)">前提：NEXT_HOPに到達できない経路は比較の土俵に乗らない　／　色付き＝試験で特に問われる3つ</text></svg></div><figcaption>図11　最適経路の判定順（Ciscoの例） · 10段階</figcaption></figure>
+<p>上の例をこの順番に当てはめると、次のように決まります。</p>
+<ol>
+<li>Weight：どちらも設定なしで同じ。</li>
+<li>LOCAL_PREF：どちらも既定の100で同じ。</li>
+<li>自ルータ生成：どちらも外から学んだ経路で同じ。</li>
+<li><strong>AS_PATH</strong>：①は2個、②は3個 → <strong>①のISP-A経由に決定</strong>。</li>
+</ol>
+<p>もしAS_PATHが同じ長さなら、ORIGIN → MED（同じ隣接ASから来た場合だけ比べる）→ eBGP優先（①が勝つ）…と進みます。</p>
+<p>覚え方は英語の語呂合わせ We Love Oranges AS Oranges Mean Pure Refreshment（Weight→LOCAL_PREF→Originate→AS_PATH→ORIGIN→MED→Paths（eBGP）→Router ID）が定番です。Weightは<strong>パス属性ではなくCisco独自の値</strong>で、他のルータには伝わりません。メーカーによって細かい順番は異なります。</p>
+<p>試験で大事なのは、<strong>LOCAL_PREFがAS_PATHより先に比べられる</strong>ことです。AS_PATHがどれだけ短くても、LOCAL_PREFで勝った経路が優先されます。</p>
+<blockquote>
+<p>何もしなければ、宛先ごとにAS_PATHの長さなどで自動的に決まります。でも「普段はISP-A、ISP-Bは予備」と自分で決めたいなら、この順番の上のほうにある属性を書き換えます。それが次の章です。</p>
+</blockquote>
+<h2 id="s8">8. 選び方を自分で操作する：主回線と予備回線</h2>
+<p>「普段はISP-A、ISP-Bは予備」と決めるには、7章の比較順の上のほうにある属性を書き換えます。ただし<strong>出ていく通信は自分で決められるが、入ってくる通信は相手にお願いすることしかできない</strong>、という非対称性があります。試験で最も問われるのがここです。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 352" role="img" aria-label="出ていく通信はLOCAL_PREF、入ってくる通信はAS_PATHプリペンドで制御する" font-size="13"><defs><marker id="tc-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cds-chart-axis)"></path></marker><marker id="tc-arrow-hot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--cds-chart-categorical-1)"></path></marker></defs><text x="24" y="30" font-size="15" font-weight="600" fill="var(--cds-text-primary)">出ていく通信はLOCAL_PREF、入ってくる通信はAS_PATHプリペンド</text><line x1="380" y1="52" x2="380" y2="296" stroke="var(--cds-chart-grid)" stroke-width="1"></line><g><text x="28" y="66" font-weight="600" fill="var(--cds-text-primary)">① 出ていく通信：LOCAL_PREF</text><text x="28" y="86" font-size="11.5" fill="var(--cds-text-secondary)">大きい値をAS内の全ルータが共有して選ぶ</text><rect x="28" y="200" width="340" height="88" rx="10" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1" stroke-dasharray="6 4"></rect><rect x="40" y="100" width="144" height="44" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><rect x="224" y="100" width="144" height="44" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><rect x="48" y="220" width="128" height="52" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><rect x="232" y="220" width="128" height="52" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><path d="M112 220V146" stroke="var(--cds-chart-categorical-1)" stroke-width="2.5" fill="none" marker-end="url(#tc-arrow-hot)"></path><path d="M296 220V146" stroke="var(--cds-chart-axis)" stroke-width="1.25" stroke-dasharray="5 4" fill="none" marker-end="url(#tc-arrow)"></path><text x="112" y="127" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-A</text><text x="296" y="127" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-B</text><text x="112" y="242" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R1</text><text x="112" y="261" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">LOCAL_PREF 200</text><text x="296" y="242" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R2</text><text x="296" y="261" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">LOCAL_PREF 100</text><text x="122" y="186" font-size="11.5" fill="var(--cds-text-primary)">主経路</text><text x="306" y="186" font-size="11.5" fill="var(--cds-text-secondary)">予備</text></g><g><text x="396" y="66" font-weight="600" fill="var(--cds-text-primary)">② 入ってくる通信：AS_PATHプリペンド</text><text x="396" y="86" font-size="11.5" fill="var(--cds-text-secondary)">予備側を「遠回り」に見せて外のASに選ばせる</text><rect x="396" y="200" width="340" height="88" rx="10" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1" stroke-dasharray="6 4"></rect><rect x="408" y="100" width="144" height="44" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><rect x="592" y="100" width="144" height="44" rx="8" fill="none" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><rect x="416" y="220" width="128" height="52" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><rect x="600" y="220" width="128" height="52" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><path d="M480 146V220" stroke="var(--cds-chart-categorical-1)" stroke-width="2.5" fill="none" marker-end="url(#tc-arrow-hot)"></path><path d="M664 146V220" stroke="var(--cds-chart-axis)" stroke-width="1.25" stroke-dasharray="5 4" fill="none" marker-end="url(#tc-arrow)"></path><text x="480" y="127" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-A</text><text x="664" y="127" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">ISP-B</text><text x="480" y="242" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R1</text><text x="480" y="261" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">広告：65001</text><text x="664" y="242" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">R2</text><text x="664" y="261" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">広告：65001×3</text><text x="490" y="186" font-size="11.5" fill="var(--cds-text-primary)">主経路</text><text x="674" y="186" font-size="11.5" fill="var(--cds-text-secondary)">予備</text></g><text x="24" y="326" font-size="11.5" fill="var(--cds-text-secondary)">MEDも入口の制御に使えるが、比べられるのは同じ隣接ASから来た経路同士だけ（2回線とも同じISPのとき）</text></svg></div><figcaption>図12　方向別の制御 · 左＝出ていく通信、右＝入ってくる通信</figcaption></figure>
+<h3>出ていく通信（自社 → X社）：LOCAL_PREF</h3>
+<p>R1がISP-Aから受けた経路にLOCAL_PREF 200を付けます。この値はiBGPでR2やR3にも伝わるので、<strong>社内の全ルータがそろってISP-Aを出口に選びます</strong>。7章の比較ではLOCAL_PREFがAS_PATHより先なので、ISP-B経由の方がAS_PATHが短い宛先でもISP-Aが勝ちます。ISP-Aが落ちればその経路が消え、自動でISP-Bに切り替わります。</p>
+<h3>入ってくる通信（X社 → 自社）：AS_PATHプリペンドなど</h3>
+<p>X社が自社の203.0.113.0/24へどちら経由で来るかは、X社側のルータが7章の順番で決めます。自社のLOCAL_PREFは外に伝わらないので、代わりにISP-B側で広告するAS_PATHを「65001 65001 65001」とわざと長くし、遠回りに見せます。これが<strong>AS_PATHプリペンド</strong>です。</p>
+<h3>手段の一覧</h3>
+<table>
+<thead>
+<tr>
+<th>手段</th>
+<th>制御する方向</th>
+<th>効く範囲</th>
+<th>この構成での使い方</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>LOCAL_PREF</td>
+<td>出ていく</td>
+<td>自社AS内の全ルータ（iBGPで共有）</td>
+<td>R1でISP-Aからの経路を200にする</td>
+</tr>
+<tr>
+<td>Weight</td>
+<td>出ていく</td>
+<td>設定したルータだけ（Cisco独自）</td>
+<td>1台で2回線を収容する場合に使う</td>
+</tr>
+<tr>
+<td>AS_PATHプリペンド</td>
+<td>入ってくる</td>
+<td>隣接AS以降のすべて</td>
+<td>R2からISP-Bへの広告に65001を3回付ける</td>
+</tr>
+<tr>
+<td>MED</td>
+<td>入ってくる</td>
+<td>隣接ASのみ。同じ相手ASと複数回線のとき</td>
+<td>2回線ともISP-Aなら、主をMED 0、予備をMED 100</td>
+</tr>
+<tr>
+<td>コミュニティ</td>
+<td>入ってくる（相手に依頼）</td>
+<td>ISPが定義する値に従う</td>
+<td>ISP-Bの「LOCAL_PREFを下げて」用コミュニティを付ける</td>
+</tr>
+<tr>
+<td>経路を分割して広告</td>
+<td>入ってくる</td>
+<td>インターネット全体</td>
+<td>/23を持っているなら/24×2に分け、ISPごとに片方を優先</td>
+</tr>
+</tbody></table>
+<h3>要注意ポイント</h3>
+<ul>
+<li><strong>最長一致はBGP属性より優先される</strong>。より長いプレフィックスの広告は、他のASのポリシーでも覆らない最も強い入口制御。ただし/24より長い経路は多くのISPで捨てられる。</li>
+<li><strong>AS_PATHプリペンドは絶対ではない</strong>。相手ASがLOCAL_PREFでISP-B経由を優先していれば、そちらが勝つ（LOCAL_PREFの方が先に比べられるため）。</li>
+<li>MEDは既定で<strong>同じ隣接ASから学んだ経路同士でしか比べない</strong>。ISP-AとISP-BのMEDを比べることはない。</li>
+<li>行きはISP-A、帰りはISP-Bのような<strong>非対称ルーティング</strong>になると、ステートフルなFWやNATで通信が落ちる。出口と入口はそろえて設計する。</li>
+</ul>
+<h3>ウェルノウンコミュニティ</h3>
+<table>
+<thead>
+<tr>
+<th>コミュニティ</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>NO_EXPORT</td>
+<td>自AS（コンフェデレーション全体）の外へ広告しない</td>
+</tr>
+<tr>
+<td>NO_ADVERTISE</td>
+<td>どのピアにも広告しない</td>
+</tr>
+<tr>
+<td>NO_EXPORT_SUBCONFED（LOCAL_AS）</td>
+<td>サブASの外へ広告しない</td>
+</tr>
+</tbody></table>
+<h3>ISPから受け取る経路の選択肢</h3>
+<ul>
+<li><strong>デフォルトルートのみ</strong>：負荷が軽い。ただし宛先ごとの細かい出口制御はできない。</li>
+<li><strong>フルルート</strong>：宛先ごとに最適な出口を選べるが、メモリとCPUを多く使う。</li>
+<li><strong>部分経路＋デフォルト</strong>：ISP自身とその顧客の経路だけ受け取る折衷案。</li>
+</ul>
+<blockquote>
+<p>これで、経路が届いてから使われるまでを一通り追いました。次の章は、試験での問われ方ごとに振り返るまとめです。</p>
+</blockquote>
+<h2 id="s9">9. 試験頻出ポイントとひっかけ</h2>
+<p>午後問題は「企業が2社のISPやIP-VPNとBGPで接続している構成図」が出て、<strong>障害時の経路の切り替わり方と、どの属性で主従を制御するか</strong>を答えさせる形が定番です。</p>
+<h3>問われ方と答えの核</h3>
+<table>
+<thead>
+<tr>
+<th>こう問われたら</th>
+<th>答えの核</th>
+<th>章</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>BGPが使うプロトコルとポート番号</td>
+<td>TCP 179</td>
+<td>3</td>
+</tr>
+<tr>
+<td>状態がActiveのまま</td>
+<td>TCP 179がつながらない（FW・ACL、ピアアドレス、AS番号の誤り）</td>
+<td>3</td>
+</tr>
+<tr>
+<td>障害検知を速くしたい</td>
+<td>BFDとの連携、またはキープアライブ／ホールドタイムを短くする</td>
+<td>3</td>
+</tr>
+<tr>
+<td>AS間のループを防ぐ仕組み</td>
+<td>AS_PATHに自分のAS番号があれば破棄</td>
+<td>4</td>
+</tr>
+<tr>
+<td>同じAS番号を使う拠点間で経路が届かない</td>
+<td>AS_PATHのループ検出で破棄 → allowas-in、as-override</td>
+<td>4</td>
+</tr>
+<tr>
+<td>社内ルータでBGP経路が使われない原因</td>
+<td>NEXT_HOPに到達できない → next-hop-self</td>
+<td>5</td>
+</tr>
+<tr>
+<td>iBGPをループバックで張る理由</td>
+<td>物理IFが1本落ちても迂回路でセッションが維持される</td>
+<td>5</td>
+</tr>
+<tr>
+<td>iBGPをフルメッシュにする理由</td>
+<td>iBGPで学んだ経路は他のiBGPピアへ広告しないため</td>
+<td>6</td>
+</tr>
+<tr>
+<td>n台のフルメッシュに必要なセッション数</td>
+<td>n(n−1)/2</td>
+<td>6</td>
+</tr>
+<tr>
+<td>フルメッシュを避ける方法</td>
+<td>ルートリフレクタ、コンフェデレーション</td>
+<td>6</td>
+</tr>
+<tr>
+<td>自社から出ていく通信の回線を決める属性</td>
+<td>LOCAL_PREF（大きい方が優先、既定100）</td>
+<td>7・8</td>
+</tr>
+<tr>
+<td>外から入ってくる通信の回線を決める方法</td>
+<td>AS_PATHプリペンド（予備側を長くする）、MED（同じISPの場合）</td>
+<td>8</td>
+</tr>
+</tbody></table>
+<h3>よくあるひっかけ</h3>
+<ul>
+<li>LOCAL_PREFは<strong>大きい方</strong>、MEDは<strong>小さい方</strong>が優先。逆に覚えやすい。</li>
+<li>LOCAL_PREFは<strong>自AS内だけ</strong>で使われ、eBGPで隣のASには伝わらない。</li>
+<li>MEDは<strong>隣接ASまで</strong>しか伝わらず、その先のASには渡らない。</li>
+<li>iBGPは<strong>NEXT_HOPもAS_PATHも変えない</strong>。書き換えるのはeBGP。</li>
+<li>BGPはOSPFのように隣接を自動発見しない。<strong>ネイバーは手で設定</strong>する。</li>
+<li>定期的に全経路を送り直すのはRIP。BGPは<strong>差分更新</strong>。</li>
+<li>WeightはCisco独自の値で、<strong>パス属性ではない</strong>。</li>
+<li>「最短のAS_PATHが必ず選ばれる」は誤り。LOCAL_PREFが先に比較され、さらに<strong>最長一致がすべてに優先</strong>する。</li>
+</ul>
+<h3>あわせて押さえたい関連キーワード</h3>
+<table>
+<thead>
+<tr>
+<th>キーワード</th>
+<th>ひとことで</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>MP-BGP（RFC 4760）</td>
+<td>IPv4ユニキャスト以外（IPv6、VPNv4、EVPNなど）を運べるようにした拡張</td>
+</tr>
+<tr>
+<td>RD／RT</td>
+<td>MPLS-VPNで、重複するアドレスを区別する値／どのVRFに取り込むかを決める値</td>
+</tr>
+<tr>
+<td>BFD</td>
+<td>ミリ秒単位でリンク障害を検知し、BGPへ知らせる</td>
+</tr>
+<tr>
+<td>グレースフルリスタート</td>
+<td>制御プロセスの再起動中も転送を続ける</td>
+</tr>
+<tr>
+<td>経路集約（aggregate）</td>
+<td>複数の経路をまとめて広告。細かい経路の広告を止めるにはsummary-only</td>
+</tr>
+<tr>
+<td>RPKI／ROA</td>
+<td>経路ハイジャック対策。「このプレフィックスを広告してよいAS」を電子証明書で検証</td>
+</tr>
+<tr>
+<td>最大プレフィックス数（maximum-prefix）</td>
+<td>相手の設定ミスで大量の経路が流れてきたときにセッションを切る</td>
+</tr>
+<tr>
+<td>CE／PE／P</td>
+<td>IP-VPNのルータの役割。CE＝お客さん側の端、PE＝事業者側の端、P＝事業者網の内部（4章）</td>
+</tr>
+<tr>
+<td>VRF</td>
+<td>1台のPEの中にお客さんごとの経路表を分けて持つ仕組み</td>
+</tr>
+</tbody></table>
+<h3>暗記チェックリスト</h3>
+<ul>
+<li><input disabled="" type="checkbox"> BGPはTCP 179、パスベクタ型、差分更新</li>
+<li><input disabled="" type="checkbox"> メッセージ4種（OPEN、UPDATE、KEEPALIVE、NOTIFICATION）と状態6つ</li>
+<li><input disabled="" type="checkbox"> ウェルノウン必須属性：ORIGIN、AS_PATH、NEXT_HOP</li>
+<li><input disabled="" type="checkbox"> 最適経路選択の順序（Weight→LOCAL_PREF→自分で生成→AS_PATH→ORIGIN→MED→eBGP→IGPコスト→…）</li>
+<li><input disabled="" type="checkbox"> eBGPとiBGPで変わるもの（AS_PATH、NEXT_HOP、TTL、管理距離20／200）</li>
+<li><input disabled="" type="checkbox"> ループ防止：AS_PATH／iBGPスプリットホライズン／ORIGINATOR_ID・CLUSTER_LIST／AS_CONFED_SEQUENCE</li>
+<li><input disabled="" type="checkbox"> RRの反射ルール3つ</li>
+<li><input disabled="" type="checkbox"> 出口はLOCAL_PREF、入口はAS_PATHプリペンド／MED／コミュニティ／経路分割</li>
+</ul>
+<p>おまけ（試験範囲外）：個人でBGPを触る方法は <a href="#bonus">おまけ：個人でBGPを触る</a> にまとめています。</p>
+<section class="bonus"><h1 id="bonus">おまけ：個人でBGPを触る方法</h1>
+<p class="byline">2026-11-14 · 試験とは関係ない、知的好奇心のメモ</p><p>BGPは通信事業者だけのものではなく、個人でも<strong>手元ラボ→dn42→自分のASで本物のインターネット</strong>の3段階で触れます。プロトコルとしてはどれも同じBGPで、違うのはつなぐ相手と影響範囲です。</p>
+<h2>3つの選択肢</h2>
+<table>
+<thead>
+<tr>
+<th>方法</th>
+<th>できること</th>
+<th>費用の目安</th>
+<th>手間</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>① 手元ラボ</td>
+<td>VMでFRR・BIRD・VyOSを動かし、プライベートAS同士でBGPを組む</td>
+<td>無料（手持ちのPC）</td>
+<td>小</td>
+</tr>
+<tr>
+<td>② dn42</td>
+<td>趣味の人たちが運営するBGP網に参加し、本物の相手とピアを張る</td>
+<td>VPS代程度（自宅サーバでも可）</td>
+<td>中</td>
+</tr>
+<tr>
+<td>③ 自分のASで本物のインターネットへ</td>
+<td>自分のAS番号とIPアドレスを世界に広告する</td>
+<td>ASNだけで年50〜150ドル程度＋VPS代</td>
+<td>大</td>
+</tr>
+</tbody></table>
+<h2>dn42とは</h2>
+<p>dn42（Decentralized Network 42）は、<strong>趣味の参加者がインターネット上にVPNトンネルを張り、その中で本物のBGPを動かして作っているもう一つのインターネット</strong>です。アドレスはプライベートなので、何をやっても本物のインターネットには影響しません。</p>
+<figure><div class="svg"><svg viewBox="0 0 760 364" role="img" aria-label="dn42：インターネット上のトンネルの中に、もう一つのBGP網を作る" font-size="13"><text x="24" y="34" font-size="15" font-weight="600" fill="var(--cds-text-primary)">dn42：インターネット上のトンネルの中に、もう一つのBGP網を作る</text><g stroke="var(--cds-chart-grid)" stroke-width="1.25" stroke-dasharray="3 4"><line x1="140" y1="196" x2="140" y2="300"></line><line x1="380" y1="196" x2="380" y2="300"></line><line x1="620" y1="196" x2="620" y2="300"></line></g><g fill="none" stroke="var(--cds-chart-categorical-1)" stroke-width="2"><line x1="224" y1="158" x2="296" y2="158"></line><line x1="464" y1="158" x2="536" y2="158"></line><path d="M140 120V96H620V120" stroke-dasharray="6 4"></path></g><g><rect x="56" y="120" width="168" height="76" rx="8" fill="var(--cds-chart-categorical-1)" fill-opacity="0.12" stroke="var(--cds-chart-categorical-1)" stroke-width="2"></rect><text x="140" y="146" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">自分のAS</text><text x="140" y="166" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">AS424242xxxx</text><text x="140" y="184" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">BIRD・FRR＋WireGuard</text></g><g><rect x="296" y="120" width="168" height="76" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="380" y="146" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">参加者AのAS</text><text x="380" y="166" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">別の個人のネットワーク</text></g><g><rect x="536" y="120" width="168" height="76" rx="8" fill="none" fill-opacity="1" stroke="var(--cds-chart-axis)" stroke-width="1.25"></rect><text x="620" y="146" text-anchor="middle" font-weight="600" fill="var(--cds-text-primary)">参加者BのAS</text><text x="620" y="166" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">.dn42のサービスを公開</text></g><text x="260" y="150" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--cds-text-primary)">eBGP</text><text x="500" y="150" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--cds-text-primary)">eBGP</text><text x="380" y="86" text-anchor="middle" font-size="11.5" fill="var(--cds-text-primary)">トンネルは何本でも張れる＝マルチホームも練習できる</text><text x="380" y="228" text-anchor="middle" font-size="11.5" fill="var(--cds-text-secondary)">やり取りするのは 172.20.0.0/14 や fd00::/8 などのプライベート経路</text><g><rect x="24" y="300" width="712" height="40" rx="8" fill="var(--cds-chart-reference-tint)" stroke="var(--cds-chart-axis)" stroke-width="1"></rect><text x="380" y="325" text-anchor="middle" fill="var(--cds-text-primary)">普通のインターネット回線（トンネルはこの上を通る）</text></g></svg></div><figcaption>図13　dn42の構造 · 自分＋参加者2人をトンネル＋eBGPで接続</figcaption></figure>
+<table>
+<thead>
+<tr>
+<th>項目</th>
+<th>中身</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>規模</td>
+<td>1,500以上のAS、1,700以上のプレフィックス</td>
+</tr>
+<tr>
+<td>つなぎ方</td>
+<td>WireGuard・GRE・OpenVPN・IPsecなどのトンネルの上でBGP</td>
+</tr>
+<tr>
+<td>アドレス</td>
+<td>IPv4は主に172.20.0.0/14、IPv6はfd00::/8の範囲。IPv6推奨で、IPv4は/27程度が普通</td>
+</tr>
+<tr>
+<td>AS番号</td>
+<td>4242420000〜4242429999（RFC 6996のプライベート範囲の一部）</td>
+</tr>
+<tr>
+<td>使われるソフト</td>
+<td>BIRD、FRRが定番。OpenBGPD、GoBGP、MikroTik RouterOS、VyOS なども</td>
+</tr>
+<tr>
+<td>中にあるもの</td>
+<td>独自の .dn42 ドメインとDNS、ルッキンググラス、IX、エニーキャストサービス、IRC など</td>
+</tr>
+<tr>
+<td>経路の検証</td>
+<td>登録簿（レジストリ）の情報から作る経路オブジェクトで、本物のROAと同じようにフィルタする</td>
+</tr>
+</tbody></table>
+<p>本物のインターネットでは個人が気軽に試せない、マルチホームやトランジット（他人の経路を中継すること）まで実際にやれるのが面白いところです。</p>
+<h2>dn42に参加するまでの流れ</h2>
+<ol>
+<li><strong>ルータ役のマシンを用意する</strong>：VPSか自宅のLinuxマシン（MikroTikなどの実機ルータでも可）に、BIRDかFRRとWireGuardを入れる。</li>
+<li><strong>登録簿に自分を登録する</strong>：git.dn42.dev のレジストリをフォークし、管理者情報・AS番号・使うアドレス・経路の情報を追加してプルリクエストを送る。自動チェックの後、管理者がマージする。</li>
+<li><strong>ピアの相手を探す</strong>：参加者が公開しているピアリング受付やIRCで依頼する。SSHで数分のうちに自動でピアを張ってくれる仕組みを用意している人もいる。</li>
+<li><strong>トンネル＋eBGPを張る</strong>：WireGuardで相手とつなぎ、その上でBGPセッションを確立する。IPv6リンクローカルで張る構成を好む参加者が多い。</li>
+<li><strong>フィルタを書く</strong>：登録簿と照合して不正な経路を捨てる。最初は他人の経路を中継しない stub AS として始めるのが無難。</li>
+<li><strong>何かを公開してみる</strong>：WebサーバやDNSを立て、.dn42 ドメインで他の参加者から見えるようにする。</li>
+</ol>
+<p>自宅LANからdn42へは、境界ルータでNATすれば普通の家庭内アドレスのままでもつながります。</p>
+<h2>本編で学んだことがdn42でどう現れるか</h2>
+<table>
+<thead>
+<tr>
+<th>本編の内容</th>
+<th>dn42で体験できる場面</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>eBGP</td>
+<td>トンネル越しに他の参加者とピアを張る</td>
+</tr>
+<tr>
+<td>iBGP・フルメッシュ・RR</td>
+<td>自分のノードを複数の地域に置き、AS内をiBGP＋OSPFでつなぐ</td>
+</tr>
+<tr>
+<td>LOCAL_PREF</td>
+<td>複数のピアのうち、どこ経由で出ていくかを優先付けする</td>
+</tr>
+<tr>
+<td>AS_PATHプリペンド・コミュニティ</td>
+<td>入ってくる経路を調整する（dn42独自のBGPコミュニティもある）</td>
+</tr>
+<tr>
+<td>AS_PATHによるループ防止</td>
+<td>トンネルを複数張って経路が回り込む様子を実際に見る</td>
+</tr>
+<tr>
+<td>フィルタ・RPKI／ROA</td>
+<td>登録簿ベースの経路検証</td>
+</tr>
+</tbody></table>
+<h2>さらに先：自分のASで本物のインターネットへ</h2>
+<ul>
+<li><strong>AS番号の取得</strong>：欧州のレジストリRIPE NCCは個人の登録を制限していない。代理申請してくれるスポンサーLIRを通すのが一般的で、日本在住でもこのルートを使う人がいる。個人申請ではパスポートなどの本人確認書類を求められる。</li>
+<li><strong>条件</strong>：BGPを張ることに同意した上流プロバイダ2社の証明（マルチホームの証明）が必要。</li>
+<li><strong>つなぐ先</strong>：家庭向けの光回線とはBGPを張れないので、BGP対応のVPSを使う。例：Vultrは自分のASNでも、Vultrが割り当てるプライベートASNでも自分のIPを持ち込める。</li>
+<li><strong>アドレス</strong>：世界から見えるにはIPv4なら/24、IPv6なら/48以上を広告する必要がある。IPv4は高価なので、個人はIPv6の/48から始めるのが定番。</li>
+<li><strong>心構え</strong>：ここから先は設定ミスが本物のインターネットに影響する。RIPE Labsの記事も、学習が目的なら公開ASでなくてもBGPの動きは同じだと指摘している。「自分のIPを持ちたい」などの目的ができてからで十分。</li>
+</ul>
+<h2>Sources</h2>
+<ul>
+<li><a href="https://dn42.eu/">dn42 – About</a></li>
+<li><a href="https://dn42.net/">dn42.net</a></li>
+<li><a href="https://blog.hofstede.it/joining-dn42-a-mikrotik-border-three-wireguard-peerings-and-a-freebsd-jail-in-the-hobbyist-internet/">Joining DN42: A MikroTik Border, Three WireGuard Peerings, and a FreeBSD Jail</a></li>
+<li><a href="https://markround.com/dn42">markround.com – dn42</a></li>
+<li><a href="https://www.wikiwand.com/en/articles/Dn42">Wikiwand – Dn42</a></li>
+<li><a href="https://calendify.com/session/ADx4vApwgGP">FOSDEM 2026 – Automating BGP peerings in the dn42 environment</a></li>
+<li><a href="https://labs.ripe.net/author/eu/driving-the-asn-truck-without-a-licence/">RIPE Labs – Driving the ASN Truck Without a Licence</a></li>
+<li><a href="https://blog.steveyi.net/en/posts/get-asn-from-ripe/">get asn from ripe（steveyi.net）</a></li>
+<li><a href="https://senko.digital/lir-services">senko.digital – LIR Services</a></li>
+<li><a href="https://dev.to/young_gao/how-to-get-your-own-asn-and-announce-ipv6-via-bgp-a-2026-practical-guide-4g86">DEV Community – How to Get Your Own ASN and Announce IPv6 via BGP</a></li>
+<li><a href="https://www.vultr.com/features/advanced-networking/">Vultr – Advanced Networking</a></li>
+<li><a href="https://docs.vultr.com/configuring-bgp-on-vultr">Vultr Docs – Configuring BGP on Vultr</a></li>
+</ul>
+</section></main></div>
+<script>document.querySelectorAll('input[type=checkbox]').forEach(c=>c.disabled=false)</script>
+</body></html>
